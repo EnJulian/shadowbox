@@ -1,0 +1,109 @@
+import requests
+import os
+import urllib.parse
+import time
+
+def get_album_cover_url(title, artist):
+    """
+    Get the album cover URL from iTunes API.
+    
+    Args:
+        title (str): Song title
+        artist (str): Artist name
+    
+    Returns:
+        str or None: URL of the album cover, or None if not found
+    """
+    query = f"{title} {artist}"
+    encoded_query = urllib.parse.quote(query)
+    url = f"https://itunes.apple.com/search?term={encoded_query}&entity=song&limit=1"
+    
+    try:
+        # Add a user agent to avoid potential blocks
+        headers = {
+            'User-Agent': 'lsnen.foobar/0.1.0'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        # Check if the request was successful
+        if response.status_code != 200:
+            print(f"iTunes API returned status code {response.status_code}")
+            return None
+        
+        # Parse the JSON response
+        data = response.json()
+        
+        # Check if we got any results
+        if not data.get('results') or len(data['results']) == 0:
+            print("No results found in iTunes API response")
+            return None
+        
+        # Get the artwork URL and replace with higher resolution
+        artwork_url = data['results'][0].get('artworkUrl100')
+        if artwork_url:
+            # Replace with higher resolution image
+            return artwork_url.replace('100x100bb', '600x600bb')
+        
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching album cover URL: {e}")
+        return None
+    except ValueError as e:
+        print(f"Error parsing JSON response: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return None
+
+def download_cover_image(image_url, file_path='cover.jpg'):
+    """
+    Download an image from a URL and save it to a file.
+    
+    Args:
+        image_url (str): URL of the image
+        file_path (str, optional): Path to save the image. Defaults to 'cover.jpg'.
+    
+    Returns:
+        str or None: Path to the saved image, or None if download failed
+    """
+    if not image_url:
+        return None
+    
+    # Ensure the directory exists
+    directory = os.path.dirname(file_path)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+    
+    try:
+        # Add a user agent to avoid potential blocks
+        headers = {
+            'User-Agent': 'lsnen.foobar/0.1.0'
+        }
+        
+        # Download the image with a timeout
+        response = requests.get(image_url, headers=headers, timeout=10)
+        
+        # Check if the request was successful
+        if response.status_code != 200:
+            print(f"Image download failed with status code {response.status_code}")
+            return None
+        
+        # Save the image to a file
+        with open(file_path, 'wb') as f:
+            f.write(response.content)
+        
+        # Verify the file was created
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            return file_path
+        else:
+            print("Image file was not created or is empty")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading image: {e}")
+        return None
+    except IOError as e:
+        print(f"Error saving image: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return None

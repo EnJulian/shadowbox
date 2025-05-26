@@ -14,7 +14,36 @@ def get_album_cover_url(title, artist):
     Returns:
         str or None: URL of the album cover, or None if not found
     """
-    query = f"{title} {artist}"
+    # Try with both title and artist first
+    url = _search_itunes_api(f"{title} {artist}")
+    if url:
+        return url
+    
+    # If that fails, try with just the title
+    print(f"\033[33m[API]\033[0m First search failed, trying with just the title: '{title}'")
+    url = _search_itunes_api(title)
+    if url:
+        return url
+    
+    # If that fails too, try with just the artist
+    print(f"\033[33m[API]\033[0m Second search failed, trying with just the artist: '{artist}'")
+    url = _search_itunes_api(artist)
+    if url:
+        return url
+    
+    # If all searches fail, return None
+    return None
+
+def _search_itunes_api(query):
+    """
+    Helper function to search iTunes API.
+    
+    Args:
+        query (str): Search query
+    
+    Returns:
+        str or None: URL of the album cover, or None if not found
+    """
     encoded_query = urllib.parse.quote(query)
     url = f"https://itunes.apple.com/search?term={encoded_query}&entity=song&limit=1"
     
@@ -35,7 +64,7 @@ def get_album_cover_url(title, artist):
         
         # Check if we got any results
         if not data.get('results') or len(data['results']) == 0:
-            print("\033[33m[API]\033[0m No results found in iTunes API response")
+            print(f"\033[33m[API]\033[0m No results found in iTunes API for query: '{query}'")
             return None
         
         # Get the artwork URL and replace with higher resolution

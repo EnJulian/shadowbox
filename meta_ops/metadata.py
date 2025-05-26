@@ -6,6 +6,63 @@ from mutagen.flac import Picture
 import os
 import base64
 
+def extract_metadata(file_path):
+    """
+    Extract metadata from an audio file (MP3 or Opus).
+    
+    Args:
+        file_path (str): Path to the audio file
+    
+    Returns:
+        dict: Dictionary containing title, artist, and album if available
+              If metadata is not available, returns empty strings for each field
+    
+    Raises:
+        FileNotFoundError: If the audio file doesn't exist
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Audio file not found: {file_path}")
+    
+    # Default empty metadata
+    metadata = {
+        'title': '',
+        'artist': '',
+        'album': ''
+    }
+    
+    # Determine file type based on extension
+    file_ext = os.path.splitext(file_path)[1].lower()
+    
+    try:
+        if file_ext == '.mp3':
+            try:
+                audio = MP3(file_path, ID3=EasyID3)
+                if 'title' in audio and audio['title']:
+                    metadata['title'] = audio['title'][0]
+                if 'artist' in audio and audio['artist']:
+                    metadata['artist'] = audio['artist'][0]
+                if 'album' in audio and audio['album']:
+                    metadata['album'] = audio['album'][0]
+            except:
+                print("\033[33m[WARNING]\033[0m Could not extract metadata from MP3 file")
+        elif file_ext == '.opus':
+            try:
+                audio = OggOpus(file_path)
+                if 'title' in audio and audio['title']:
+                    metadata['title'] = audio['title'][0]
+                if 'artist' in audio and audio['artist']:
+                    metadata['artist'] = audio['artist'][0]
+                if 'album' in audio and audio['album']:
+                    metadata['album'] = audio['album'][0]
+            except:
+                print("\033[33m[WARNING]\033[0m Could not extract metadata from Opus file")
+        else:
+            print(f"\033[33m[WARNING]\033[0m Unsupported file format for metadata extraction: {file_ext}")
+    except Exception as e:
+        print(f"\033[33m[WARNING]\033[0m Error extracting metadata: {e}")
+    
+    return metadata
+
 def add_metadata(file_path, title, artist, album, cover_path=None):
     """
     Add metadata to an audio file (MP3 or Opus).

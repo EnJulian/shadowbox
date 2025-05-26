@@ -5,7 +5,12 @@ Test script to verify that all components of the Music Downloader work correctly
 
 import os
 import sys
+
+# Add the meta_ops directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'meta_ops'))
+
 from cover_art import get_album_cover_url, download_cover_image
+from metadata import extract_metadata, add_metadata
 
 def test_cover_art():
     """Test the cover art functionality."""
@@ -34,6 +39,52 @@ def test_cover_art():
     else:
         print("\033[31m[FAIL]\033[0m Failed to find cover art URL")
         return False
+    
+    # Test with a more challenging case
+    print("\nTesting fallback cover art search...")
+    title = "Obscure Song Title That Probably Doesn't Exist"
+    artist = "Famous Artist"  # Using a famous artist as fallback
+    
+    print(f"Searching for cover art for '{title}' by '{artist}'...")
+    image_url = get_album_cover_url(title, artist)
+    
+    if image_url:
+        print(f"\033[32m[SUCCESS]\033[0m Fallback search worked! Found cover art URL: {image_url}")
+        # We don't need to download this one
+    else:
+        print("\033[33m[WARNING]\033[0m Fallback search didn't find a cover, but this is acceptable for the test")
+    
+    return True
+
+def test_metadata():
+    """Test the metadata functionality."""
+    print("Testing metadata functionality...")
+    
+    # Create a test file with metadata
+    test_file = "test_metadata.opus"
+    
+    # First, check if the file already exists
+    if os.path.exists(test_file):
+        os.remove(test_file)
+    
+    # Create an empty file
+    with open(test_file, "wb") as f:
+        f.write(b"\x00" * 1024)  # Write some dummy data
+    
+    # Test metadata extraction on an empty file
+    print("Testing metadata extraction on an empty file...")
+    metadata = extract_metadata(test_file)
+    
+    if metadata['title'] == '' and metadata['artist'] == '' and metadata['album'] == '':
+        print("\033[32m[SUCCESS]\033[0m Correctly handled empty file metadata")
+    else:
+        print("\033[31m[FAIL]\033[0m Unexpected metadata in empty file")
+        os.remove(test_file)
+        return False
+    
+    # Clean up
+    os.remove(test_file)
+    print(f"Removed test file: {test_file}")
     
     return True
 
@@ -80,6 +131,10 @@ def main():
     
     # Test cover art functionality
     if not test_cover_art():
+        return False
+    
+    # Test metadata functionality
+    if not test_metadata():
         return False
     
     print("\n\033[32m[COMPLETE]\033[0m All tests passed! The Music Downloader should work correctly.")

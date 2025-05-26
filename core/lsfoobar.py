@@ -19,7 +19,7 @@ def print_header():
     """Print the application header."""
     clear_screen()
     print("=" * 70)
-    print("\033[32m[SYSTEM]\033[0m  LSNEN'S FOOBAR2000 MUSIC DOWNLOADER  \033[32m[SYSTEM]\033[0m")
+    print("\033[32m[SYSTEM]\033[0m  SHADOWBOX BY LSNEN  \033[32m[SYSTEM]\033[0m")
     print("=" * 70)
     print("Download music from YouTube or Bandcamp with metadata and cover art")
     print("=" * 70)

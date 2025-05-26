@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'meta_ops'))
 
 from downloader import download_audio, is_url
-from metadata import add_metadata
+from metadata import add_metadata, extract_metadata
 from cover_art import get_album_cover_url, download_cover_image
 import os
 import sys
@@ -123,47 +123,65 @@ def run(query, output_file=None, music_dir=None):
     
     print(f"\033[32m[SUCCESS]\033[0m Found downloaded file: {temp_file}")
     
-    # Parse title and artist from query if it's not a URL
-    if is_url(query):
-        # Try to extract title and artist from filename
-        filename = os.path.basename(temp_file)
-        name_without_ext = os.path.splitext(filename)[0]
-        
-        # Simple heuristic: try to split at " - " which is common in music filenames
-        if " - " in name_without_ext:
-            artist, title = name_without_ext.split(" - ", 1)
-        else:
-            # If no clear separator, use the whole name as title
-            title = name_without_ext
-            artist = "Unknown"
+    # First, try to extract metadata from the downloaded file
+    print(f"\033[32m[META]\033[0m Extracting metadata from downloaded file...")
+    file_metadata = extract_metadata(temp_file)
+    
+    # Initialize title and artist variables
+    title = ""
+    artist = ""
+    
+    # If we have metadata from the file, use it
+    if file_metadata['title'] and file_metadata['artist']:
+        print(f"\033[32m[META]\033[0m Found metadata in file: Title='{file_metadata['title']}', Artist='{file_metadata['artist']}'")
+        title = file_metadata['title']
+        artist = file_metadata['artist']
     else:
-        # For search queries, try to intelligently parse artist and title
-        parts = query.split()
-        
-        # If query has at least 3 words, assume first 1-2 words might be artist
-        if len(parts) >= 3:
-            # Try to identify common artist patterns
-            if len(parts) >= 4 and (parts[0].lower() + " " + parts[1].lower()) in ["imagine dragons", "pink floyd", "led zeppelin", "rolling stones"]:
-                # Known two-word artists
-                artist = parts[0] + " " + parts[1]
-                title = " ".join(parts[2:])
-            else:
-                # Default: first word is artist, rest is title
-                artist = parts[0]
-                title = " ".join(parts[1:])
-        elif len(parts) == 2:
-            # With just two words, assume first is artist, second is title
-            artist = parts[0]
-            title = parts[1]
-        else:
-            # With just one word, use it as title with unknown artist
-            title = query
-            artist = "Unknown"
+        # Fallback: Parse title and artist from query if it's not a URL
+        print(f"\033[33m[META]\033[0m No metadata found in file, using fallback method...")
+        if is_url(query):
+            # Try to extract title and artist from filename
+            filename = os.path.basename(temp_file)
+            name_without_ext = os.path.splitext(filename)[0]
             
-        # Special case for "Imagine Dragons Believer"
-        if query.lower() == "imagine dragons believer":
-            artist = "Imagine Dragons"
-            title = "Believer"
+            # Simple heuristic: try to split at " - " which is common in music filenames
+            if " - " in name_without_ext:
+                artist, title = name_without_ext.split(" - ", 1)
+            else:
+                # If no clear separator, use the whole name as title
+                title = name_without_ext
+                artist = "Unknown"
+        else:
+            # For search queries, try to intelligently parse artist and title
+            parts = query.split()
+            
+            # If query has at least 3 words, assume first 1-2 words might be artist
+            if len(parts) >= 3:
+                # Try to identify common artist patterns
+                if len(parts) >= 4 and (parts[0].lower() + " " + parts[1].lower()) in ["imagine dragons", "pink floyd", "led zeppelin", "rolling stones"]:
+                    # Known two-word artists
+                    artist = parts[0] + " " + parts[1]
+                    title = " ".join(parts[2:])
+                else:
+                    # Default: first word is artist, rest is title
+                    artist = parts[0]
+                    title = " ".join(parts[1:])
+            elif len(parts) == 2:
+                # With just two words, assume first is artist, second is title
+                artist = parts[0]
+                title = parts[1]
+            else:
+                # With just one word, use it as title with unknown artist
+                title = query
+                artist = "Unknown"
+                
+            # Special case for "Imagine Dragons Believer"
+            if query.lower() == "imagine dragons believer":
+                artist = "Imagine Dragons"
+                title = "Believer"
+    
+    # Verify with user if the metadata seems incorrect
+    print(f"\033[32m[INFO]\033[0m Using metadata: Title='{title}', Artist='{artist}'")
     
     # Create artist directory
     artist_dir = create_artist_directory(artist, music_dir)

@@ -57,8 +57,19 @@ run.bat -q "Artist Track"   # search (Windows)
 - `tests/` - Test files
 - `setup/` - Installation and setup files
 
-## Credits
-Crafted with intent by [enjulian](https://github.com/enjulian).
+
+### Tools and Libraries
+This project wouldn't be possible without the following tools:
+
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) - A youtube-dl fork with additional features and fixes
+- [FFmpeg](https://ffmpeg.org/) - A complete, cross-platform solution to record, convert and stream audio and video
+- [mutagen](https://github.com/quodlibet/mutagen) - A Python module to handle audio metadata
+- [requests](https://github.com/psf/requests) - A simple, yet elegant, HTTP library for Python
+- [Pillow](https://python-pillow.org/) - Python Imaging Library fork
+- [aria2](https://aria2.github.io/) - A lightweight multi-protocol & multi-source command-line download utility
+
 
 ## License
 MIT License
+
+Crafted with intent by [enjulian](https://github.com/enjulian).

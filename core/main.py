@@ -85,7 +85,7 @@ def create_artist_directory(artist, base_dir=None):
     
     # Create the directory if it doesn't exist
     if not os.path.exists(artist_dir):
-        print(f"📁 Creating artist directory: {artist_dir}")
+        print(f"\033[32m[DIR]\033[0m Creating artist directory: {artist_dir}")
         os.makedirs(artist_dir, exist_ok=True)
     
     return artist_dir
@@ -109,19 +109,19 @@ def run(query, output_file=None, music_dir=None):
     try:
         success = download_audio(query, temp_output)
         if not success:
-            print("❌ Download failed")
+            print("\033[31m[FAIL]\033[0m Download failed")
             return False
     except Exception as e:
-        print(f"❌ Error downloading audio: {e}")
+        print(f"\033[31m[ERROR]\033[0m Error downloading audio: {e}")
         return False
 
     # Find the downloaded file
     temp_file = find_downloaded_file(temp_output)
     if not temp_file:
-        print("❌ Could not find the downloaded file")
+        print("\033[31m[FAIL]\033[0m Could not find the downloaded file")
         return False
     
-    print(f"✅ Found downloaded file: {temp_file}")
+    print(f"\033[32m[SUCCESS]\033[0m Found downloaded file: {temp_file}")
     
     # Parse title and artist from query if it's not a URL
     if is_url(query):
@@ -184,12 +184,12 @@ def run(query, output_file=None, music_dir=None):
         counter += 1
     
     # Move the file to the artist directory
-    print(f"📦 Moving file to: {final_file}")
+    print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
     shutil.move(temp_file, final_file)
     
     album = f"{artist} Best Hits"
     
-    print(f"🖼️ Fetching album cover for {title} by {artist}")
+    print(f"\033[32m[ART]\033[0m Fetching album cover for {title} by {artist}")
     image_url = get_album_cover_url(title, artist)
     cover_path = None
     if image_url:
@@ -198,20 +198,20 @@ def run(query, output_file=None, music_dir=None):
         cover_path = os.path.join(artist_dir, cover_filename)
         
         if download_cover_image(image_url, cover_path):
-            print(f"✅ Album cover downloaded to {cover_path}")
+            print(f"\033[32m[SUCCESS]\033[0m Album cover downloaded to {cover_path}")
         else:
-            print("⚠️ Failed to download album cover")
+            print("\033[33m[WARNING]\033[0m Failed to download album cover")
             cover_path = None
     else:
-        print("⚠️ No album cover found")
+        print("\033[33m[WARNING]\033[0m No album cover found")
 
-    print(f"📝 Adding metadata to {final_file}")
+    print(f"\033[32m[META]\033[0m Adding metadata to {final_file}")
     try:
         add_metadata(final_file, title=title, artist=artist, album=album, cover_path=cover_path)
-        print(f"✅ Finished downloading and tagging: {final_file}")
+        print(f"\033[32m[COMPLETE]\033[0m Finished downloading and tagging: {final_file}")
         return True
     except Exception as e:
-        print(f"❌ Error adding metadata: {e}")
+        print(f"\033[31m[ERROR]\033[0m Error adding metadata: {e}")
         return False
 
 def main():
@@ -226,7 +226,7 @@ def main():
     
     query = args.query
     if not query:
-        query = input("🎵 Enter song title and artist or URL: ")
+        query = input("\033[32m[INPUT]\033[0m Enter song title and artist or URL: ")
     
     # If directory is not specified, use default (~/Music)
     music_dir = args.directory
@@ -239,9 +239,9 @@ def main():
         if not os.path.exists(music_dir):
             try:
                 os.makedirs(music_dir, exist_ok=True)
-                print(f"📁 Created music directory: {music_dir}")
+                print(f"\033[32m[DIR]\033[0m Created music directory: {music_dir}")
             except Exception as e:
-                print(f"❌ Error creating music directory: {e}")
+                print(f"\033[31m[ERROR]\033[0m Error creating music directory: {e}")
                 print("Using default directory instead")
                 music_dir = None
     

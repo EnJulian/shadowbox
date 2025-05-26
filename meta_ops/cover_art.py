@@ -27,7 +27,7 @@ def get_album_cover_url(title, artist):
         
         # Check if the request was successful
         if response.status_code != 200:
-            print(f"iTunes API returned status code {response.status_code}")
+            print(f"\033[33m[API]\033[0m iTunes API returned status code {response.status_code}")
             return None
         
         # Parse the JSON response
@@ -35,7 +35,7 @@ def get_album_cover_url(title, artist):
         
         # Check if we got any results
         if not data.get('results') or len(data['results']) == 0:
-            print("No results found in iTunes API response")
+            print("\033[33m[API]\033[0m No results found in iTunes API response")
             return None
         
         # Get the artwork URL and replace with higher resolution
@@ -46,13 +46,13 @@ def get_album_cover_url(title, artist):
         
         return None
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching album cover URL: {e}")
+        print(f"\033[31m[ERROR]\033[0m Error fetching album cover URL: {e}")
         return None
     except ValueError as e:
-        print(f"Error parsing JSON response: {e}")
+        print(f"\033[31m[ERROR]\033[0m Error parsing JSON response: {e}")
         return None
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        print(f"\033[31m[ERROR]\033[0m Unexpected error: {e}")
         return None
 
 def download_cover_image(image_url, file_path='cover.jpg'):
@@ -85,7 +85,7 @@ def download_cover_image(image_url, file_path='cover.jpg'):
         
         # Check if the request was successful
         if response.status_code != 200:
-            print(f"Image download failed with status code {response.status_code}")
+            print(f"\033[31m[FAIL]\033[0m Image download failed with status code {response.status_code}")
             return None
         
         # Save the image to a file
@@ -96,14 +96,14 @@ def download_cover_image(image_url, file_path='cover.jpg'):
         if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
             return file_path
         else:
-            print("Image file was not created or is empty")
+            print("\033[31m[FAIL]\033[0m Image file was not created or is empty")
             return None
     except requests.exceptions.RequestException as e:
-        print(f"Error downloading image: {e}")
+        print(f"\033[31m[ERROR]\033[0m Error downloading image: {e}")
         return None
     except IOError as e:
-        print(f"Error saving image: {e}")
+        print(f"\033[31m[ERROR]\033[0m Error saving image: {e}")
         return None
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        print(f"\033[31m[ERROR]\033[0m Unexpected error: {e}")
         return None

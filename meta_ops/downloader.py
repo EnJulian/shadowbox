@@ -58,14 +58,14 @@ def download_audio(query, output_file='%(title)s.%(ext)s'):
     if is_url(query):
         # Use different command based on URL type
         if is_bandcamp_url(query):
-            print("🎵 Detected Bandcamp URL, using Bandcamp-specific settings...")
+            print("\033[32m[AUDIO]\033[0m Detected Bandcamp URL, using Bandcamp-specific settings...")
             return download_from_bandcamp(query, output_file)
         else:
-            print("🎵 Detected YouTube URL, using YouTube-specific settings...")
+            print("\033[32m[AUDIO]\033[0m Detected YouTube URL, using YouTube-specific settings...")
             return download_from_youtube(query, output_file)
     else:
         # If it's not a URL, search on YouTube
-        print(f"🔍 Searching for: {query}")
+        print(f"\033[37m[SCAN]\033[0m Searching for: {query}")
         return download_from_youtube(f"ytsearch1:{query}", output_file)
 
 def download_from_youtube(url_or_query, output_file):
@@ -91,7 +91,7 @@ def download_from_youtube(url_or_query, output_file):
             url_or_query
         ]
         
-        print(f"📥 Downloading audio using command: {' '.join(cmd)}")
+        print(f"\033[32m[GET]\033[0m Downloading audio using command: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         
         # Check if file exists after download
@@ -104,18 +104,18 @@ def download_from_youtube(url_or_query, output_file):
             # Check if any opus files were created
             opus_files = [f for f in os.listdir(output_dir) if f.endswith('.opus')]
             if opus_files:
-                print(f"✅ Download complete: {opus_files[0]}")
+                print(f"\033[32m[SUCCESS]\033[0m Download complete: {opus_files[0]}")
                 return True
         else:
             opus_files = [f for f in os.listdir('.') if f.endswith('.opus')]
             if opus_files:
-                print(f"✅ Download complete: {opus_files[0]}")
+                print(f"\033[32m[SUCCESS]\033[0m Download complete: {opus_files[0]}")
                 return True
                 
-        print("❌ No opus files found after download")
+        print("\033[31m[FAIL]\033[0m No opus files found after download")
         return False
     except Exception as e:
-        print(f"❌ Error downloading from YouTube: {e}")
+        print(f"\033[31m[ERROR]\033[0m Error downloading from YouTube: {e}")
         return False
 
 def download_from_bandcamp(url, output_file):
@@ -143,7 +143,7 @@ def download_from_bandcamp(url, output_file):
             url
         ]
         
-        print(f"📥 Downloading audio using command: {' '.join(cmd)}")
+        print(f"\033[32m[GET]\033[0m Downloading audio using command: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         
         # Check if file exists after download
@@ -156,16 +156,16 @@ def download_from_bandcamp(url, output_file):
             # Check if any opus files were created
             opus_files = [f for f in os.listdir(output_dir) if f.endswith('.opus')]
             if opus_files:
-                print(f"✅ Download complete: {opus_files[0]}")
+                print(f"\033[32m[SUCCESS]\033[0m Download complete: {opus_files[0]}")
                 return True
         else:
             opus_files = [f for f in os.listdir('.') if f.endswith('.opus')]
             if opus_files:
-                print(f"✅ Download complete: {opus_files[0]}")
+                print(f"\033[32m[SUCCESS]\033[0m Download complete: {opus_files[0]}")
                 return True
                 
-        print("❌ No opus files found after download")
+        print("\033[31m[FAIL]\033[0m No opus files found after download")
         return False
     except Exception as e:
-        print(f"❌ Error downloading from Bandcamp: {e}")
+        print(f"\033[31m[ERROR]\033[0m Error downloading from Bandcamp: {e}")
         return False

@@ -19,7 +19,7 @@ def print_header():
     """Print the application header."""
     clear_screen()
     print("=" * 70)
-    print("🎵  LSNEN'S FOOBAR2000 MUSIC DOWNLOADER  🎵")
+    print("\033[32m[SYSTEM]\033[0m  LSNEN'S FOOBAR2000 MUSIC DOWNLOADER  \033[32m[SYSTEM]\033[0m")
     print("=" * 70)
     print("Download music from YouTube or Bandcamp with metadata and cover art")
     print("=" * 70)
@@ -68,71 +68,71 @@ def save_music_directory(directory):
 def search_and_download():
     """Search for and download a song."""
     print_header()
-    print("🔍 SEARCH AND DOWNLOAD")
+    print("\033[37m[SCAN]\033[0m SEARCH AND DOWNLOAD")
     print("=" * 60)
     print("\nEnter the song details (e.g., 'Imagine Dragons Believer')")
     print("Or type 'back' to return to the main menu")
     print()
     
-    query = input("🎵 Song to search: ").strip()
+    query = input("\033[32m[INPUT]\033[0m Song to search: ").strip()
     if query.lower() == 'back':
         return
     
     if not query:
-        print("\n❌ Please enter a search query")
+        print("\n\033[31m[ERROR]\033[0m Please enter a search query")
         time.sleep(2)
         return
     
     music_dir = get_music_directory()
-    print(f"\n📂 Music will be saved to: {music_dir}")
+    print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
     print("\nDownloading... (this may take a minute)")
     print()
     
     success = run(query, music_dir=music_dir)
     
     if success:
-        print("\n✅ Download complete!")
+        print("\n\033[32m[SUCCESS]\033[0m Operation Success!")
     else:
-        print("\n❌ Download failed. Please try again.")
+        print("\n\033[31m[FAIL]\033[0m Download failed. Please try again.")
     
     input("\nPress Enter to continue...")
 
 def download_from_url():
     """Download a song from a URL."""
     print_header()
-    print("🔗 DOWNLOAD FROM URL")
+    print("\033[32m[URL]\033[0m DOWNLOAD FROM URL")
     print("=" * 60)
     print("\nEnter a YouTube or Bandcamp URL")
     print("Or type 'back' to return to the main menu")
     print()
     
-    url = input("🔗 URL: ").strip()
+    url = input("\033[32m[INPUT]\033[0m URL: ").strip()
     if url.lower() == 'back':
         return
     
     if not url.startswith(('http://', 'https://')):
-        print("\n❌ Please enter a valid URL (starting with http:// or https://)")
+        print("\n\033[31m[ERROR]\033[0m Please enter a valid URL (starting with http:// or https://)")
         time.sleep(2)
         return
     
     music_dir = get_music_directory()
-    print(f"\n📂 Music will be saved to: {music_dir}")
+    print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
     print("\nDownloading... (this may take a minute)")
     print()
     
     success = run(url, music_dir=music_dir)
     
     if success:
-        print("\n✅ Download complete!")
+        print("\n\033[32m[SUCCESS]\033[0m Operation Success!")
     else:
-        print("\n❌ Download failed. Please try again.")
+        print("\n\033[31m[FAIL]\033[0m Download failed. Please try again.")
     
     input("\nPress Enter to continue...")
 
 def batch_download():
     """Download multiple songs from a list."""
     print_header()
-    print("📋 BATCH DOWNLOAD")
+    print("\033[32m[BATCH]\033[0m BATCH DOWNLOAD")
     print("=" * 60)
     print("\nEnter one song or URL per line.")
     print("When finished, enter an empty line.")
@@ -149,12 +149,12 @@ def batch_download():
         songs.append(line)
     
     if not songs:
-        print("\n❌ No songs entered")
+        print("\n\033[31m[ERROR]\033[0m No songs entered")
         time.sleep(2)
         return
     
     music_dir = get_music_directory()
-    print(f"\n📂 Music will be saved to: {music_dir}")
+    print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
     print(f"\nDownloading {len(songs)} songs... (this may take a while)")
     print()
     
@@ -163,18 +163,18 @@ def batch_download():
         print(f"\n[{i+1}/{len(songs)}] Downloading: {song}")
         if run(song, music_dir=music_dir):
             successful += 1
-            print(f"✅ Downloaded: {song}")
+            print(f"\033[32m[SUCCESS]\033[0m Downloaded: {song}")
         else:
-            print(f"❌ Failed: {song}")
+            print(f"\033[31m[FAIL]\033[0m Failed: {song}")
     
-    print(f"\n✅ Downloaded {successful} out of {len(songs)} songs")
+    print(f"\n\033[32m[COMPLETE]\033[0m Downloaded {successful} out of {len(songs)} songs")
     input("\nPress Enter to continue...")
 
 def settings():
     """Change application settings."""
     while True:
         print_header()
-        print("⚙️  SETTINGS")
+        print("\033[32m[CONFIG]\033[0m  SETTINGS")
         print("=" * 60)
         
         current_dir = get_music_directory()
@@ -200,28 +200,28 @@ def settings():
                 if not os.path.exists(new_dir):
                     try:
                         os.makedirs(new_dir, exist_ok=True)
-                        print(f"\n✅ Created directory: {new_dir}")
+                        print(f"\n\033[32m[SUCCESS]\033[0m Created directory: {new_dir}")
                     except Exception as e:
-                        print(f"\n❌ Error creating directory: {e}")
+                        print(f"\n\033[31m[ERROR]\033[0m Error creating directory: {e}")
                         input("\nPress Enter to continue...")
                         continue
                 
                 # Save the new directory
                 save_music_directory(new_dir)
-                print(f"\n✅ Music directory changed to: {new_dir}")
+                print(f"\n\033[32m[SUCCESS]\033[0m Music directory changed to: {new_dir}")
                 input("\nPress Enter to continue...")
         
         elif choice == '2':
             break
         
         else:
-            print("\n❌ Invalid choice. Please try again.")
+            print("\n\033[31m[ERROR]\033[0m Invalid choice. Please try again.")
             time.sleep(1)
 
 def view_downloads():
     """View downloaded songs."""
     print_header()
-    print("📚 VIEW DOWNLOADED SONGS")
+    print("\033[32m[LIST]\033[0m VIEW DOWNLOADED SONGS")
     print("=" * 60)
     
     music_dir = get_music_directory()
@@ -258,10 +258,10 @@ def view_downloads():
         if 0 <= idx < len(artist_dirs):
             view_artist_songs(music_dir, artist_dirs[idx])
         else:
-            print("\n❌ Invalid choice")
+            print("\n\033[31m[ERROR]\033[0m Invalid choice")
             time.sleep(1)
     except ValueError:
-        print("\n❌ Please enter a number")
+        print("\n\033[31m[ERROR]\033[0m Please enter a number")
         time.sleep(1)
 
 def view_artist_songs(music_dir, artist):
@@ -276,7 +276,7 @@ def view_artist_songs(music_dir, artist):
     songs.sort(key=os.path.getmtime, reverse=True)
     
     print_header()
-    print(f"🎵 SONGS BY {artist.upper()}")
+    print(f"\033[32m[ARTIST]\033[0m SONGS BY {artist.upper()}")
     print("=" * 60)
     
     if not songs:
@@ -313,15 +313,15 @@ def main():
         elif choice == '5':
             view_downloads()
         elif choice == '6':
-            print("\n Application shut down.")
+            print("\n\033[32m[SYSTEM]\033[0m Application shut down.")
             sys.exit(0)
         else:
-            print("\n❌ Invalid choice. Please try again.")
+            print("\n\033[31m[ERROR]\033[0m Invalid choice. Please try again.")
             time.sleep(1)
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nProgram interrupted. Exiting...")
+        print("\n\n\033[31m[INTERRUPT]\033[0m Program interrupted. Exiting...")
         sys.exit(0)

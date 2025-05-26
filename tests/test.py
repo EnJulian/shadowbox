@@ -19,20 +19,20 @@ def test_cover_art():
     image_url = get_album_cover_url(title, artist)
     
     if image_url:
-        print(f"✅ Found cover art URL: {image_url}")
+        print(f"\033[32m[SUCCESS]\033[0m Found cover art URL: {image_url}")
         
         # Test downloading the cover art
         cover_path = download_cover_image(image_url, "test_cover.jpg")
         if cover_path and os.path.exists(cover_path):
-            print(f"✅ Successfully downloaded cover art to {cover_path}")
+            print(f"\033[32m[SUCCESS]\033[0m Successfully downloaded cover art to {cover_path}")
             # Clean up
             os.remove(cover_path)
             print(f"Removed test file: {cover_path}")
         else:
-            print("❌ Failed to download cover art")
+            print("\033[31m[FAIL]\033[0m Failed to download cover art")
             return False
     else:
-        print("❌ Failed to find cover art URL")
+        print("\033[31m[FAIL]\033[0m Failed to find cover art URL")
         return False
     
     return True
@@ -44,23 +44,23 @@ def main():
     # Test dependencies
     try:
         import yt_dlp
-        print(f"✅ yt-dlp version: {yt_dlp.version.__version__}")
+        print(f"\033[32m[SUCCESS]\033[0m yt-dlp version: {yt_dlp.version.__version__}")
     except ImportError:
-        print("❌ yt-dlp is not installed")
+        print("\033[31m[FAIL]\033[0m yt-dlp is not installed")
         return False
     
     try:
         import mutagen
-        print(f"✅ mutagen version: {mutagen.version_string}")
+        print(f"\033[32m[SUCCESS]\033[0m mutagen version: {mutagen.version_string}")
     except ImportError:
-        print("❌ mutagen is not installed")
+        print("\033[31m[FAIL]\033[0m mutagen is not installed")
         return False
     
     try:
         import requests
-        print(f"✅ requests version: {requests.__version__}")
+        print(f"\033[32m[SUCCESS]\033[0m requests version: {requests.__version__}")
     except ImportError:
-        print("❌ requests is not installed")
+        print("\033[31m[FAIL]\033[0m requests is not installed")
         return False
     
     # Test FFmpeg
@@ -71,9 +71,9 @@ def main():
                                stderr=subprocess.PIPE, 
                                text=True, 
                                check=True)
-        print(f"✅ FFmpeg is installed")
+        print(f"\033[32m[SUCCESS]\033[0m FFmpeg is installed")
     except (subprocess.SubprocessError, FileNotFoundError):
-        print("❌ FFmpeg is not installed or not in PATH")
+        print("\033[31m[FAIL]\033[0m FFmpeg is not installed or not in PATH")
         return False
     
     print("\nTesting individual components:")
@@ -82,7 +82,7 @@ def main():
     if not test_cover_art():
         return False
     
-    print("\n✅ All tests passed! The Music Downloader should work correctly.")
+    print("\n\033[32m[COMPLETE]\033[0m All tests passed! The Music Downloader should work correctly.")
     return True
 
 if __name__ == "__main__":

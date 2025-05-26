@@ -16,8 +16,8 @@ mkdir -p core exec_bin meta_ops tests
 # Only move if the files exist and are not already in their target directories
 
 # Core files
-if [ -f "lsfoobar.py" ] && [ ! -f "core/lsfoobar.py" ]; then
-    mv lsfoobar.py core/
+if [ -f "shbox.py" ] && [ ! -f "core/shbox.py" ]; then
+    mv shbox.py core/
 fi
 if [ -f "main.py" ] && [ ! -f "core/main.py" ]; then
     mv main.py core/
@@ -35,11 +35,11 @@ if [ -f "downloader.py" ] && [ ! -f "meta_ops/downloader.py" ]; then
 fi
 
 # Executable scripts
-if [ -f "lsfoobar.sh" ] && [ ! -f "exec_bin/lsfoobar.sh" ] && [ ! -L "lsfoobar.sh" ]; then
-    mv lsfoobar.sh exec_bin/
+if [ -f "shbox.sh" ] && [ ! -f "exec_bin/shbox.sh" ] && [ ! -L "shbox.sh" ]; then
+    mv shbox.sh exec_bin/
 fi
-if [ -f "lsfoobar.bat" ] && [ ! -f "exec_bin/lsfoobar.bat" ] && [ ! -L "lsfoobar.bat" ]; then
-    mv lsfoobar.bat exec_bin/
+if [ -f "shbox.bat" ] && [ ! -f "exec_bin/shbox.bat" ] && [ ! -L "shbox.bat" ]; then
+    mv shbox.bat exec_bin/
 fi
 if [ -f "run.sh" ] && [ ! -f "exec_bin/run.sh" ] && [ ! -L "run.sh" ]; then
     mv run.sh exec_bin/
@@ -71,14 +71,14 @@ fi
 chmod +x exec_bin/*.sh setup/*.sh
 chmod +x core/*.py
 chmod +x *.sh
-chmod +x run.sh lsfoobar.sh
+chmod +x run.sh shbox.sh
 
 # Create symbolic links in the project root
-ln -sf exec_bin/lsfoobar.sh lsfoobar.sh
+ln -sf exec_bin/shbox.sh shbox.sh
 ln -sf exec_bin/run.sh run.sh
-ln -sf exec_bin/lsfoobar.bat lsfoobar.bat
+ln -sf exec_bin/shbox.bat shbox.bat
 ln -sf exec_bin/run.bat run.bat
 
 echo "✅ Project structure set up successfully!"
 echo "You can now run the application using:"
-echo "./lsfoobar.sh or ./run.sh"
+echo "./shbox.sh or ./run.sh"

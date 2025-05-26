@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# lsnen's Foobar2000 Music Downloader Interactive Launcher
+# Shadowbox Music Downloader Interactive Launcher
 
 # Get the directory where the script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -26,8 +26,8 @@ if ! command -v aria2c &> /dev/null; then
     echo "Continuing without aria2c..."
 fi
 
-# Make the lsfoobar.py script executable
-chmod +x "$PROJECT_ROOT/core/lsfoobar.py"
+# Make the shbox.py script executable
+chmod +x "$PROJECT_ROOT/core/shbox.py"
 
 # Run the interactive application
-python "$PROJECT_ROOT/core/lsfoobar.py"
+python "$PROJECT_ROOT/core/shbox.py"

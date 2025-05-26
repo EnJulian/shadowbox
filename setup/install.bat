@@ -1,7 +1,7 @@
 @echo off
-REM lsnen's Foobar2000 Music Downloader Installation Script for Windows
+REM Shadowbox Music Downloader Installation Script for Windows
 
-echo Installing lsnen's Foobar2000 Music Downloader...
+echo Installing Shadowbox Music Downloader...
 
 REM Check if Python 3 is installed
 python --version 2>nul | findstr /r "^Python 3" >nul
@@ -41,7 +41,7 @@ echo Installing dependencies...
 pip install -r "%SCRIPT_DIR%requirements.txt"
 
 echo Installation complete!
-echo To run the application, double-click lsfoobar.bat in the project root or use:
+echo To run the application, double-click shbox.bat in the project root or use:
 echo %PROJECT_ROOT%\.venv\Scripts\activate.bat ^&^& python %PROJECT_ROOT%\core\main.py
 
 pause

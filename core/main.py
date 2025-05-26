@@ -236,7 +236,7 @@ def main():
     """
     Main entry point for the application.
     """
-    parser = argparse.ArgumentParser(description="lsnen's Foobar2000 Music Downloader - Download music with metadata and album art")
+    parser = argparse.ArgumentParser(description="Shadowbox Music Downloader - Download music with metadata and album art")
     parser.add_argument('-q', '--query', help='Song title and artist or URL')
     parser.add_argument('-o', '--output', help='Output file path (optional)')
     parser.add_argument('-d', '--directory', help='Base music directory (default: ~/Music)')

@@ -2,7 +2,7 @@
 
 # Music Downloader Installation Script
 
-echo "🎵 Installing lsnen's Foobar2000 Music Downloader..."
+echo "🎵 Installing lsnen's shadowbox..."
 
 # Check if Python 3 is installed
 if ! command -v python3 &> /dev/null; then
@@ -70,7 +70,7 @@ PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
 echo "🔧 Making scripts executable..."
 chmod +x "$PROJECT_ROOT/core/"*.py
 chmod +x "$PROJECT_ROOT/"*.sh
-chmod +x "$PROJECT_ROOT/run.sh" "$PROJECT_ROOT/lsfoobar.sh"
+chmod +x "$PROJECT_ROOT/run.sh" "$PROJECT_ROOT/shbox.sh"
 chmod +x "$SCRIPT_DIR/"*.sh
 
 # Install dependencies
@@ -79,6 +79,6 @@ pip install -r "$SCRIPT_DIR/requirements.txt"
 
 echo "✅ Installation complete!"
 echo "To run the application, use:"
-echo "source $PROJECT_ROOT/.venv/bin/activate && $PROJECT_ROOT/lsfoobar.sh"
+echo "source $PROJECT_ROOT/.venv/bin/activate && $PROJECT_ROOT/shbox.sh"
 echo "Or for CLI mode:"
 echo "source $PROJECT_ROOT/.venv/bin/activate && $PROJECT_ROOT/run.sh -q \"Artist Track\""

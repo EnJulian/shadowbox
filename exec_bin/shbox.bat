@@ -1,9 +1,9 @@
 @echo off
-REM lsnen's Foobar2000 Music Downloader Interactive Launcher for Windows
+REM Shadowbox Music Downloader Interactive Launcher for Windows
 
 REM Get the directory where the script is located
 set "SCRIPT_DIR=%~dp0"
-set "PROJECT_ROOT=%SCRIPT_DIR%"
+set "PROJECT_ROOT=%SCRIPT_DIR%.."
 
 REM Check if virtual environment exists
 if not exist "%PROJECT_ROOT%\.venv" (
@@ -24,7 +24,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM Run the interactive application
-python "%PROJECT_ROOT%\core\lsfoobar.py"
+python "%PROJECT_ROOT%\core\shbox.py"
 
 REM If we get here, the application has exited
 pause

@@ -1,5 +1,5 @@
 @echo off
-REM lsnen's Foobar2000 Music Downloader Run Script for Windows
+REM Shadowbox Music Downloader Run Script for Windows
 
 REM Get the directory where the script is located
 set "SCRIPT_DIR=%~dp0"
@@ -23,7 +23,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM Run the application
-echo Starting lsnen's Foobar2000 Music Downloader...
+echo Starting lsnen's shadowbox...
 echo ------------------------------------
 echo Usage examples:
 echo 1. Download by search: run.bat -q "Imagine Dragons Believer"

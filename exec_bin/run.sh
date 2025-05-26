@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# lsnen's Foobar2000 Music Downloader Run Script
+# Shadowbox Music Downloader Run Script
 
 # Get the directory where the script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -27,7 +27,7 @@ if ! command -v aria2c &> /dev/null; then
 fi
 
 # Run the application
-echo "🎵 Starting lsnen's Foobar2000 Music Downloader..."
+echo "🎵 Starting lsnen's shadowbox..."
 echo "------------------------------------"
 echo "Usage examples:"
 echo "1. Download by search: ./run.sh -q \"Imagine Dragons Believer\""

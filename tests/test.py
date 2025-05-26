@@ -90,7 +90,7 @@ def test_metadata():
 
 def main():
     """Run all tests."""
-    print("Running Music Downloader tests...\n")
+    print("Running shadowbox tests...\n")
     
     # Test dependencies
     try:

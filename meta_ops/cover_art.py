@@ -50,7 +50,7 @@ def _search_itunes_api(query):
     try:
         # Add a user agent to avoid potential blocks
         headers = {
-            'User-Agent': 'lsnen.foobar/0.1.0'
+            'User-Agent': 'shadowbox/0.1.0'
         }
         response = requests.get(url, headers=headers, timeout=10)
         
@@ -106,7 +106,7 @@ def download_cover_image(image_url, file_path='cover.jpg'):
     try:
         # Add a user agent to avoid potential blocks
         headers = {
-            'User-Agent': 'lsnen.foobar/0.1.0'
+            'User-Agent': 'shadowbox/0.1.0'
         }
         
         # Download the image with a timeout

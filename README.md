@@ -1,4 +1,4 @@
-# lsnen-foobar
+# shadowbox
 
 Music acquisition command line tool that rips audio from YouTube/Bandcamp, converts to Opus, and injects metadata + album art.
 
@@ -11,9 +11,6 @@ Music acquisition command line tool that rips audio from YouTube/Bandcamp, conve
 ## Deployment
 
 ```bash
-git clone <repo>
-cd <repo>
-
 # Set up project structure (first time only)
 ./setup/organize.sh  # Linux/macOS
 setup\organize.bat   # Windows (may require admin privileges)
@@ -27,8 +24,8 @@ setup\install.bat    # Windows
 
 Interactive:
 ```bash
-./lsfoobar.sh        # Linux/macOS
-lsfoobar.bat         # Windows
+./shbox.sh        # Linux/macOS
+shbox.bat         # Windows
 ```
 
 CLI:

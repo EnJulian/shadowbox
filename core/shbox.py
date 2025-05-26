@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-lsnen's Foobar2000 Music Downloader - Interactive Mode
+Shadowbox Music Downloader - Interactive Mode
 
-A user-friendly interactive interface for the lsnen's Foobar2000 Music Downloader application.
+A user-friendly interactive interface for the Shadowbox Music Downloader application.
 """
 
 import os
@@ -42,7 +42,7 @@ def get_music_directory():
     default_dir = os.path.join(os.path.expanduser('~'), 'Music')
     
     # Check if there's a saved preference
-    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.lsnen_foobar_config')
+    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.shadowbox_config')
     if os.path.exists(config_file):
         with open(config_file, 'r') as f:
             saved_dir = f.read().strip()
@@ -61,7 +61,7 @@ def get_music_directory():
 
 def save_music_directory(directory):
     """Save the music directory preference."""
-    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.lsnen_foobar_config')
+    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.shadowbox_config')
     with open(config_file, 'w') as f:
         f.write(directory)
 

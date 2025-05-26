@@ -19,9 +19,9 @@ REM Move files to appropriate directories
 REM Only move if the files exist and are not already in their target directories
 
 REM Core files
-if exist lsfoobar.py (
-    if not exist core\lsfoobar.py (
-        move lsfoobar.py core\
+if exist shbox.py (
+    if not exist core\shbox.py (
+        move shbox.py core\
     )
 )
 if exist main.py (
@@ -48,14 +48,14 @@ if exist downloader.py (
 )
 
 REM Executable scripts
-if exist lsfoobar.sh (
-    if not exist exec_bin\lsfoobar.sh (
-        move lsfoobar.sh exec_bin\
+if exist shbox.sh (
+    if not exist exec_bin\shbox.sh (
+        move shbox.sh exec_bin\
     )
 )
-if exist lsfoobar.bat (
-    if not exist exec_bin\lsfoobar.bat (
-        move lsfoobar.bat exec_bin\
+if exist shbox.bat (
+    if not exist exec_bin\shbox.bat (
+        move shbox.bat exec_bin\
     )
 )
 if exist run.sh (
@@ -102,13 +102,13 @@ REM Create symbolic links in the project root
 REM Windows requires administrator privileges to create symbolic links
 REM We'll use mklink command which requires admin rights
 echo Creating symbolic links (may require administrator privileges)...
-mklink lsfoobar.sh exec_bin\lsfoobar.sh
+mklink shbox.sh exec_bin\shbox.sh
 mklink run.sh exec_bin\run.sh
-mklink lsfoobar.bat exec_bin\lsfoobar.bat
+mklink shbox.bat exec_bin\shbox.bat
 mklink run.bat exec_bin\run.bat
 
 echo Project structure set up successfully!
 echo You can now run the application using:
-echo lsfoobar.bat or run.bat
+echo shbox.bat or run.bat
 
 pause

@@ -1,6 +1,6 @@
 # lsnen-foobar
 
-Music acquisition tool that rips audio from YouTube/Bandcamp, converts to Opus, and injects metadata + album art.
+Music acquisition command line tool that rips audio from YouTube/Bandcamp, converts to Opus, and injects metadata + album art.
 
 ## Specification
 

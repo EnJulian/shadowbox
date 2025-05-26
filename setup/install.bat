@@ -23,21 +23,25 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM Create virtual environment if it doesn't exist
-if not exist .venv (
+if not exist ..\.venv (
     echo Creating virtual environment...
-    python -m venv .venv
+    python -m venv ..\.venv
 )
 
 REM Activate virtual environment
 echo Activating virtual environment...
-call .venv\Scripts\activate.bat
+call ..\.venv\Scripts\activate.bat
+
+REM Get the directory where the script is located
+set "SCRIPT_DIR=%~dp0"
+set "PROJECT_ROOT=%SCRIPT_DIR%.."
 
 REM Install dependencies
 echo Installing dependencies...
-pip install -r requirements.txt
+pip install -r "%SCRIPT_DIR%requirements.txt"
 
 echo Installation complete!
-echo To run the application, double-click run.bat or use:
-echo .venv\Scripts\activate.bat ^&^& python main.py
+echo To run the application, double-click lsfoobar.bat in the project root or use:
+echo %PROJECT_ROOT%\.venv\Scripts\activate.bat ^&^& python %PROJECT_ROOT%\core\main.py
 
 pause

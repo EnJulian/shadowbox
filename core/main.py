@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add the meta_ops directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'meta_ops'))
+
 from downloader import download_audio, is_url
 from metadata import add_metadata
 from cover_art import get_album_cover_url, download_cover_image

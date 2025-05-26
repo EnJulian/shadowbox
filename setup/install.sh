@@ -53,19 +53,32 @@ if ! command -v aria2c &> /dev/null; then
 fi
 
 # Create virtual environment if it doesn't exist
-if [ ! -d ".venv" ]; then
+if [ ! -d "../.venv" ]; then
     echo "📦 Creating virtual environment..."
-    python3 -m venv .venv
+    python3 -m venv ../.venv
 fi
 
 # Activate virtual environment
 echo "🔌 Activating virtual environment..."
-source .venv/bin/activate
+source ../.venv/bin/activate
+
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
+
+# Make scripts executable
+echo "🔧 Making scripts executable..."
+chmod +x "$PROJECT_ROOT/core/"*.py
+chmod +x "$PROJECT_ROOT/"*.sh
+chmod +x "$PROJECT_ROOT/run.sh" "$PROJECT_ROOT/lsfoobar.sh"
+chmod +x "$SCRIPT_DIR/"*.sh
 
 # Install dependencies
 echo "📥 Installing dependencies..."
-pip install -r requirements.txt
+pip install -r "$SCRIPT_DIR/requirements.txt"
 
 echo "✅ Installation complete!"
 echo "To run the application, use:"
-echo "source .venv/bin/activate && python3 main.py"
+echo "source $PROJECT_ROOT/.venv/bin/activate && $PROJECT_ROOT/lsfoobar.sh"
+echo "Or for CLI mode:"
+echo "source $PROJECT_ROOT/.venv/bin/activate && $PROJECT_ROOT/run.sh -q \"Artist Track\""

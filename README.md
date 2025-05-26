@@ -12,20 +12,29 @@ Music acquisition command line tool that rips audio from YouTube/Bandcamp, conve
 
 ```bash
 git clone <repo>
-./install.sh  # or manual: pip install -r requirements.txt
+cd <repo>
+
+# Set up project structure (first time only)
+./setup/organize.sh  # Linux/macOS
+setup\organize.bat   # Windows (may require admin privileges)
+
+# Install dependencies
+./setup/install.sh   # Linux/macOS
+setup\install.bat    # Windows
 ```
 
 ## Execution
 
 Interactive:
 ```bash
-./lsfoobar.sh  # *nix
-lsfoobar.bat   # win
+./lsfoobar.sh        # Linux/macOS
+lsfoobar.bat         # Windows
 ```
 
 CLI:
 ```bash
-./run.sh -q "Artist Track"  # search
+./run.sh -q "Artist Track"  # search (Linux/macOS)
+run.bat -q "Artist Track"   # search (Windows)
 ./run.sh -q "https://youtube.com/watch?v=dQw4w9WgXcQ"  # direct URL
 ```
 
@@ -33,7 +42,7 @@ CLI:
 
 1. Infiltrates YouTube/Bandcamp
 2. Extracts highest quality audio stream
-3. Transmutes to superior Opus format
+3. Transmutes to the superior Opus format
 4. Injects metadata + cover art from iTunes
 5. Auto-organizes by artist
 
@@ -43,6 +52,16 @@ CLI:
 - `-d` output directory
 - `-o` filename override
 
+## Project Structure
+
+- `core/` - Main application files
+- `meta_ops/` - Metadata and download operations
+- `exec_bin/` - Executable scripts
+- `tests/` - Test files
+- `setup/` - Installation and setup files
+
+## Credits
 Crafted with intent by [enjulian](https://github.com/enjulian).
 
+## License
 MIT License

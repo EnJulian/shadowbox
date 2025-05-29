@@ -2,7 +2,7 @@
 
 # Music Downloader Installation Script
 
-echo "🎵 Installing lsnen's shadowbox..."
+echo "Installing shadowbox..."
 
 # Check if Python 3 is installed
 if ! command -v python3 &> /dev/null; then
@@ -52,32 +52,51 @@ if ! command -v aria2c &> /dev/null; then
     exit 1
 fi
 
-# Create virtual environment if it doesn't exist
-if [ ! -d "../.venv" ]; then
-    echo "📦 Creating virtual environment..."
-    python3 -m venv ../.venv
-fi
-
-# Activate virtual environment
-echo "🔌 Activating virtual environment..."
-source ../.venv/bin/activate
-
 # Get the directory where the script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." &> /dev/null && pwd )"
 
+# Create virtual environment if it doesn't exist
+if [ ! -d "$PROJECT_ROOT/.venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv "$PROJECT_ROOT/.venv"
+fi
+
+# Activate virtual environment
+echo "Activating virtual environment..."
+source "$PROJECT_ROOT/.venv/bin/activate"
+
 # Make scripts executable
-echo "🔧 Making scripts executable..."
-chmod +x "$PROJECT_ROOT/core/"*.py
-chmod +x "$PROJECT_ROOT/"*.sh
+echo "Making scripts executable..."
+find "$PROJECT_ROOT" -name "*.py" -type f -exec chmod +x {} \;
+find "$PROJECT_ROOT" -name "*.sh" -type f -exec chmod +x {} \;
 chmod +x "$PROJECT_ROOT/run.sh" "$PROJECT_ROOT/shbox.sh"
 chmod +x "$SCRIPT_DIR/"*.sh
 
 # Install dependencies
-echo "📥 Installing dependencies..."
+echo "Installing dependencies..."
 pip install -r "$SCRIPT_DIR/requirements.txt"
 
-echo "✅ Installation complete!"
+echo "Installation complete!"
+
+# Ask if user wants to set up Spotify integration
+echo ""
+echo "Spotify Integration Setup"
+echo "------------------------"
+echo "Shadowbox can use Spotify as the primary source for album covers."
+echo "Would you like to set up Spotify integration now? (y/n)"
+read -p "> " setup_spotify
+
+if [[ "$setup_spotify" == "y" || "$setup_spotify" == "Y" ]]; then
+    # Run the Spotify setup script
+    "$SCRIPT_DIR/setup_spotify.sh"
+else
+    echo ""
+    echo "You can set up Spotify integration later by running:"
+    echo "$SCRIPT_DIR/setup_spotify.sh"
+fi
+
+echo ""
 echo "To run the application, use:"
 echo "source $PROJECT_ROOT/.venv/bin/activate && $PROJECT_ROOT/shbox.sh"
 echo "Or for CLI mode:"

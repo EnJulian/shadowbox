@@ -40,7 +40,7 @@ run.bat -q "Artist Track"   # search (Windows)
 1. Infiltrates YouTube/Bandcamp
 2. Extracts highest quality audio stream
 3. Transmutes to the superior Opus format
-4. Injects metadata + cover art from iTunes
+4. Injects metadata + cover art from Spotify (primary) or iTunes (fallback)
 5. Auto-organizes by artist
 
 ## Flags
@@ -58,6 +58,34 @@ run.bat -q "Artist Track"   # search (Windows)
 - `setup/` - Installation and setup files
 
 
+## Spotify Integration
+
+shadowbox now uses Spotify as the primary source for album covers, with iTunes as a fallback.
+
+**During installation**, you'll be prompted to set up Spotify integration. If you choose to set it up:
+
+1. You'll need a Spotify Developer account at [developer.spotify.com](https://developer.spotify.com/dashboard/)
+2. Create a new application to get your Client ID and Client Secret
+3. Enter these credentials when prompted during installation
+
+**To set up later or update credentials**:
+```bash
+./setup/setup_spotify.sh
+```
+
+**To verify your Spotify credentials are working**:
+```bash
+./setup/test_spotify.sh
+```
+
+**For future sessions**, you may need to load your credentials:
+```bash
+source ~/.shadowbox_spotify
+```
+(Consider adding this line to your shell profile for convenience)
+
+If Spotify credentials are not configured, the application will automatically fall back to using iTunes for album covers.
+
 ### Tools and Libraries
 This project wouldn't be possible without the following tools:
 
@@ -67,6 +95,7 @@ This project wouldn't be possible without the following tools:
 - [requests](https://github.com/psf/requests) - A simple, yet elegant, HTTP library for Python
 - [Pillow](https://python-pillow.org/) - Python Imaging Library fork
 - [aria2](https://aria2.github.io/) - A lightweight multi-protocol & multi-source command-line download utility
+- [spotipy](https://spotipy.readthedocs.io/) - A lightweight Python library for the Spotify Web API
 
 
 ## License

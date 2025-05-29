@@ -15,6 +15,12 @@ fi
 # Activate virtual environment
 source "$PROJECT_ROOT/.venv/bin/activate"
 
+# Source Spotify credentials if available
+if [ -f "$HOME/.shadowbox_spotify" ]; then
+    echo "🎵 Loading Spotify credentials..."
+    source "$HOME/.shadowbox_spotify"
+fi
+
 # Check if aria2c is installed
 if ! command -v aria2c &> /dev/null; then
     echo "⚠️ aria2c is not installed. For better download performance, install aria2c:"
@@ -41,11 +47,14 @@ echo "-d, --directory: Base music directory (default: ~/Music)"
 echo "-o, --output: Output file name (optional, rarely needed)"
 echo "------------------------------------"
 
+# Get the Python executable from the virtual environment
+PYTHON="$PROJECT_ROOT/.venv/bin/python"
+
 # Check if arguments were provided
 if [ $# -eq 0 ]; then
     # No arguments, run in interactive mode
-    python "$PROJECT_ROOT/core/main.py"
+    "$PYTHON" "$PROJECT_ROOT/core/main.py"
 else
     # Pass all arguments to the script
-    python "$PROJECT_ROOT/core/main.py" "$@"
+    "$PYTHON" "$PROJECT_ROOT/core/main.py" "$@"
 fi

@@ -47,6 +47,18 @@ def is_youtube_url(url):
     """
     return ('youtube.com' in url.lower() or 'youtu.be' in url.lower())
 
+def is_youtube_playlist(url):
+    """
+    Check if the URL is a YouTube playlist.
+    
+    Args:
+        url (str): The URL to check
+        
+    Returns:
+        bool: True if the URL is a YouTube playlist, False otherwise
+    """
+    return is_youtube_url(url) and ('playlist' in url.lower() or 'list=' in url.lower())
+
 def download_audio(query, output_file='%(title)s.%(ext)s', use_spotify_metadata=False, audio_format='opus'):
     """
     Download audio from YouTube or Bandcamp based on a search query or URL.
@@ -60,6 +72,7 @@ def download_audio(query, output_file='%(title)s.%(ext)s', use_spotify_metadata=
     
     Returns:
         bool: True if successful, False otherwise
+        If a playlist is downloaded, returns a list of downloaded file paths
     
     Raises:
         Exception: If download fails
@@ -75,6 +88,9 @@ def download_audio(query, output_file='%(title)s.%(ext)s', use_spotify_metadata=
         if is_bandcamp_url(query):
             print("\033[32m[AUDIO]\033[0m Detected Bandcamp URL, using Bandcamp-specific settings...")
             return download_from_bandcamp(query, output_file, audio_format)
+        elif is_youtube_playlist(query):
+            print("\033[32m[AUDIO]\033[0m Detected YouTube playlist URL, downloading playlist...")
+            return download_youtube_playlist(query, output_file, audio_format)
         elif is_youtube_url(query) and use_spotify_metadata:
             print("\033[32m[AUDIO]\033[0m Detected YouTube URL, using Spotify for metadata...")
             from meta_ops.spotify_metadata import process_youtube_url_with_spotify
@@ -148,6 +164,71 @@ def download_from_youtube(url_or_query, output_file, audio_format='opus'):
     except Exception as e:
         print(f"\033[31m[ERROR]\033[0m Error downloading from YouTube: {e}")
         return False
+
+def download_youtube_playlist(url, output_file, audio_format='opus'):
+    """
+    Download a YouTube playlist using specified settings.
+    
+    Args:
+        url (str): The YouTube playlist URL
+        output_file (str): The output file path pattern
+        audio_format (str, optional): The audio format to download. Defaults to 'opus'.
+                                     Supported formats: opus, m4a, mp3, flac, wav, etc.
+        
+    Returns:
+        list: List of downloaded file paths if successful, empty list if failed
+    """
+    try:
+        # Create a temporary directory for playlist downloads
+        temp_dir = os.path.join(os.getcwd(), 'temp_playlist')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Modify output pattern to include playlist index
+        playlist_output = os.path.join(temp_dir, "%(playlist_index)s - %(title)s.%(ext)s")
+        
+        # Use the exact command format that's known to work well with playlists
+        cmd = [
+            "yt-dlp",
+            "-f", "bestaudio",
+            "--extract-audio",
+            "--audio-format", audio_format,
+            "--audio-quality", "0",
+            "--embed-metadata",
+            "--embed-thumbnail",
+            "--add-metadata",
+            "--metadata-from-title", "%(artist)s - %(title)s",
+            "--parse-metadata", "%(playlist)s:%(album)s",  # Set playlist name as album
+            "-o", playlist_output,
+            url
+        ]
+        
+        print(f"\033[32m[GET]\033[0m Downloading playlist using command: {' '.join(cmd)}")
+        subprocess.run(cmd, check=True)
+        
+        # Check if files exist after download
+        downloaded_files = []
+        
+        # Special case for ALAC format which gets converted to M4A by yt-dlp
+        if audio_format.lower() == 'alac':
+            downloaded_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.endswith('.m4a')]
+        else:
+            downloaded_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.endswith(f'.{audio_format}')]
+        
+        if downloaded_files:
+            print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} files from playlist")
+            # Sort files by playlist index (which should be at the start of the filename)
+            downloaded_files.sort(key=lambda x: int(os.path.basename(x).split(' - ')[0]) if os.path.basename(x).split(' - ')[0].isdigit() else 999)
+            return downloaded_files
+        
+        # If no files were found, show an error
+        if audio_format.lower() == 'alac':
+            print(f"\033[31m[FAIL]\033[0m No m4a files found after download (ALAC is converted to M4A)")
+        else:
+            print(f"\033[31m[FAIL]\033[0m No {audio_format} files found after download")
+        return []
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Error downloading YouTube playlist: {e}")
+        return []
 
 def download_from_bandcamp(url, output_file, audio_format='opus'):
     """

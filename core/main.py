@@ -4,7 +4,7 @@ import os
 # Add the meta_ops directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'meta_ops'))
 
-from downloader import download_audio, is_url
+from downloader import download_audio, is_url, is_youtube_playlist
 from metadata import add_metadata, extract_metadata
 from cover_art import get_album_cover_url, download_cover_image
 from settings import (
@@ -129,6 +129,11 @@ def create_album_directory(artist_dir, album_name, title=None):
     elif not album_name and not title:
         album_name = "Unknown Album"
         print(f"\033[33m[INFO]\033[0m No album name or title found, using 'Unknown Album' as folder name")
+    
+    # Remove "Album - " prefix if present
+    if album_name and album_name.startswith("Album - "):
+        album_name = album_name[8:]  # Remove the first 8 characters ("Album - ")
+        print(f"\033[33m[INFO]\033[0m Removed 'Album - ' prefix from album name: '{album_name}'")
     
     # Sanitize album name for directory
     album_dir_name = sanitize_filename(album_name)
@@ -276,12 +281,12 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
     image_url = get_album_cover_url(title, artist)
     cover_path = None
     if image_url:
-        # Download cover to album directory (changed from artist directory)
-        cover_filename = f"{safe_title}_cover.jpg"
-        cover_path = os.path.join(album_dir, cover_filename)
+        # Use the cover image for embedding but don't save it to disk
+        temp_cover_path = os.path.join(os.getcwd(), f"temp_cover_{os.getpid()}.jpg")
         
-        if download_cover_image(image_url, cover_path):
-            print(f"\033[32m[SUCCESS]\033[0m Album cover downloaded to {cover_path}")
+        if download_cover_image(image_url, temp_cover_path):
+            print(f"\033[32m[SUCCESS]\033[0m Album cover downloaded for embedding")
+            cover_path = temp_cover_path
         else:
             print("\033[33m[WARNING]\033[0m Failed to download album cover")
             cover_path = None
@@ -293,11 +298,161 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
         full_artist = artist
         # Add metadata with both artist and album_artist
         add_metadata(final_file, title=title, artist=artist, album=album, cover_path=cover_path, album_artist=full_artist)
+        
+        # Remove the temporary cover file if it exists
+        if cover_path and os.path.exists(cover_path):
+            os.remove(cover_path)
+            
         print(f"\033[32m[COMPLETE]\033[0m Finished downloading and tagging: {final_file}")
         return True
     except Exception as e:
         print(f"\033[31m[ERROR]\033[0m Error adding metadata: {e}")
+        # Clean up temp file even if there was an error
+        if cover_path and os.path.exists(cover_path):
+            os.remove(cover_path)
         return False
+
+def run_playlist(query, output_file=None, music_dir=None, audio_format='opus'):
+    """
+    Download a YouTube playlist, add metadata, and embed album art for each track.
+    
+    Args:
+        query (str): The YouTube playlist URL
+        output_file (str, optional): The output file path pattern. Defaults to '%(title)s.%(ext)s'.
+        music_dir (str, optional): Base directory for music organization. Defaults to 'Music' in user's home.
+        audio_format (str, optional): The audio format to download. Defaults to 'opus'.
+                                     Supported formats: opus, m4a, mp3, flac, wav, etc.
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    if output_file is None:
+        output_file = '%(title)s.%(ext)s'
+    
+    # Download the playlist
+    try:
+        downloaded_files = download_audio(query, output_file, False, audio_format)
+        if not downloaded_files or not isinstance(downloaded_files, list):
+            print("\033[31m[FAIL]\033[0m Playlist download failed")
+            return False
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Error downloading playlist: {e}")
+        return False
+    
+    print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} tracks from playlist")
+    
+    # Process each file in the playlist
+    success_count = 0
+    for file_path in downloaded_files:
+        try:
+            # Extract metadata from the downloaded file
+            print(f"\033[32m[META]\033[0m Extracting metadata from: {os.path.basename(file_path)}")
+            file_metadata = extract_metadata(file_path)
+            
+            # Initialize title and artist variables
+            title = ""
+            artist = ""
+            
+            # If we have metadata from the file, use it
+            if file_metadata['title'] and file_metadata['artist']:
+                print(f"\033[32m[META]\033[0m Found metadata in file: Title='{file_metadata['title']}', Artist='{file_metadata['artist']}'")
+                title = file_metadata['title']
+                artist = file_metadata['artist']
+            else:
+                # Fallback: Parse title and artist from filename
+                print(f"\033[33m[META]\033[0m No metadata found in file, using fallback method...")
+                filename = os.path.basename(file_path)
+                # Remove playlist index if present (e.g., "01 - ")
+                if re.match(r'^\d+\s*-\s*', filename):
+                    filename = re.sub(r'^\d+\s*-\s*', '', filename)
+                
+                name_without_ext = os.path.splitext(filename)[0]
+                
+                # Simple heuristic: try to split at " - " which is common in music filenames
+                if " - " in name_without_ext:
+                    artist, title = name_without_ext.split(" - ", 1)
+                else:
+                    # If no clear separator, use the whole name as title
+                    title = name_without_ext
+                    artist = "Unknown"
+            
+            # Create artist directory
+            artist_dir = create_artist_directory(artist, music_dir)
+            
+            # Get album name from metadata if available
+            if file_metadata:
+                album_name = file_metadata.get("album", "")
+            else:
+                album_name = None
+            
+            # Create album directory inside artist directory
+            album_dir = create_album_directory(artist_dir, album_name, title)
+            
+            # Sanitize title for filename
+            safe_title = sanitize_filename(title)
+            
+            # Determine file extension
+            file_ext = os.path.splitext(file_path)[1]
+            
+            # Create the final file path (now in album directory)
+            final_file = os.path.join(album_dir, f"{safe_title}{file_ext}")
+            
+            # If the file already exists, add a number to make it unique
+            counter = 1
+            while os.path.exists(final_file):
+                final_file = os.path.join(album_dir, f"{safe_title}_{counter}{file_ext}")
+                counter += 1
+            
+            # Move the file to the album directory
+            print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
+            shutil.move(file_path, final_file)
+            
+            # Use album from metadata if available, otherwise use artist name
+            album = album_name if album_name else (title or f"{artist}")
+            
+            print(f"\033[32m[ART]\033[0m Fetching album cover for {title} by {artist}")
+            image_url = get_album_cover_url(title, artist)
+            cover_path = None
+            if image_url:
+                # Use the cover image for embedding but don't save it to disk
+                temp_cover_path = os.path.join(os.getcwd(), f"temp_cover_{os.getpid()}.jpg")
+                
+                if download_cover_image(image_url, temp_cover_path):
+                    print(f"\033[32m[SUCCESS]\033[0m Album cover downloaded for embedding")
+                    cover_path = temp_cover_path
+                else:
+                    print("\033[33m[WARNING]\033[0m Failed to download album cover")
+                    cover_path = None
+            
+            # Add metadata to the file
+            print(f"\033[32m[META]\033[0m Adding metadata to {final_file}")
+            try:
+                # Save the full artist string as album_artist
+                full_artist = artist
+                # Add metadata with both artist and album_artist
+                add_metadata(final_file, title=title, artist=artist, album=album, cover_path=cover_path, album_artist=full_artist)
+                
+                # Remove the temporary cover file if it exists
+                if cover_path and os.path.exists(cover_path):
+                    os.remove(cover_path)
+                print(f"\033[32m[COMPLETE]\033[0m Finished processing: {final_file}")
+                success_count += 1
+            except Exception as e:
+                print(f"\033[31m[ERROR]\033[0m Error adding metadata: {e}")
+        except Exception as e:
+            print(f"\033[31m[ERROR]\033[0m Error processing file {file_path}: {e}")
+    
+    # Clean up the temporary playlist directory
+    temp_dir = os.path.join(os.getcwd(), 'temp_playlist')
+    if os.path.exists(temp_dir):
+        try:
+            shutil.rmtree(temp_dir)
+            print(f"\033[32m[CLEANUP]\033[0m Removed temporary directory: {temp_dir}")
+        except Exception as e:
+            print(f"\033[33m[WARNING]\033[0m Failed to remove temporary directory: {e}")
+    
+    print(f"\033[32m[SUMMARY]\033[0m Successfully processed {success_count} out of {len(downloaded_files)} tracks from the playlist")
+    return success_count > 0
 
 def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus'):
     """
@@ -530,7 +685,13 @@ def main():
     # Use Spotify metadata if requested or set in settings
     use_spotify = args.spotify or (not args.spotify and settings['use_spotify'])
     
-    if use_spotify:
+    # Check if the query is a YouTube playlist
+    if is_url(query) and is_youtube_playlist(query):
+        print("\033[32m[PLAYLIST]\033[0m Detected YouTube playlist URL")
+        print("\033[32m[INFO]\033[0m Processing playlist using yt-dlp's playlist handling")
+        # Don't use Spotify for playlists as it can cause issues
+        success = run_playlist(query, args.output, music_dir, audio_format)
+    elif use_spotify:
         success = run_with_spotify(query, args.output, music_dir, audio_format)
     else:
         success = run(query, args.output, music_dir, audio_format)

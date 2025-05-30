@@ -9,7 +9,8 @@ import os
 import sys
 import time
 import glob
-from main import run, run_with_spotify, sanitize_filename
+from main import run, run_with_spotify, run_playlist, sanitize_filename
+from downloader import is_youtube_playlist
 
 def clear_screen():
     """Clear the terminal screen."""
@@ -30,10 +31,11 @@ def print_menu():
     print("\nMAIN MENU:")
     print("1. Search and download a song")
     print("2. Download from URL (YouTube or Bandcamp)")
-    print("3. Batch download from a list")
-    print("4. Settings")
-    print("5. View downloaded songs")
-    print("6. Exit")
+    print("3. Download YouTube playlist")
+    print("4. Batch download from a list")
+    print("5. Settings")
+    print("6. View downloaded songs")
+    print("7. Exit")
     print()
 
 def get_music_directory():
@@ -467,25 +469,70 @@ def view_artist_songs(music_dir, artist):
     
     input("\nPress Enter to continue...")
 
+def download_playlist():
+    """Download a YouTube playlist."""
+    print_header()
+    print("\033[32m[PLAYLIST]\033[0m DOWNLOAD YOUTUBE PLAYLIST")
+    print("=" * 60)
+    print("\nEnter a YouTube playlist URL")
+    print("Or type 'back' to return to the main menu")
+    print()
+    
+    url = input("\033[32m[INPUT]\033[0m Playlist URL: ").strip()
+    if url.lower() == 'back':
+        return
+    
+    if not url.startswith(('http://', 'https://')):
+        print("\n\033[31m[ERROR]\033[0m Please enter a valid URL (starting with http:// or https://)")
+        time.sleep(2)
+        return
+    
+    # Verify it's a YouTube playlist URL
+    if not is_youtube_playlist(url):
+        print("\n\033[31m[ERROR]\033[0m The URL does not appear to be a YouTube playlist.")
+        print("Playlist URLs typically contain 'playlist' or 'list=' in the URL.")
+        time.sleep(2)
+        return
+    
+    music_dir = get_music_directory()
+    audio_format = get_audio_format()
+    
+    print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
+    print(f"\033[32m[FORMAT]\033[0m Using audio format: {audio_format}")
+    print("\n\033[32m[PLAYLIST]\033[0m Downloading playlist... (this may take several minutes)")
+    print()
+    
+    # Use the run_playlist function to download and process the playlist
+    success = run_playlist(url, music_dir=music_dir, audio_format=audio_format)
+    
+    if success:
+        print("\n\033[32m[SUCCESS]\033[0m Playlist download complete!")
+    else:
+        print("\n\033[31m[FAIL]\033[0m Playlist download failed. Please try again.")
+    
+    input("\nPress Enter to continue...")
+
 def main():
     """Main application loop."""
     while True:
         print_header()
         print_menu()
         
-        choice = input("Select an option (1-6): ").strip()
+        choice = input("Select an option (1-7): ").strip()
         
         if choice == '1':
             search_and_download()
         elif choice == '2':
             download_from_url()
         elif choice == '3':
-            batch_download()
+            download_playlist()
         elif choice == '4':
-            settings()
+            batch_download()
         elif choice == '5':
-            view_downloads()
+            settings()
         elif choice == '6':
+            view_downloads()
+        elif choice == '7':
             print("\n\033[32m[SYSTEM]\033[0m Application shut down.")
             sys.exit(0)
         else:

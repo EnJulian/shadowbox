@@ -284,13 +284,13 @@ def apply_spotify_metadata_to_file(file_path, metadata, download_cover=True):
         cover_path = None
         if download_cover and metadata.get('cover_url'):
             # Create a temporary file for the cover art
-            cover_dir = os.path.dirname(file_path)
-            cover_filename = os.path.splitext(os.path.basename(file_path))[0] + "_cover.jpg"
-            cover_path = os.path.join(cover_dir, cover_filename)
+            temp_cover_path = os.path.join(os.getcwd(), f"temp_cover_{os.getpid()}.jpg")
             
             # Download the cover art
-            cover_path = download_cover_image(metadata['cover_url'], cover_path)
-            if not cover_path:
+            if download_cover_image(metadata['cover_url'], temp_cover_path):
+                cover_path = temp_cover_path
+                print(f"\033[32m[SUCCESS]\033[0m Album cover downloaded for embedding")
+            else:
                 print(f"\033[33m[WARNING]\033[0m Failed to download cover art")
         
         # Apply metadata to the file

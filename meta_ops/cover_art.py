@@ -2,10 +2,16 @@ import requests
 import os
 import urllib.parse
 import time
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+import os
+
+# Spotify API credentials will be loaded dynamically when needed
+# This allows the credentials to be loaded after the module is imported
 
 def get_album_cover_url(title, artist):
     """
-    Get the album cover URL from iTunes API.
+    Get the album cover URL, trying Spotify first, then falling back to iTunes API.
     
     Args:
         title (str): Song title
@@ -14,25 +20,131 @@ def get_album_cover_url(title, artist):
     Returns:
         str or None: URL of the album cover, or None if not found
     """
-    # Try with both title and artist first
-    url = _search_itunes_api(f"{title} {artist}")
-    if url:
-        return url
+    # Get Spotify credentials dynamically
+    spotify_client_id = os.environ.get('SPOTIFY_CLIENT_ID')
+    spotify_client_secret = os.environ.get('SPOTIFY_CLIENT_SECRET')
     
-    # If that fails, try with just the title
-    print(f"\033[33m[API]\033[0m First search failed, trying with just the title: '{title}'")
+    # Debug information about credentials
+    if spotify_client_id:
+        print(f"\033[32m[API]\033[0m Spotify credentials found: ID {spotify_client_id[:4]}...{spotify_client_id[-4:]}")
+    
+    # Try Spotify first (if credentials are available)
+    if spotify_client_id and spotify_client_secret:
+        print(f"\033[32m[API]\033[0m Searching Spotify for album cover: '{title}' by '{artist}'")
+        url = _search_spotify_api(title, artist, spotify_client_id, spotify_client_secret)
+        if url:
+            return url
+        
+        # If Spotify search fails with full artist name, try with just the first artist
+        first_artist = artist.split(',')[0].strip() if ',' in artist else artist
+        if first_artist != artist:
+            print(f"\033[33m[API]\033[0m Spotify search failed, trying with first artist only: '{title}' by '{first_artist}'")
+            url = _search_spotify_api(title, first_artist, spotify_client_id, spotify_client_secret)
+            if url:
+                return url
+        
+        # If Spotify search fails, try iTunes with the same search query first
+        print(f"\033[33m[API]\033[0m Spotify search failed, trying iTunes with same query: '{title}' by '{artist}'")
+        url = _search_itunes_api(f"{title} {artist}")
+        if url:
+            return url
+        
+        # If iTunes fails with full artist, try with just the first artist
+        if first_artist != artist:
+            print(f"\033[33m[API]\033[0m iTunes search failed, trying with first artist only: '{title}' by '{first_artist}'")
+            url = _search_itunes_api(f"{title} {first_artist}")
+            if url:
+                return url
+            
+        # If that fails, try with just the title on Spotify
+        print(f"\033[33m[API]\033[0m iTunes search failed, trying Spotify with just the title: '{title}'")
+        url = _search_spotify_api(title, None, spotify_client_id, spotify_client_secret)
+        if url:
+            return url
+    else:
+        print(f"\033[33m[API]\033[0m Spotify credentials not found, skipping Spotify search")
+    
+    # Fall back to iTunes API if not already tried
+    if spotify_client_id and spotify_client_secret:
+        # We already tried iTunes with title+artist above, so now try with just title
+        print(f"\033[33m[API]\033[0m Trying iTunes with just the title: '{title}'")
+    else:
+        # If Spotify was skipped, this is our first attempt with iTunes
+        print(f"\033[33m[API]\033[0m Falling back to iTunes API for: '{title}' by '{artist}'")
+        # Try with both title and artist first
+        url = _search_itunes_api(f"{title} {artist}")
+        if url:
+            return url
+        
+        # If iTunes fails with full artist, try with just the first artist
+        first_artist = artist.split(',')[0].strip() if ',' in artist else artist
+        if first_artist != artist:
+            print(f"\033[33m[API]\033[0m iTunes search failed, trying with first artist only: '{title}' by '{first_artist}'")
+            url = _search_itunes_api(f"{title} {first_artist}")
+            if url:
+                return url
+        
+        print(f"\033[33m[API]\033[0m iTunes search failed, trying with just the title: '{title}'")
+    
+    # Try with just the title
     url = _search_itunes_api(title)
     if url:
         return url
     
     # If that fails too, try with just the artist
-    print(f"\033[33m[API]\033[0m Second search failed, trying with just the artist: '{artist}'")
+    print(f"\033[33m[API]\033[0m iTunes search failed, trying with just the artist: '{artist}'")
     url = _search_itunes_api(artist)
     if url:
         return url
     
     # If all searches fail, return None
     return None
+
+def _search_spotify_api(query, artist=None, client_id=None, client_secret=None):
+    """
+    Helper function to search Spotify API.
+    
+    Args:
+        query (str): Search query (typically the song title)
+        artist (str, optional): Artist name to refine search
+        client_id (str): Spotify API client ID
+        client_secret (str): Spotify API client secret
+    
+    Returns:
+        str or None: URL of the album cover, or None if not found
+    """
+    try:
+        # Initialize Spotify client
+        sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
+            client_id=client_id,
+            client_secret=client_secret
+        ))
+        
+        # Build search query
+        search_query = query
+        if artist:
+            search_query = f"track:{query} artist:{artist}"
+        
+        # Search for tracks
+        results = sp.search(q=search_query, type='track', limit=1)
+        
+        # Check if we got any results
+        if not results['tracks']['items']:
+            return None
+        
+        # Get the album cover URL (highest resolution)
+        track = results['tracks']['items'][0]
+        images = track['album']['images']
+        
+        # Sort images by size (largest first)
+        if images:
+            images.sort(key=lambda x: x['width'] * x['height'], reverse=True)
+            return images[0]['url']
+        
+        return None
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Error searching Spotify API: {e}")
+        return None
 
 def _search_itunes_api(query):
     """

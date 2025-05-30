@@ -15,6 +15,12 @@ fi
 # Activate virtual environment
 source "$PROJECT_ROOT/.venv/bin/activate"
 
+# Source Spotify credentials if available
+if [ -f "$HOME/.shadowbox_spotify" ]; then
+    echo "🎵 Loading Spotify credentials..."
+    source "$HOME/.shadowbox_spotify"
+fi
+
 # Check if aria2c is installed
 if ! command -v aria2c &> /dev/null; then
     echo "⚠️ aria2c is not installed. For better download performance, install aria2c:"
@@ -29,5 +35,11 @@ fi
 # Make the shbox.py script executable
 chmod +x "$PROJECT_ROOT/core/shbox.py"
 
+# Get the Python executable from the virtual environment
+PYTHON="$PROJECT_ROOT/.venv/bin/python"
+
+# Set PYTHONPATH to include the project root
+export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+
 # Run the interactive application
-python "$PROJECT_ROOT/core/shbox.py"
+"$PYTHON" "$PROJECT_ROOT/core/shbox.py"

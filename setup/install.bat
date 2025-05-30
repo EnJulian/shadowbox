@@ -40,6 +40,36 @@ REM Install dependencies
 echo Installing dependencies...
 pip install -r "%SCRIPT_DIR%requirements.txt"
 
+REM Explicitly check and install spotipy
+echo Ensuring Spotify API module is installed...
+echo Installing spotipy module...
+pip install --force-reinstall spotipy>=2.23.0
+
+REM Verify the installation
+python -c "import spotipy" 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo First installation attempt failed. Trying alternative method...
+    pip install --upgrade pip
+    pip install --force-reinstall spotipy>=2.23.0
+    
+    REM Final verification
+    python -c "import spotipy" 2>nul
+    if %ERRORLEVEL% NEQ 0 (
+        echo Warning: Could not verify spotipy installation. Spotify features may not work.
+    ) else (
+        echo Spotipy successfully installed!
+    )
+) else (
+    echo Spotipy successfully installed!
+)
+
+REM Ensure meta_ops is a proper Python package
+echo Ensuring meta_ops is a proper Python package...
+if not exist "%PROJECT_ROOT%\meta_ops\__init__.py" (
+    echo # meta_ops package initialization > "%PROJECT_ROOT%\meta_ops\__init__.py"
+    echo Created meta_ops/__init__.py
+)
+
 echo Installation complete!
 echo To run the application, double-click shbox.bat in the project root or use:
 echo %PROJECT_ROOT%\.venv\Scripts\activate.bat ^&^& python %PROJECT_ROOT%\core\main.py

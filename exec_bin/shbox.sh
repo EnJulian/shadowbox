@@ -38,5 +38,8 @@ chmod +x "$PROJECT_ROOT/core/shbox.py"
 # Get the Python executable from the virtual environment
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
 
+# Set PYTHONPATH to include the project root
+export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+
 # Run the interactive application
 "$PYTHON" "$PROJECT_ROOT/core/shbox.py"

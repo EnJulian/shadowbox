@@ -28,14 +28,19 @@ echo ------------------------------------
 echo Usage examples:
 echo 1. Download by search: run.bat -q "Imagine Dragons Believer"
 echo 2. Download by URL: run.bat -q "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-echo 3. Specify music directory: run.bat -q "Imagine Dragons Believer" -d "C:\Users\YourName\Music\MyCollection"
-echo 4. Interactive mode: run.bat
+echo 3. Use Spotify metadata: run.bat -q "Imagine Dragons Believer" -s
+echo 4. Specify music directory: run.bat -q "Imagine Dragons Believer" -d "C:\Users\YourName\Music\MyCollection"
+echo 5. Interactive mode: run.bat
 echo ------------------------------------
 echo Options:
 echo -q, --query: Song title and artist or URL
-echo -d, --directory: Base music directory (default: User's Music folder)
-echo -o, --output: Output file name (optional, rarely needed)
+echo -d, --directory: Base music directory [default: User's Music folder]
+echo -o, --output: Output file name [optional, rarely needed]
+echo -s, --spotify: Use Spotify for metadata [requires Spotify credentials]
 echo ------------------------------------
+
+REM Set PYTHONPATH to include the project root
+set "PYTHONPATH=%PROJECT_ROOT%;%PYTHONPATH%"
 
 REM Check if arguments were provided
 if "%~1"=="" (

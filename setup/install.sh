@@ -77,6 +77,35 @@ chmod +x "$SCRIPT_DIR/"*.sh
 echo "Installing dependencies..."
 pip install -r "$SCRIPT_DIR/requirements.txt"
 
+# Explicitly check and install spotipy
+echo "Ensuring Spotify API module is installed..."
+# Force installation of spotipy regardless of whether it's already installed
+echo "Installing spotipy module..."
+pip install --force-reinstall spotipy>=2.23.0
+
+# Verify the installation
+if ! "$PROJECT_ROOT/.venv/bin/python" -c "import spotipy" 2>/dev/null; then
+    echo "First installation attempt failed. Trying alternative method..."
+    pip install --upgrade pip
+    pip install --force-reinstall spotipy>=2.23.0
+    
+    # Final verification
+    if ! "$PROJECT_ROOT/.venv/bin/python" -c "import spotipy" 2>/dev/null; then
+        echo "⚠️ Warning: Could not verify spotipy installation. Spotify features may not work."
+    else
+        echo "Spotipy successfully installed!"
+    fi
+else
+    echo "Spotipy successfully installed!"
+fi
+
+# Ensure meta_ops is a proper Python package
+echo "Ensuring meta_ops is a proper Python package..."
+if [ ! -f "$PROJECT_ROOT/meta_ops/__init__.py" ]; then
+    echo "# meta_ops package initialization" > "$PROJECT_ROOT/meta_ops/__init__.py"
+    echo "Created meta_ops/__init__.py"
+fi
+
 echo "Installation complete!"
 
 # Ask if user wants to set up Spotify integration
@@ -84,7 +113,7 @@ echo ""
 echo "Spotify Integration Setup"
 echo "------------------------"
 echo "Shadowbox can use Spotify as the primary source for album covers."
-echo "Would you like to set up Spotify integration now? (y/n)"
+echo "Would you like to set up Spotify integration now? [y/n]"
 read -p "> " setup_spotify
 
 if [[ "$setup_spotify" == "y" || "$setup_spotify" == "Y" ]]; then

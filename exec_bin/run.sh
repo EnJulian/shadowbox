@@ -38,17 +38,22 @@ echo "------------------------------------"
 echo "Usage examples:"
 echo "1. Download by search: ./run.sh -q \"Imagine Dragons Believer\""
 echo "2. Download by URL: ./run.sh -q \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\""
-echo "3. Specify music directory: ./run.sh -q \"Imagine Dragons Believer\" -d \"~/Music/MyCollection\""
-echo "4. Interactive mode: ./run.sh"
+echo "3. Use Spotify metadata: ./run.sh -q \"Imagine Dragons Believer\" -s"
+echo "4. Specify music directory: ./run.sh -q \"Imagine Dragons Believer\" -d \"~/Music/MyCollection\""
+echo "5. Interactive mode: ./run.sh"
 echo "------------------------------------"
 echo "Options:"
 echo "-q, --query: Song title and artist or URL"
-echo "-d, --directory: Base music directory (default: ~/Music)"
-echo "-o, --output: Output file name (optional, rarely needed)"
+echo "-d, --directory: Base music directory [default: ~/Music]"
+echo "-o, --output: Output file name [optional, rarely needed]"
+echo "-s, --spotify: Use Spotify for metadata [requires Spotify credentials]"
 echo "------------------------------------"
 
 # Get the Python executable from the virtual environment
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
+
+# Set PYTHONPATH to include the project root
+export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
 
 # Check if arguments were provided
 if [ $# -eq 0 ]; then

@@ -23,6 +23,9 @@ if %ERRORLEVEL% NEQ 0 (
     echo Continuing without aria2c...
 )
 
+REM Set PYTHONPATH to include the project root
+set "PYTHONPATH=%PROJECT_ROOT%;%PYTHONPATH%"
+
 REM Run the interactive application
 python "%PROJECT_ROOT%\core\shbox.py"
 

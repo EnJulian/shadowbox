@@ -110,8 +110,41 @@ def search_spotify_for_metadata(title, artist=None):
         if not results['tracks']['items']:
             print(f"\033[33m[SPOTIFY]\033[0m No results found for: {search_query}")
             
+            # Initialize clean_title variable
+            clean_title = title
+            
+            # Try with title without brackets, parentheses, or common features text
+            # Check if title contains any type of brackets or common feature indicators
+            has_brackets = any(x in title for x in ['(', ')', '[', ']', '{', '}', '<', '>', 'feat.', 'ft.', 'featuring'])
+            if has_brackets:
+                # Remove content within various types of brackets and common feature indicators
+                # Remove parentheses content
+                clean_title = re.sub(r'\s*\([^)]*\)', '', clean_title)
+                # Remove square brackets content
+                clean_title = re.sub(r'\s*\[[^\]]*\]', '', clean_title)
+                # Remove curly braces content
+                clean_title = re.sub(r'\s*\{[^}]*\}', '', clean_title)
+                # Remove angle brackets content
+                clean_title = re.sub(r'\s*<[^>]*>', '', clean_title)
+                # Remove "feat." or "ft." and everything after it
+                clean_title = re.sub(r'\s*(feat\.|ft\.|featuring).*', '', clean_title, flags=re.IGNORECASE)
+                
+                clean_title = clean_title.strip()
+                
+                if clean_title and clean_title != title:
+                    print(f"\033[33m[SPOTIFY]\033[0m Trying with clean title: {clean_title} by {artist}")
+                    modified_results = sp.search(q=f"track:{clean_title} artist:{artist}", type='track', limit=5)
+                    
+                    if modified_results['tracks']['items']:
+                        # We found results with this combination
+                        results = modified_results
+                        # Continue with the rest of the function to process these results
+                    else:
+                        # Continue with other fallback strategies
+                        pass
+            
             # Try with track name and first word of artist if artist contains multiple words
-            if artist and ' ' in artist:
+            if artist and ' ' in artist and not results['tracks']['items']:
                 first_word_of_artist = artist.split(' ')[0]
                 print(f"\033[33m[SPOTIFY]\033[0m Trying with track and first word of artist: {title} - {first_word_of_artist}")
                 modified_results = sp.search(q=f"track:{title} artist:{first_word_of_artist}", type='track', limit=5)
@@ -121,14 +154,76 @@ def search_spotify_for_metadata(title, artist=None):
                     results = modified_results
                     # Continue with the rest of the function to process these results
                 else:
-                    # Try with just the title if artist was provided
-                    print(f"\033[33m[SPOTIFY]\033[0m Trying with just the title: {title}")
-                    return search_spotify_for_metadata(title, None)
-            elif artist:
-                # Try with just the title if artist was provided
+                    # Continue with other fallback strategies
+                    pass
+            
+            # Initialize simplified_artist variable
+            simplified_artist = artist if artist else ""
+            
+            # Try with simplified artist name (remove special characters) if artist contains special characters
+            if artist and any(c in artist for c in "'-_&+.") and not results['tracks']['items']:
+                simplified_artist = re.sub(r'[\'"\-_&+.]', '', artist)
+                if simplified_artist and simplified_artist != artist:
+                    print(f"\033[33m[SPOTIFY]\033[0m Trying with simplified artist name: {title} by {simplified_artist}")
+                    modified_results = sp.search(q=f"track:{title} artist:{simplified_artist}", type='track', limit=5)
+                    
+                    if modified_results['tracks']['items']:
+                        # We found results with this combination
+                        results = modified_results
+                        # Continue with the rest of the function to process these results
+                    else:
+                        # Continue with other fallback strategies
+                        pass
+            
+            # Try with first word of title and artist if title contains multiple words
+            if artist and ' ' in title and not results['tracks']['items']:
+                first_word_of_title = title.split(' ')[0]
+                print(f"\033[33m[SPOTIFY]\033[0m Trying with first word of title and artist: {first_word_of_title} by {artist}")
+                modified_results = sp.search(q=f"track:{first_word_of_title} artist:{artist}", type='track', limit=5)
+                
+                if modified_results['tracks']['items']:
+                    # We found results with this combination
+                    results = modified_results
+                    # Continue with the rest of the function to process these results
+                else:
+                    # Continue with other fallback strategies
+                    pass
+            
+            # Try with both clean title and simplified artist if both are different from the originals
+            if artist and not results['tracks']['items']:
+                if clean_title != title and simplified_artist != artist:
+                    print(f"\033[33m[SPOTIFY]\033[0m Trying with clean title and simplified artist: {clean_title} by {simplified_artist}")
+                    modified_results = sp.search(q=f"track:{clean_title} artist:{simplified_artist}", type='track', limit=5)
+                    
+                    if modified_results['tracks']['items']:
+                        # We found results with this combination
+                        results = modified_results
+                        # Continue with the rest of the function to process these results
+                    else:
+                        # Continue with other fallback strategies
+                        pass
+            
+            # Try with just the first word of the title (no artist)
+            if ' ' in title and not results['tracks']['items']:
+                first_word_of_title = title.split(' ')[0]
+                print(f"\033[33m[SPOTIFY]\033[0m Trying with just the first word of title: {first_word_of_title}")
+                modified_results = sp.search(q=f"track:{first_word_of_title}", type='track', limit=5)
+                
+                if modified_results['tracks']['items']:
+                    # We found results with this combination
+                    results = modified_results
+                    # Continue with the rest of the function to process these results
+                else:
+                    # Continue with other fallback strategies
+                    pass
+            
+            # If all previous attempts failed and we have an artist, try with just the title
+            if artist and not results['tracks']['items']:
                 print(f"\033[33m[SPOTIFY]\033[0m Trying with just the title: {title}")
                 return search_spotify_for_metadata(title, None)
-            else:
+            
+            # If we have no artist and no results, return None
+            if not results['tracks']['items']:
                 return None
         
         # If we reach here, we have results either from the original search or from one of the fallback searches
@@ -199,13 +294,17 @@ def apply_spotify_metadata_to_file(file_path, metadata, download_cover=True):
                 print(f"\033[33m[WARNING]\033[0m Failed to download cover art")
         
         # Apply metadata to the file
+        # Save the full artist string as album_artist
+        full_artist = metadata['artist']
+        
         add_metadata(
             file_path=file_path,
             title=metadata['title'],
             artist=metadata['artist'],
             album=metadata['album'],
             cover_path=cover_path,
-            date=metadata.get('release_date')
+            date=metadata.get('release_date'),
+            album_artist=full_artist
         )
         
         print(f"\033[32m[SUCCESS]\033[0m Applied Spotify metadata to: {file_path}")
@@ -231,7 +330,8 @@ def process_youtube_url_with_spotify(youtube_url, output_file=None, audio_format
                                      Supported formats: opus, m4a, mp3, flac, wav, etc.
         
     Returns:
-        bool: True if successful, False otherwise
+        tuple: (success, metadata) where success is a boolean indicating if the operation was successful,
+               and metadata is a dictionary containing the Spotify metadata (or None if not found)
     """
     from meta_ops.downloader import download_from_youtube
     
@@ -249,14 +349,15 @@ def process_youtube_url_with_spotify(youtube_url, output_file=None, audio_format
     
     if not metadata:
         print(f"\033[33m[WARNING]\033[0m Could not find metadata on Spotify. Proceeding with download only.")
-        return download_from_youtube(youtube_url, output_file, audio_format)
+        success = download_from_youtube(youtube_url, output_file, audio_format)
+        return success, None
     
     # Download the audio
     success = download_from_youtube(youtube_url, output_file or '%(title)s.%(ext)s', audio_format)
     
     if not success:
         print(f"\033[31m[ERROR]\033[0m Failed to download audio from YouTube")
-        return False
+        return False, None
     
     # Find the downloaded file
     if output_file and '%' not in output_file:
@@ -286,14 +387,15 @@ def process_youtube_url_with_spotify(youtube_url, output_file=None, audio_format
         
         if not format_files:
             print(f"\033[31m[ERROR]\033[0m Could not find downloaded file")
-            return False
+            return False, None
         
         # Sort by modification time (newest first)
         format_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
         downloaded_file = format_files[0]
     
     # Apply Spotify metadata to the downloaded file
-    return apply_spotify_metadata_to_file(downloaded_file, metadata)
+    success = apply_spotify_metadata_to_file(downloaded_file, metadata)
+    return success, metadata
 
 def enhance_existing_file_with_spotify(file_path, title=None, artist=None):
     """
@@ -305,11 +407,12 @@ def enhance_existing_file_with_spotify(file_path, title=None, artist=None):
         artist (str, optional): Artist name.
         
     Returns:
-        bool: True if successful, False otherwise
+        tuple: (success, metadata) where success is a boolean indicating if the operation was successful,
+               and metadata is a dictionary containing the Spotify metadata (or None if not found)
     """
     if not os.path.exists(file_path):
         print(f"\033[31m[ERROR]\033[0m File not found: {file_path}")
-        return False
+        return False, None
     
     # If title is not provided, try to extract from filename
     if not title:
@@ -343,7 +446,8 @@ def enhance_existing_file_with_spotify(file_path, title=None, artist=None):
     
     if not metadata:
         print(f"\033[31m[ERROR]\033[0m Could not find metadata on Spotify")
-        return False
+        return False, None
     
     # Apply Spotify metadata to the file
-    return apply_spotify_metadata_to_file(file_path, metadata)
+    success = apply_spotify_metadata_to_file(file_path, metadata)
+    return success, metadata

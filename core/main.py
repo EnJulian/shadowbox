@@ -90,8 +90,11 @@ def create_artist_directory(artist, base_dir=None):
     Returns:
         str: Path to the artist directory
     """
+    # Use only the first artist name if multiple artists are separated by commas
+    first_artist = artist.split(',')[0].strip()
+    
     # Sanitize artist name for directory
-    artist_dir_name = sanitize_filename(artist)
+    artist_dir_name = sanitize_filename(first_artist)
     
     # If no base directory specified, use 'Music' in user's home directory
     if not base_dir:
@@ -106,6 +109,39 @@ def create_artist_directory(artist, base_dir=None):
         os.makedirs(artist_dir, exist_ok=True)
     
     return artist_dir
+
+def create_album_directory(artist_dir, album_name, title=None):
+    """
+    Create a directory for the album inside the artist directory.
+    
+    Args:
+        artist_dir (str): Path to the artist directory
+        album_name (str): The album name
+        title (str, optional): The track title, used as fallback if album_name is empty
+        
+    Returns:
+        str: Path to the album directory
+    """
+    # If album name is empty or None, use the track title as the album name
+    if not album_name and title:
+        album_name = title
+        print(f"\033[33m[INFO]\033[0m No album name found, using track title as album folder: '{title}'")
+    elif not album_name and not title:
+        album_name = "Unknown Album"
+        print(f"\033[33m[INFO]\033[0m No album name or title found, using 'Unknown Album' as folder name")
+    
+    # Sanitize album name for directory
+    album_dir_name = sanitize_filename(album_name)
+    
+    # Create the full path
+    album_dir = os.path.join(artist_dir, album_dir_name)
+    
+    # Create the directory if it doesn't exist
+    if not os.path.exists(album_dir):
+        print(f"\033[32m[DIR]\033[0m Creating album directory: {album_dir}")
+        os.makedirs(album_dir, exist_ok=True)
+    
+    return album_dir
 
 def run(query, output_file=None, music_dir=None, audio_format='opus'):
     """
@@ -205,49 +241,58 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
     # Create artist directory
     artist_dir = create_artist_directory(artist, music_dir)
     
+    # Get album name from metadata if available
+    if file_metadata:
+        album_name = file_metadata.get("album", "")
+    else:
+        album_name = None
+    
+    # Create album directory inside artist directory
+    album_dir = create_album_directory(artist_dir, album_name, title)
+    
     # Sanitize title for filename
     safe_title = sanitize_filename(title)
     
     # Determine file extension
     file_ext = os.path.splitext(temp_file)[1]
     
-    # Create the final file path
-    final_file = os.path.join(artist_dir, f"{safe_title}{file_ext}")
+    # Create the final file path (now in album directory)
+    final_file = os.path.join(album_dir, f"{safe_title}{file_ext}")
     
     # If the file already exists, add a number to make it unique
     counter = 1
     while os.path.exists(final_file):
-        final_file = os.path.join(artist_dir, f"{safe_title}_{counter}{file_ext}")
+        final_file = os.path.join(album_dir, f"{safe_title}_{counter}{file_ext}")
         counter += 1
     
-    # Move the file to the artist directory
+    # Move the file to the album directory
     print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
     shutil.move(temp_file, final_file)
     
     # Use album from metadata if available, otherwise use artist name
-    album = file_metadata.get('album', '') if file_metadata.get('album') else f"{artist}"
+    album = album_name if album_name else (title or f"{artist}")
     
     print(f"\033[32m[ART]\033[0m Fetching album cover for {title} by {artist}")
     image_url = get_album_cover_url(title, artist)
     cover_path = None
     if image_url:
-        # Download cover to artist directory
+        # Download cover to album directory (changed from artist directory)
         cover_filename = f"{safe_title}_cover.jpg"
-        cover_path = os.path.join(artist_dir, cover_filename)
+        cover_path = os.path.join(album_dir, cover_filename)
         
         if download_cover_image(image_url, cover_path):
             print(f"\033[32m[SUCCESS]\033[0m Album cover downloaded to {cover_path}")
         else:
             print("\033[33m[WARNING]\033[0m Failed to download album cover")
             cover_path = None
-    else:
-        print("\033[33m[WARNING]\033[0m No album cover found")
-
+    
+    # Add metadata to the file
     print(f"\033[32m[META]\033[0m Adding metadata to {final_file}")
     try:
-        # Get date from metadata if available
-        date = file_metadata.get('date', '')
-        add_metadata(final_file, title=title, artist=artist, album=album, cover_path=cover_path, date=date)
+        # Save the full artist string as album_artist
+        full_artist = artist
+        # Add metadata with both artist and album_artist
+        add_metadata(final_file, title=title, artist=artist, album=album, cover_path=cover_path, album_artist=full_artist)
         print(f"\033[32m[COMPLETE]\033[0m Finished downloading and tagging: {final_file}")
         return True
     except Exception as e:
@@ -256,7 +301,7 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
 
 def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus'):
     """
-    Download a song using Spotify for metadata, add metadata, and embed album art.
+    Download a song with Spotify metadata.
     
     Args:
         query (str): The song title and artist or URL
@@ -265,7 +310,7 @@ def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus
         audio_format (str, optional): The audio format to download. Defaults to 'opus'.
                                      Supported formats: opus, m4a, mp3, flac, wav, etc.
     """
-    # Import the Spotify metadata module
+    # Import Spotify metadata module
     try:
         from meta_ops.spotify_metadata import process_youtube_url_with_spotify
     except ImportError:
@@ -285,12 +330,13 @@ def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus
     temp_output = os.path.join(os.getcwd(), 'temp_download.%(ext)s')
     
     # Download the audio with Spotify metadata
+    spotify_metadata = None
     try:
         if is_url(query):
-            success = process_youtube_url_with_spotify(query, temp_output, audio_format)
+            success, spotify_metadata = process_youtube_url_with_spotify(query, temp_output, audio_format)
         else:
             # If it's a search query, prepend ytsearch1:
-            success = process_youtube_url_with_spotify(f"ytsearch1:{query}", temp_output, audio_format)
+            success, spotify_metadata = process_youtube_url_with_spotify(f"ytsearch1:{query}", temp_output, audio_format)
             
         if not success:
             print("\033[31m[FAIL]\033[0m Download failed")
@@ -307,12 +353,22 @@ def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus
     
     print(f"\033[32m[SUCCESS]\033[0m Found downloaded file: {temp_file}")
     
-    # Extract metadata from the file (should now have Spotify metadata)
-    file_metadata = extract_metadata(temp_file)
-    
-    # Get artist and title from metadata
-    title = file_metadata.get('title', '')
-    artist = file_metadata.get('artist', '')
+    # Get metadata - prefer Spotify metadata if available
+    file_metadata = None
+    if spotify_metadata:
+        print(f"\033[32m[INFO]\033[0m Using Spotify metadata")
+        title = spotify_metadata.get('title', '')
+        # Store the full artist string for later use
+        full_artist = spotify_metadata.get('artist', '')
+        # For directory creation, use only the first artist
+        artist = full_artist.split(',')[0].strip() if ',' in full_artist else full_artist
+    else:
+        # Extract metadata from the file as fallback
+        print(f"\033[33m[WARNING]\033[0m No Spotify metadata available, extracting from file")
+        file_metadata = extract_metadata(temp_file)
+        title = file_metadata.get('title', '')
+        artist = file_metadata.get('artist', '')
+        full_artist = artist  # No full artist info available
     
     # If metadata is missing, use fallback method
     if not title or not artist:
@@ -334,34 +390,61 @@ def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus
     # Create artist directory
     artist_dir = create_artist_directory(artist, music_dir)
     
+    # Get album name from metadata if available
+    # Get album name from metadata if available
+    if spotify_metadata:
+        album_name = spotify_metadata.get("album", "")
+    elif file_metadata:
+        album_name = file_metadata.get("album", "")
+    else:
+        album_name = None
+    
+    # Create album directory inside artist directory
+    album_dir = create_album_directory(artist_dir, album_name, title)
+    
     # Sanitize title for filename
     safe_title = sanitize_filename(title)
     
     # Determine file extension
     file_ext = os.path.splitext(temp_file)[1]
     
-    # Create the final file path
-    final_file = os.path.join(artist_dir, f"{safe_title}{file_ext}")
+    # Create the final file path (now in album directory)
+    final_file = os.path.join(album_dir, f"{safe_title}{file_ext}")
     
     # If the file already exists, add a number to make it unique
     counter = 1
     while os.path.exists(final_file):
-        final_file = os.path.join(artist_dir, f"{safe_title}_{counter}{file_ext}")
+        final_file = os.path.join(album_dir, f"{safe_title}_{counter}{file_ext}")
         counter += 1
     
-    # Move the file to the artist directory
+    # Move the file to the album directory
     print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
     shutil.move(temp_file, final_file)
     
     # Use album from metadata if available, otherwise use artist name
-    album = file_metadata.get('album', '') if file_metadata.get('album') else f"{artist}"
+    album = album_name if album_name else (title or f"{artist}")
     
     # Add metadata to the file
     print(f"\033[32m[META]\033[0m Adding metadata to {final_file}")
     try:
         # Get date from metadata if available
-        date = file_metadata.get('date', '')
-        add_metadata(final_file, title=title, artist=artist, album=album, date=date)
+        date = spotify_metadata.get('release_date', '') if spotify_metadata else file_metadata.get('date', '')
+        
+        # Debug logging
+        print(f"\033[32m[DEBUG]\033[0m Title: '{title}'")
+        print(f"\033[32m[DEBUG]\033[0m Artist (for directory): '{artist}'")
+        print(f"\033[32m[DEBUG]\033[0m Full Artist (for album_artist): '{full_artist}'")
+        print(f"\033[32m[DEBUG]\033[0m Album: '{album}'")
+        
+        # Add metadata with both artist and album_artist
+        add_metadata(
+            file_path=final_file, 
+            title=title, 
+            artist=full_artist,  # Pass the full artist string to add_metadata
+            album=album, 
+            date=date, 
+            album_artist=full_artist  # Explicitly set album_artist to the full artist string
+        )
         print(f"\033[32m[COMPLETE]\033[0m Finished downloading and tagging: {final_file}")
         return True
     except Exception as e:

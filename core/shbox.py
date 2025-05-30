@@ -19,7 +19,7 @@ def print_header():
     """Print the application header."""
     clear_screen()
     print("=" * 70)
-    print("\033[32m[SYSTEM]\033[0m  SHADOWBOX BY LSNEN  \033[32m[SYSTEM]\033[0m")
+    print("\033[32m[SYSTEM]\033[0m  SHADOWBOX  \033[32m[SYSTEM]\033[0m")
     print("=" * 70)
     print("Download music from YouTube or Bandcamp with metadata and cover art")
     print("=" * 70)
@@ -341,8 +341,8 @@ def settings():
             print(f"\nCurrent audio format: {audio_format}")
             print("\nAvailable audio formats:")
             formats = [
-                ('alac', 'Apple lossless compression, great quality'),
-                ('opus', 'High quality, small file size (recommended)'),
+                ('alac', 'Apple lossless Audio Codec, highest quality (recommended)'),
+                ('opus', 'High quality, small file size'),
                 ('m4a', 'Good quality, compatible with Apple devices'),
                 ('mp3', 'Universal compatibility, decent quality'),
                 ('flac', 'Lossless audio, large file size'),

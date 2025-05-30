@@ -148,6 +148,16 @@ def add_metadata(file_path, title, artist, album, cover_path=None, album_artist=
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Audio file not found: {file_path}")
     
+    # Debug logging for artist and album_artist
+    print(f"\033[32m[DEBUG]\033[0m Artist: '{artist}'")
+    print(f"\033[32m[DEBUG]\033[0m Album Artist: '{album_artist}'")
+    
+    # If album_artist is not provided but artist contains multiple artists (comma-separated),
+    # use the full artist string as album_artist
+    if not album_artist and ',' in artist:
+        album_artist = artist
+        print(f"\033[32m[DEBUG]\033[0m Setting album_artist to full artist string: '{album_artist}'")
+    
     # Determine file type based on extension
     file_ext = os.path.splitext(file_path)[1].lower()
     
@@ -191,14 +201,28 @@ def add_metadata_mp3(file_path, title, artist, album, cover_path=None, album_art
         
         # Add basic metadata
         audio['title'] = title
-        audio['artist'] = artist
         audio['album'] = album
         
-        # Add additional metadata if provided
+        # Debug logging
+        print(f"\033[32m[DEBUG MP3]\033[0m Processing artist: '{artist}'")
+        print(f"\033[32m[DEBUG MP3]\033[0m Processing album_artist: '{album_artist}'")
+        
+        # Set album_artist first to preserve the full artist string
         if album_artist:
+            print(f"\033[32m[DEBUG MP3]\033[0m Setting albumartist to: '{album_artist}'")
             audio['albumartist'] = album_artist
-        elif artist:  # Use artist as album artist if not provided
+        elif artist:  # Use full artist string as album artist
+            print(f"\033[32m[DEBUG MP3]\033[0m Setting albumartist to artist: '{artist}'")
             audio['albumartist'] = artist
+            
+        # Now handle artist field - use only the first artist if multiple are separated by commas
+        if ',' in artist:
+            first_artist = artist.split(',')[0].strip()
+            print(f"\033[32m[DEBUG MP3]\033[0m Setting artist to first name only: '{first_artist}'")
+            audio['artist'] = first_artist
+        else:
+            print(f"\033[32m[DEBUG MP3]\033[0m Setting artist to: '{artist}'")
+            audio['artist'] = artist
             
         if date:
             # Extract just the year from any date format
@@ -266,14 +290,28 @@ def add_metadata_opus(file_path, title, artist, album, cover_path=None, album_ar
         
         # Add basic metadata
         audio['title'] = title
-        audio['artist'] = artist
         audio['album'] = album
         
-        # Add additional metadata if provided
+        # Debug logging
+        print(f"\033[32m[DEBUG OPUS]\033[0m Processing artist: '{artist}'")
+        print(f"\033[32m[DEBUG OPUS]\033[0m Processing album_artist: '{album_artist}'")
+        
+        # Set album_artist first to preserve the full artist string
         if album_artist:
+            print(f"\033[32m[DEBUG OPUS]\033[0m Setting albumartist to: '{album_artist}'")
             audio['albumartist'] = album_artist
-        elif artist:  # Use artist as album artist if not provided
+        elif artist:  # Use full artist string as album artist
+            print(f"\033[32m[DEBUG OPUS]\033[0m Setting albumartist to artist: '{artist}'")
             audio['albumartist'] = artist
+            
+        # Now handle artist field - use only the first artist if multiple are separated by commas
+        if ',' in artist:
+            first_artist = artist.split(',')[0].strip()
+            print(f"\033[32m[DEBUG OPUS]\033[0m Setting artist to first name only: '{first_artist}'")
+            audio['artist'] = first_artist
+        else:
+            print(f"\033[32m[DEBUG OPUS]\033[0m Setting artist to: '{artist}'")
+            audio['artist'] = artist
             
         if date:
             # Extract just the year from any date format
@@ -339,14 +377,28 @@ def add_metadata_m4a(file_path, title, artist, album, cover_path=None, album_art
         
         # Add basic metadata - MP4 uses different tag keys
         audio['©nam'] = [title]
-        audio['©ART'] = [artist]
         audio['©alb'] = [album]
         
-        # Add additional metadata if provided
+        # Debug logging
+        print(f"\033[32m[DEBUG M4A]\033[0m Processing artist: '{artist}'")
+        print(f"\033[32m[DEBUG M4A]\033[0m Processing album_artist: '{album_artist}'")
+        
+        # Set album_artist first to preserve the full artist string
         if album_artist:
+            print(f"\033[32m[DEBUG M4A]\033[0m Setting albumartist to: '{album_artist}'")
             audio['aART'] = [album_artist]
-        elif artist:  # Use artist as album artist if not provided
+        elif artist:  # Use full artist string as album artist
+            print(f"\033[32m[DEBUG M4A]\033[0m Setting albumartist to artist: '{artist}'")
             audio['aART'] = [artist]
+            
+        # Now handle artist field - use only the first artist if multiple are separated by commas
+        if ',' in artist:
+            first_artist = artist.split(',')[0].strip()
+            print(f"\033[32m[DEBUG M4A]\033[0m Setting artist to first name only: '{first_artist}'")
+            audio['©ART'] = [first_artist]
+        else:
+            print(f"\033[32m[DEBUG M4A]\033[0m Setting artist to: '{artist}'")
+            audio['©ART'] = [artist]
             
         if date:
             # Extract just the year from any date format

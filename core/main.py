@@ -13,6 +13,23 @@ meta_ops_dir = os.path.join(parent_dir, 'meta_ops')
 if os.path.exists(meta_ops_dir) and meta_ops_dir not in sys.path:
     sys.path.insert(0, meta_ops_dir)
 
+# Import enhanced terminal UI
+try:
+    from terminal_ui import ui, success, error, warning, info, system, audio, download, scan, directory, api
+except ImportError:
+    # Fallback to basic print if terminal_ui is not available
+    def success(msg, tag="SUCCESS"): print(f"[{tag}] {msg}")
+    def error(msg, tag="ERROR"): print(f"[{tag}] {msg}")
+    def warning(msg, tag="WARNING"): print(f"[{tag}] {msg}")
+    def info(msg, tag="INFO"): print(f"[{tag}] {msg}")
+    def system(msg, tag="SYSTEM"): print(f"[{tag}] {msg}")
+    def audio(msg, tag="AUDIO"): print(f"[{tag}] {msg}")
+    def download(msg, tag="DOWNLOAD"): print(f"[{tag}] {msg}")
+    def scan(msg, tag="SCAN"): print(f"[{tag}] {msg}")
+    def directory(msg, tag="DIR"): print(f"[{tag}] {msg}")
+    def api(msg, tag="API"): print(f"[{tag}] {msg}")
+    ui = None
+
 # Try absolute imports first (for PyInstaller), then relative imports (for development)
 try:
     from meta_ops.downloader import download_audio, is_url, is_youtube_playlist
@@ -119,7 +136,7 @@ def create_artist_directory(artist, base_dir=None):
     
     # Create the directory if it doesn't exist
     if not os.path.exists(artist_dir):
-        print(f"\033[32m[DIR]\033[0m Creating artist directory: {artist_dir}")
+        directory(f"Creating artist directory: {artist_dir}")
         os.makedirs(artist_dir, exist_ok=True)
     
     return artist_dir
@@ -139,15 +156,15 @@ def create_album_directory(artist_dir, album_name, title=None):
     # If album name is empty or None, use the track title as the album name
     if not album_name and title:
         album_name = title
-        print(f"\033[33m[INFO]\033[0m No album name found, using track title as album folder: '{title}'")
+        info(f"No album name found, using track title as album folder: '{title}'")
     elif not album_name and not title:
         album_name = "Unknown Album"
-        print(f"\033[33m[INFO]\033[0m No album name or title found, using 'Unknown Album' as folder name")
+        info("No album name or title found, using 'Unknown Album' as folder name")
     
     # Remove "Album - " prefix if present
     if album_name and album_name.startswith("Album - "):
         album_name = album_name[8:]  # Remove the first 8 characters ("Album - ")
-        print(f"\033[33m[INFO]\033[0m Removed 'Album - ' prefix from album name: '{album_name}'")
+        info(f"Removed 'Album - ' prefix from album name: '{album_name}'")
     
     # Sanitize album name for directory
     album_dir_name = sanitize_filename(album_name)
@@ -157,7 +174,7 @@ def create_album_directory(artist_dir, album_name, title=None):
     
     # Create the directory if it doesn't exist
     if not os.path.exists(album_dir):
-        print(f"\033[32m[DIR]\033[0m Creating album directory: {album_dir}")
+        directory(f"Creating album directory: {album_dir}")
         os.makedirs(album_dir, exist_ok=True)
     
     return album_dir
@@ -183,22 +200,22 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
     try:
         success = download_audio(query, temp_output, False, audio_format)
         if not success:
-            print("\033[31m[FAIL]\033[0m Download failed")
+            error("Download failed", "FAIL")
             return False
     except Exception as e:
-        print(f"\033[31m[ERROR]\033[0m Error downloading audio: {e}")
+        error(f"Error downloading audio: {e}")
         return False
 
     # Find the downloaded file
     temp_file = find_downloaded_file(temp_output, audio_format)
     if not temp_file:
-        print("\033[31m[FAIL]\033[0m Could not find the downloaded file")
+        error("Could not find the downloaded file", "FAIL")
         return False
     
-    print(f"\033[32m[SUCCESS]\033[0m Found downloaded file: {temp_file}")
+    success(f"Found downloaded file: {temp_file}")
     
     # First, try to extract metadata from the downloaded file
-    print(f"\033[32m[META]\033[0m Extracting metadata from downloaded file...")
+    system("Extracting metadata from downloaded file...", "META")
     file_metadata = extract_metadata(temp_file)
     
     # Initialize title and artist variables
@@ -207,12 +224,12 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
     
     # If we have metadata from the file, use it
     if file_metadata['title'] and file_metadata['artist']:
-        print(f"\033[32m[META]\033[0m Found metadata in file: Title='{file_metadata['title']}', Artist='{file_metadata['artist']}'")
+        system(f"Found metadata in file: Title='{file_metadata['title']}', Artist='{file_metadata['artist']}'", "META")
         title = file_metadata['title']
         artist = file_metadata['artist']
     else:
         # Fallback: Parse title and artist from query if it's not a URL
-        print(f"\033[33m[META]\033[0m No metadata found in file, using fallback method...")
+        warning("No metadata found in file, using fallback method...", "META")
         if is_url(query):
             # Try to extract title and artist from filename
             filename = os.path.basename(temp_file)
@@ -255,7 +272,7 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
                 title = "Believer"
     
     # Verify with user if the metadata seems incorrect
-    print(f"\033[32m[INFO]\033[0m Using metadata: Title='{title}', Artist='{artist}'")
+    info(f"Using metadata: Title='{title}', Artist='{artist}'")
     
     # Create artist directory
     artist_dir = create_artist_directory(artist, music_dir)
@@ -285,13 +302,13 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
         counter += 1
     
     # Move the file to the album directory
-    print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
+    system(f"Moving file to: {final_file}", "FILE")
     shutil.move(temp_file, final_file)
     
     # Use album from metadata if available, otherwise use artist name
     album = album_name if album_name else (title or f"{artist}")
     
-    print(f"\033[32m[ART]\033[0m Fetching album cover for {title} by {artist}")
+    system(f"Fetching album cover for {title} by {artist}", "ART")
     image_url = get_album_cover_url(title, artist)
     cover_path = None
     if image_url:
@@ -299,14 +316,14 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
         temp_cover_path = os.path.join(os.getcwd(), f"temp_cover_{os.getpid()}.jpg")
         
         if download_cover_image(image_url, temp_cover_path):
-            print(f"\033[32m[SUCCESS]\033[0m Album cover downloaded for embedding")
+            success("Album cover downloaded for embedding")
             cover_path = temp_cover_path
         else:
-            print("\033[33m[WARNING]\033[0m Failed to download album cover")
+            warning("Failed to download album cover")
             cover_path = None
     
     # Add metadata to the file
-    print(f"\033[32m[META]\033[0m Adding metadata to {final_file}")
+    system(f"Adding metadata to {final_file}", "META")
     try:
         # Save the full artist string as album_artist
         full_artist = artist
@@ -318,25 +335,25 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
         if is_url(query) and is_bandcamp_url(query):
             try:
                 from meta_ops.spotify_metadata import enhance_bandcamp_file_with_spotify
-                print(f"\033[32m[BANDCAMP]\033[0m Enhancing Bandcamp file with Spotify metadata...")
+                system("Enhancing Bandcamp file with Spotify metadata...", "BANDCAMP")
                 success, enhanced_metadata = enhance_bandcamp_file_with_spotify(final_file)
                 if success:
-                    print(f"\033[32m[BANDCAMP]\033[0m Successfully enhanced with additional metadata")
+                    success("Successfully enhanced with additional metadata", "BANDCAMP")
                 else:
-                    print(f"\033[33m[BANDCAMP]\033[0m No additional metadata enhancement available")
+                    warning("No additional metadata enhancement available", "BANDCAMP")
             except ImportError:
-                print(f"\033[33m[WARNING]\033[0m Spotify enhancement not available for Bandcamp files")
+                warning("Spotify enhancement not available for Bandcamp files")
             except Exception as e:
-                print(f"\033[33m[WARNING]\033[0m Error enhancing Bandcamp file: {e}")
+                warning(f"Error enhancing Bandcamp file: {e}")
         
         # Remove the temporary cover file if it exists
         if cover_path and os.path.exists(cover_path):
             os.remove(cover_path)
             
-        print(f"\033[32m[COMPLETE]\033[0m Finished downloading and tagging: {final_file}")
+        success(f"Finished downloading and tagging: {final_file}", "COMPLETE")
         return True
     except Exception as e:
-        print(f"\033[31m[ERROR]\033[0m Error adding metadata: {e}")
+        error(f"Error adding metadata: {e}")
         # Clean up temp file even if there was an error
         if cover_path and os.path.exists(cover_path):
             os.remove(cover_path)

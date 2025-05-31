@@ -3,6 +3,7 @@
 Shadowbox Music Downloader - Interactive Mode
 
 A user-friendly interactive interface for the Shadowbox Music Downloader application.
+Enhanced with hacker-style terminal UI for maximum readability and style.
 """
 
 import os
@@ -11,32 +12,9 @@ import time
 import glob
 from main import run, run_with_spotify, run_playlist, run_playlist_with_spotify, sanitize_filename
 from downloader import is_youtube_playlist
+from terminal_ui import ui, clear_screen, print_header, print_menu, success, error, warning, info, system, exit_animation
 
-def clear_screen():
-    """Clear the terminal screen."""
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-def print_header():
-    """Print the application header."""
-    clear_screen()
-    print("=" * 70)
-    print("\033[32m[SYSTEM]\033[0m  SHADOWBOX  \033[32m[SYSTEM]\033[0m")
-    print("=" * 70)
-    print("Download music from YouTube or Bandcamp with metadata and cover art")
-    print("=" * 70)
-    print()
-
-def print_menu():
-    """Print the main menu."""
-    print("\nMAIN MENU:")
-    print("1. Search and download a song")
-    print("2. Download from URL (YouTube or Bandcamp)")
-    print("3. Download YouTube playlist")
-    print("4. Batch download from a list")
-    print("5. Settings")
-    print("6. View downloaded songs")
-    print("7. Exit")
-    print()
+# Enhanced terminal UI functions are imported from terminal_ui module
 
 def get_music_directory():
     """Get or create the music directory."""
@@ -132,18 +110,19 @@ def save_audio_format(format_name):
 def search_and_download():
     """Search for and download a song."""
     print_header()
-    print("\033[37m[SCAN]\033[0m SEARCH AND DOWNLOAD")
-    print("=" * 60)
-    print("\nEnter the song details (e.g., 'Imagine Dragons Believer')")
-    print("Or type 'back' to return to the main menu")
+    ui.hacker_banner("AUDIO SEARCH & ACQUISITION")
+    ui.section_divider()
+    
+    info("Enter the song details (e.g., 'Imagine Dragons Believer')")
+    info("Type 'back' to return to the main menu")
     print()
     
-    query = input("\033[32m[INPUT]\033[0m Song to search: ").strip()
+    query = ui.input_prompt("Song to search", "SEARCH").strip()
     if query.lower() == 'back':
         return
     
     if not query:
-        print("\n\033[31m[ERROR]\033[0m Please enter a search query")
+        error("Please enter a search query")
         time.sleep(2)
         return
     
@@ -151,12 +130,12 @@ def search_and_download():
     use_spotify = get_use_spotify()
     audio_format = get_audio_format()
     
-    print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
-    print(f"\033[32m[FORMAT]\033[0m Using audio format: {audio_format}")
+    ui.directory(f"Music will be saved to: {music_dir}")
+    system(f"Using audio format: {audio_format}")
     if use_spotify:
-        print("\033[32m[SPOTIFY]\033[0m Using Spotify for metadata")
-    print("\nDownloading... (this may take a minute)")
-    print()
+        ui.api("Using Spotify for metadata enhancement")
+    
+    ui.loading_spinner("Initializing download sequence", 1.0)
     
     if use_spotify:
         success = run_with_spotify(query, music_dir=music_dir, audio_format=audio_format)
@@ -164,27 +143,28 @@ def search_and_download():
         success = run(query, music_dir=music_dir, audio_format=audio_format)
     
     if success:
-        print("\n\033[32m[SUCCESS]\033[0m Operation Success!")
+        success("Operation completed successfully!", "MISSION_SUCCESS")
     else:
-        print("\n\033[31m[FAIL]\033[0m Download failed. Please try again.")
+        error("Download failed. Please try again.", "MISSION_FAILED")
     
-    input("\nPress Enter to continue...")
+    ui.input_prompt("Press Enter to continue", "CONTINUE")
 
 def download_from_url():
     """Download a song from a URL."""
     print_header()
-    print("\033[32m[URL]\033[0m DOWNLOAD FROM URL")
-    print("=" * 60)
-    print("\nEnter a YouTube or Bandcamp URL")
-    print("Or type 'back' to return to the main menu")
+    ui.hacker_banner("URL EXTRACTION")
+    ui.section_divider()
+    
+    ui.info("Enter a YouTube or Bandcamp URL")
+    ui.info("Type 'back' to return to the main menu")
     print()
     
-    url = input("\033[32m[INPUT]\033[0m URL: ").strip()
+    url = ui.input_prompt("Target URL", "URL").strip()
     if url.lower() == 'back':
         return
     
     if not url.startswith(('http://', 'https://')):
-        print("\n\033[31m[ERROR]\033[0m Please enter a valid URL (starting with http:// or https://)")
+        error("Please enter a valid URL (starting with http:// or https://)")
         time.sleep(2)
         return
     
@@ -192,12 +172,12 @@ def download_from_url():
     use_spotify = get_use_spotify()
     audio_format = get_audio_format()
     
-    print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
-    print(f"\033[32m[FORMAT]\033[0m Using audio format: {audio_format}")
+    ui.directory(f"Music will be saved to: {music_dir}")
+    system(f"Using audio format: {audio_format}")
     if use_spotify:
-        print("\033[32m[SPOTIFY]\033[0m Using Spotify for metadata")
-    print("\nDownloading... (this may take a minute)")
-    print()
+        ui.api("Using Spotify for metadata enhancement")
+    
+    ui.loading_spinner("Initiating URL extraction", 1.0)
     
     if use_spotify:
         success = run_with_spotify(url, music_dir=music_dir, audio_format=audio_format)
@@ -205,25 +185,26 @@ def download_from_url():
         success = run(url, music_dir=music_dir, audio_format=audio_format)
     
     if success:
-        print("\n\033[32m[SUCCESS]\033[0m Operation Success!")
+        success("URL extraction completed successfully!", "EXTRACTION_SUCCESS")
     else:
-        print("\n\033[31m[FAIL]\033[0m Download failed. Please try again.")
+        error("URL extraction failed. Please try again.", "EXTRACTION_FAILED")
     
-    input("\nPress Enter to continue...")
+    ui.input_prompt("Press Enter to continue", "CONTINUE")
 
 def batch_download():
     """Download multiple songs from a list."""
     print_header()
-    print("\033[32m[BATCH]\033[0m BATCH DOWNLOAD")
-    print("=" * 60)
-    print("\nEnter one song or URL per line.")
-    print("When finished, enter an empty line.")
-    print("Or type 'back' to return to the main menu")
+    ui.hacker_banner("BATCH PROCESSING")
+    ui.section_divider()
+    
+    ui.info("Enter one song or URL per line")
+    ui.info("When finished, enter an empty line")
+    ui.info("Type 'back' to return to the main menu")
     print()
     
     songs = []
     while True:
-        line = input(f"Song/URL #{len(songs) + 1} (or empty to finish): ").strip()
+        line = ui.input_prompt(f"Song/URL #{len(songs) + 1} (or empty to finish)", "BATCH").strip()
         if not line:
             break
         if line.lower() == 'back':
@@ -231,7 +212,7 @@ def batch_download():
         songs.append(line)
     
     if not songs:
-        print("\n\033[31m[ERROR]\033[0m No songs entered")
+        error("No songs entered")
         time.sleep(2)
         return
     
@@ -239,16 +220,18 @@ def batch_download():
     use_spotify = get_use_spotify()
     audio_format = get_audio_format()
     
-    print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
-    print(f"\033[32m[FORMAT]\033[0m Using audio format: {audio_format}")
+    ui.directory(f"Music will be saved to: {music_dir}")
+    system(f"Using audio format: {audio_format}")
     if use_spotify:
-        print("\033[32m[SPOTIFY]\033[0m Using Spotify for metadata")
-    print(f"\nDownloading {len(songs)} songs... (this may take a while)")
-    print()
+        ui.api("Using Spotify for metadata enhancement")
+    
+    ui.loading_spinner(f"Initializing batch processing for {len(songs)} targets", 1.5)
     
     successful = 0
     for i, song in enumerate(songs):
-        print(f"\n[{i+1}/{len(songs)}] Downloading: {song}")
+        ui.progress_bar(i, len(songs), f"Processing batch", f"({i}/{len(songs)})")
+        ui.download(f"Target: {song}", f"BATCH_{i+1}")
+        
         if use_spotify:
             success = run_with_spotify(song, music_dir=music_dir, audio_format=audio_format)
         else:
@@ -256,42 +239,34 @@ def batch_download():
             
         if success:
             successful += 1
-            print(f"\033[32m[SUCCESS]\033[0m Downloaded: {song}")
+            success(f"Acquired: {song}", f"TARGET_{i+1}")
         else:
-            print(f"\033[31m[FAIL]\033[0m Failed: {song}")
+            error(f"Failed: {song}", f"TARGET_{i+1}")
     
-    print(f"\n\033[32m[COMPLETE]\033[0m Downloaded {successful} out of {len(songs)} songs")
-    input("\nPress Enter to continue...")
+    ui.progress_bar(len(songs), len(songs), "Batch processing", "Complete")
+    success(f"Batch completed: {successful}/{len(songs)} targets acquired", "BATCH_COMPLETE")
+    ui.input_prompt("Press Enter to continue", "CONTINUE")
 
 def settings():
     """Change application settings."""
     while True:
         print_header()
-        print("\033[32m[CONFIG]\033[0m  SETTINGS")
-        print("=" * 60)
         
         current_dir = get_music_directory()
         use_spotify = get_use_spotify()
         audio_format = get_audio_format()
         
-        print(f"\nCurrent music directory: {current_dir}")
-        print(f"Use Spotify for metadata: {'Yes' if use_spotify else 'No'}")
-        print(f"Audio format: {audio_format}")
+        # Use the new enhanced settings menu
+        ui.print_settings_menu(current_dir, use_spotify, audio_format)
         
-        print("\n1. Change music directory")
-        print("2. Toggle Spotify metadata")
-        print("3. Change audio format")
-        print("4. Back to main menu")
-        print()
-        
-        choice = input("Select an option (1-4): ").strip()
+        choice = ui.input_prompt("Select an option (1-5)", "SETTINGS").strip()
         
         if choice == '1':
-            print("\nEnter the new music directory path")
-            print("(Use ~ for home directory on macOS/Linux)")
-            print("Or press Enter to keep the current directory")
+            ui.info("Enter the new music directory path")
+            ui.info("(Use ~ for home directory on macOS/Linux)")
+            ui.info("Or press Enter to keep the current directory")
             
-            new_dir = input("\nNew directory: ").strip()
+            new_dir = ui.input_prompt("New directory", "DIR_PATH").strip()
             if new_dir:
                 # Expand ~ to home directory
                 if new_dir.startswith('~'):
@@ -301,16 +276,16 @@ def settings():
                 if not os.path.exists(new_dir):
                     try:
                         os.makedirs(new_dir, exist_ok=True)
-                        print(f"\n\033[32m[SUCCESS]\033[0m Created directory: {new_dir}")
+                        ui.success(f"Created directory: {new_dir}")
                     except Exception as e:
-                        print(f"\n\033[31m[ERROR]\033[0m Error creating directory: {e}")
-                        input("\nPress Enter to continue...")
+                        ui.error(f"Error creating directory: {e}")
+                        ui.input_prompt("Press Enter to continue", "CONTINUE")
                         continue
                 
                 # Save the new directory
                 save_music_directory(new_dir)
-                print(f"\n\033[32m[SUCCESS]\033[0m Music directory changed to: {new_dir}")
-                input("\nPress Enter to continue...")
+                ui.success(f"Music directory changed to: {new_dir}")
+                ui.input_prompt("Press Enter to continue", "CONTINUE")
         
         elif choice == '2':
             # Check if Spotify credentials are set
@@ -318,10 +293,10 @@ def settings():
             spotify_client_secret = os.environ.get('SPOTIFY_CLIENT_SECRET')
             
             if not spotify_client_id or not spotify_client_secret:
-                print("\n\033[33m[WARNING]\033[0m Spotify credentials not found.")
-                print("You need to set up Spotify credentials first.")
-                print("Run ./setup/setup_spotify.sh (Linux/macOS) or setup\\setup_spotify.bat (Windows)")
-                input("\nPress Enter to continue...")
+                ui.warning("Spotify credentials not found.")
+                ui.info("You need to set up Spotify credentials first.")
+                ui.info("Run ./setup/setup_spotify.sh (Linux/macOS) or setup\\setup_spotify.bat (Windows)")
+                ui.input_prompt("Press Enter to continue", "CONTINUE")
                 continue
             
             # Toggle Spotify setting
@@ -329,99 +304,102 @@ def settings():
             save_config(use_spotify=new_setting)
             
             if new_setting:
-                print("\n\033[32m[SUCCESS]\033[0m Spotify metadata enabled")
+                ui.success("Spotify metadata enabled")
             else:
-                print("\n\033[32m[SUCCESS]\033[0m Spotify metadata disabled")
+                ui.success("Spotify metadata disabled")
             
-            input("\nPress Enter to continue...")
+            ui.input_prompt("Press Enter to continue", "CONTINUE")
         
         elif choice == '3':
             print_header()
-            print("\033[32m[FORMAT]\033[0m CHANGE AUDIO FORMAT")
-            print("=" * 60)
             
-            print(f"\nCurrent audio format: {audio_format}")
-            print("\nAvailable audio formats:")
-            formats = [
-                ('alac', 'Apple lossless Audio Codec, highest quality (recommended)'),
-                ('opus', 'High quality, small file size'),
-                ('m4a', 'Good quality, compatible with Apple devices'),
-                ('mp3', 'Universal compatibility, decent quality'),
-                ('flac', 'Lossless audio, large file size'),
-                ('wav', 'Uncompressed audio, very large file size'),
-                ('aac', 'Good quality, small file size')
-            ]
+            # Use the new enhanced audio format menu
+            ui.print_audio_format_menu(audio_format)
             
-            for i, (fmt, desc) in enumerate(formats, 1):
-                print(f"{i}. {fmt} - {desc}")
-            
-            print("7. Custom format")
-            print()
-            
-            format_choice = input("Select an option (1-7) or press Enter to keep current: ").strip()
+            format_choice = ui.input_prompt("Select an option (1-9)", "FORMAT").strip()
             
             if not format_choice:
                 continue
                 
             try:
                 choice_num = int(format_choice)
-                if 1 <= choice_num <= 6:
+                formats = [
+                    ('alac', 'Apple lossless Audio Codec, highest quality (recommended)'),
+                    ('opus', 'High quality, small file size'),
+                    ('m4a', 'Good quality, compatible with Apple devices'),
+                    ('mp3', 'Universal compatibility, decent quality'),
+                    ('flac', 'Lossless audio, large file size'),
+                    ('wav', 'Uncompressed audio, very large file size'),
+                    ('aac', 'Good quality, small file size')
+                ]
+                
+                if 1 <= choice_num <= 7:
                     # Standard format
                     new_format = formats[choice_num - 1][0]
                     save_audio_format(new_format)
-                    print(f"\n\033[32m[SUCCESS]\033[0m Audio format changed to: {new_format}")
-                elif choice_num == 7:
+                    ui.success(f"Audio format changed to: {new_format}")
+                elif choice_num == 8:
                     # Custom format
-                    custom_format = input("\nEnter custom audio format: ").strip()
+                    custom_format = ui.input_prompt("Enter custom audio format", "CUSTOM").strip()
                     if custom_format:
                         save_audio_format(custom_format)
-                        print(f"\n\033[32m[SUCCESS]\033[0m Audio format changed to: {custom_format}")
+                        ui.success(f"Audio format changed to: {custom_format}")
+                elif choice_num == 9:
+                    # Keep current format
+                    continue
                 else:
-                    print("\n\033[31m[ERROR]\033[0m Invalid choice")
+                    ui.error("Invalid choice")
             except ValueError:
-                print("\n\033[31m[ERROR]\033[0m Please enter a number")
+                ui.error("Please enter a number")
             
-            input("\nPress Enter to continue...")
+            ui.input_prompt("Press Enter to continue", "CONTINUE")
         
         elif choice == '4':
+            # Theme selection
+            selected_theme = ui.theme_selection_menu()
+            if selected_theme:
+                ui.input_prompt("Press Enter to continue", "CONTINUE")
+        
+        elif choice == '5':
             break
         
         else:
-            print("\n\033[31m[ERROR]\033[0m Invalid choice. Please try again.")
+            ui.error("Invalid choice. Please try again.")
             time.sleep(1)
 
 def view_downloads():
     """View downloaded songs."""
     print_header()
-    print("\033[32m[LIST]\033[0m VIEW DOWNLOADED SONGS")
-    print("=" * 60)
     
     music_dir = get_music_directory()
-    print(f"\nMusic directory: {music_dir}")
+    ui.info(f"Music directory: {music_dir}", "DIR")
     
     # Get all artist directories
     artist_dirs = [d for d in os.listdir(music_dir) 
                   if os.path.isdir(os.path.join(music_dir, d))]
     
     if not artist_dirs:
-        print("\nNo music found. Download some songs first!")
-        input("\nPress Enter to continue...")
+        ui.warning("No music found. Download some songs first!")
+        ui.input_prompt("Press Enter to continue", "CONTINUE")
         return
     
     # Sort alphabetically
     artist_dirs.sort()
     
-    print(f"\nFound {len(artist_dirs)} artists:")
-    for i, artist in enumerate(artist_dirs):
+    # Prepare artist data with song counts
+    artists_data = []
+    for artist in artist_dirs:
         # Count songs for this artist
         artist_path = os.path.join(music_dir, artist)
         songs = []
         for ext in ['alac', 'opus', 'm4a', 'mp3', 'flac', 'wav', 'aac']:
             songs.extend(glob.glob(os.path.join(artist_path, f"*.{ext}")))
-        print(f"{i+1}. {artist} ({len(songs)} songs)")
+        artists_data.append((artist, len(songs)))
     
-    print("\nEnter an artist number to see their songs, or 'back' to return")
-    choice = input("\nSelect artist: ").strip()
+    # Use the new enhanced artist list menu
+    ui.print_artist_list_menu(artists_data)
+    
+    choice = ui.input_prompt("Select artist or 'back' to return", "ARTIST").strip()
     
     if choice.lower() == 'back':
         return
@@ -430,11 +408,14 @@ def view_downloads():
         idx = int(choice) - 1
         if 0 <= idx < len(artist_dirs):
             view_artist_songs(music_dir, artist_dirs[idx])
+        elif idx == len(artist_dirs):
+            # This is the "Back to main menu" option (last option in the menu)
+            return
         else:
-            print("\n\033[31m[ERROR]\033[0m Invalid choice")
+            ui.error("Invalid choice")
             time.sleep(1)
     except ValueError:
-        print("\n\033[31m[ERROR]\033[0m Please enter a number")
+        ui.error("Please enter a number")
         time.sleep(1)
 
 def view_artist_songs(music_dir, artist):
@@ -443,82 +424,81 @@ def view_artist_songs(music_dir, artist):
     
     # Get all songs with common audio formats
     songs = []
-    for ext in ['opus', 'm4a', 'mp3', 'flac', 'wav', 'aac']:
+    for ext in ['alac', 'opus', 'm4a', 'mp3', 'flac', 'wav', 'aac']:
         songs.extend(glob.glob(os.path.join(artist_path, f"*.{ext}")))
     
     # Sort by modification time (newest first)
     songs.sort(key=os.path.getmtime, reverse=True)
     
     print_header()
-    print(f"\033[32m[ARTIST]\033[0m SONGS BY {artist.upper()}")
-    print("=" * 60)
     
-    if not songs:
-        print("\nNo songs found for this artist.")
-    else:
-        print(f"\nFound {len(songs)} songs:")
-        for i, song in enumerate(songs):
-            # Get file size in MB
-            size_mb = os.path.getsize(song) / (1024 * 1024)
-            # Get modification time
-            mod_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(song)))
-            # Get filename without extension and the extension
-            filename = os.path.splitext(os.path.basename(song))[0]
-            ext = os.path.splitext(song)[1][1:]  # Remove the dot
-            print(f"{i+1}. {filename} ({ext.upper()}, {size_mb:.1f} MB, {mod_time})")
+    # Prepare songs data for the enhanced display
+    songs_data = []
+    for song in songs:
+        # Get file size in MB
+        size_mb = os.path.getsize(song) / (1024 * 1024)
+        # Get modification time
+        mod_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(song)))
+        # Get filename without extension and the extension
+        filename = os.path.splitext(os.path.basename(song))[0]
+        ext = os.path.splitext(song)[1][1:]  # Remove the dot
+        songs_data.append((filename, ext, size_mb, mod_time))
     
-    input("\nPress Enter to continue...")
+    # Use the new enhanced artist songs display
+    ui.print_artist_songs_display(artist, songs_data)
+    
+    ui.input_prompt("Press Enter to continue", "CONTINUE")
 
 def download_playlist():
     """Download a YouTube playlist."""
     print_header()
-    print("\033[32m[PLAYLIST]\033[0m DOWNLOAD YOUTUBE PLAYLIST")
-    print("=" * 60)
-    print("\nEnter a YouTube playlist URL")
-    print("Or type 'back' to return to the main menu")
-    print()
+    ui.hacker_banner("DOWNLOAD YOUTUBE PLAYLIST")
+    ui.section_divider()
     
-    url = input("\033[32m[INPUT]\033[0m Playlist URL: ").strip()
+    ui.info("Enter a YouTube playlist URL")
+    ui.info("Or type 'back' to return to the main menu")
+    
+    url = ui.input_prompt("Playlist URL", "PLAYLIST").strip()
     if url.lower() == 'back':
         return
     
     if not url.startswith(('http://', 'https://')):
-        print("\n\033[31m[ERROR]\033[0m Please enter a valid URL (starting with http:// or https://)")
+        ui.error("Please enter a valid URL (starting with http:// or https://)")
         time.sleep(2)
         return
     
     # Verify it's a YouTube playlist URL
     if not is_youtube_playlist(url):
-        print("\n\033[31m[ERROR]\033[0m The URL does not appear to be a YouTube playlist.")
-        print("Playlist URLs typically contain 'playlist' or 'list=' in the URL.")
+        ui.error("The URL does not appear to be a YouTube playlist.")
+        ui.info("Playlist URLs typically contain 'playlist' or 'list=' in the URL.")
         time.sleep(2)
         return
     
     music_dir = get_music_directory()
     audio_format = get_audio_format()
     
-    # Ask if user wants to use Spotify metadata
-    print("\n\033[33m[OPTION]\033[0m Do you want to use Spotify for enhanced metadata?")
-    print("This will add genre, composer, performer, track numbers, and disc information.")
-    print("1. Yes - Use Spotify metadata (requires Spotify credentials)")
-    print("2. No - Use basic metadata only")
+    # Ask if user wants to use Spotify metadata using the new UI
+    ui.info("Do you want to use Spotify for enhanced metadata?")
+    ui.info("This will add genre, composer, performer, track numbers, and disc information.")
+    
+    ui.print_playlist_options_menu()
     
     while True:
-        choice = input("\033[32m[INPUT]\033[0m Enter your choice (1-2): ").strip()
+        choice = ui.input_prompt("Enter your choice (1-2)", "METADATA").strip()
         if choice in ['1', '2']:
             break
-        print("\033[31m[ERROR]\033[0m Please enter 1 or 2")
+        ui.error("Please enter 1 or 2")
     
     use_spotify = choice == '1'
     
-    print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
-    print(f"\033[32m[FORMAT]\033[0m Using audio format: {audio_format}")
+    ui.info(f"Music will be saved to: {music_dir}", "DIR")
+    ui.info(f"Using audio format: {audio_format}", "FORMAT")
     if use_spotify:
-        print(f"\033[32m[METADATA]\033[0m Using Spotify for enhanced metadata")
+        ui.info("Using Spotify for enhanced metadata", "METADATA")
     else:
-        print(f"\033[32m[METADATA]\033[0m Using basic metadata only")
-    print("\n\033[32m[PLAYLIST]\033[0m Downloading playlist... (this may take several minutes)")
-    print()
+        ui.info("Using basic metadata only", "METADATA")
+    
+    ui.info("Downloading playlist... (this may take several minutes)", "PLAYLIST")
     
     # Use the appropriate function based on user choice
     if use_spotify:
@@ -527,19 +507,22 @@ def download_playlist():
         success = run_playlist(url, music_dir=music_dir, audio_format=audio_format)
     
     if success:
-        print("\n\033[32m[SUCCESS]\033[0m Playlist download complete!")
+        ui.success("Playlist download complete!")
     else:
-        print("\n\033[31m[FAIL]\033[0m Playlist download failed. Please try again.")
+        ui.error("Playlist download failed. Please try again.")
     
-    input("\nPress Enter to continue...")
+    ui.input_prompt("Press Enter to continue", "CONTINUE")
 
 def main():
     """Main application loop."""
+    first_run = True
     while True:
-        print_header()
+        # Show startup animation only on first run
+        print_header(with_startup_animation=first_run)
         print_menu()
+        first_run = False
         
-        choice = input("Select an option (1-7): ").strip()
+        choice = ui.input_prompt("Select an option (1-7)", "COMMAND").strip()
         
         if choice == '1':
             search_and_download()
@@ -554,15 +537,17 @@ def main():
         elif choice == '6':
             view_downloads()
         elif choice == '7':
-            print("\n\033[32m[SYSTEM]\033[0m Application shut down.")
+            exit_animation()
             sys.exit(0)
         else:
-            print("\n\033[31m[ERROR]\033[0m Invalid choice. Please try again.")
+            error("Invalid choice. Please try again.")
             time.sleep(1)
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n\033[31m[INTERRUPT]\033[0m Program interrupted. Exiting...")
+        print()  # New line after ^C
+        error("Program interrupted. Exiting...", "INTERRUPT")
+        exit_animation()
         sys.exit(0)

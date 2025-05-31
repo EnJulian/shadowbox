@@ -9,7 +9,7 @@ import os
 import sys
 import time
 import glob
-from main import run, run_with_spotify, run_playlist, sanitize_filename
+from main import run, run_with_spotify, run_playlist, run_playlist_with_spotify, sanitize_filename
 from downloader import is_youtube_playlist
 
 def clear_screen():
@@ -497,13 +497,34 @@ def download_playlist():
     music_dir = get_music_directory()
     audio_format = get_audio_format()
     
+    # Ask if user wants to use Spotify metadata
+    print("\n\033[33m[OPTION]\033[0m Do you want to use Spotify for enhanced metadata?")
+    print("This will add genre, composer, performer, track numbers, and disc information.")
+    print("1. Yes - Use Spotify metadata (requires Spotify credentials)")
+    print("2. No - Use basic metadata only")
+    
+    while True:
+        choice = input("\033[32m[INPUT]\033[0m Enter your choice (1-2): ").strip()
+        if choice in ['1', '2']:
+            break
+        print("\033[31m[ERROR]\033[0m Please enter 1 or 2")
+    
+    use_spotify = choice == '1'
+    
     print(f"\n\033[32m[DIR]\033[0m Music will be saved to: {music_dir}")
     print(f"\033[32m[FORMAT]\033[0m Using audio format: {audio_format}")
+    if use_spotify:
+        print(f"\033[32m[METADATA]\033[0m Using Spotify for enhanced metadata")
+    else:
+        print(f"\033[32m[METADATA]\033[0m Using basic metadata only")
     print("\n\033[32m[PLAYLIST]\033[0m Downloading playlist... (this may take several minutes)")
     print()
     
-    # Use the run_playlist function to download and process the playlist
-    success = run_playlist(url, music_dir=music_dir, audio_format=audio_format)
+    # Use the appropriate function based on user choice
+    if use_spotify:
+        success = run_playlist_with_spotify(url, music_dir=music_dir, audio_format=audio_format)
+    else:
+        success = run_playlist(url, music_dir=music_dir, audio_format=audio_format)
     
     if success:
         print("\n\033[32m[SUCCESS]\033[0m Playlist download complete!")

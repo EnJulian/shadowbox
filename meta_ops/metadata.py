@@ -126,9 +126,9 @@ def extract_metadata(file_path):
     
     return metadata
 
-def add_metadata(file_path, title, artist, album, cover_path=None, album_artist=None, date=None, genre=None, track_number=None):
+def add_metadata(file_path, title, artist, album, cover_path=None, album_artist=None, date=None, genre=None, track_number=None, total_tracks=None, disc_number=None, total_discs=None, composer=None, performer=None):
     """
-    Add metadata to an audio file (MP3 or Opus).
+    Add metadata to an audio file (MP3, Opus, or M4A).
     
     Args:
         file_path (str): Path to the audio file
@@ -140,6 +140,11 @@ def add_metadata(file_path, title, artist, album, cover_path=None, album_artist=
         date (str, optional): Release date or year. Defaults to None.
         genre (str, optional): Genre of the song. Defaults to None.
         track_number (str, optional): Track number. Defaults to None.
+        total_tracks (str, optional): Total number of tracks in the album. Defaults to None.
+        disc_number (str, optional): Disc number. Defaults to None.
+        total_discs (str, optional): Total number of discs. Defaults to None.
+        composer (str, optional): Composer of the song. Defaults to None.
+        performer (str, optional): Performer of the song. Defaults to None.
     
     Raises:
         FileNotFoundError: If the audio file doesn't exist
@@ -163,17 +168,17 @@ def add_metadata(file_path, title, artist, album, cover_path=None, album_artist=
     
     try:
         if file_ext == '.mp3':
-            add_metadata_mp3(file_path, title, artist, album, cover_path, album_artist, date, genre, track_number)
+            add_metadata_mp3(file_path, title, artist, album, cover_path, album_artist, date, genre, track_number, total_tracks, disc_number, total_discs, composer, performer)
         elif file_ext == '.opus':
-            add_metadata_opus(file_path, title, artist, album, cover_path, album_artist, date, genre, track_number)
+            add_metadata_opus(file_path, title, artist, album, cover_path, album_artist, date, genre, track_number, total_tracks, disc_number, total_discs, composer, performer)
         elif file_ext == '.m4a':
-            add_metadata_m4a(file_path, title, artist, album, cover_path, album_artist, date, genre, track_number)
+            add_metadata_m4a(file_path, title, artist, album, cover_path, album_artist, date, genre, track_number, total_tracks, disc_number, total_discs, composer, performer)
         else:
             raise Exception(f"Unsupported file format: {file_ext}")
     except Exception as e:
         raise Exception(f"Failed to add metadata: {e}")
 
-def add_metadata_mp3(file_path, title, artist, album, cover_path=None, album_artist=None, date=None, genre=None, track_number=None):
+def add_metadata_mp3(file_path, title, artist, album, cover_path=None, album_artist=None, date=None, genre=None, track_number=None, total_tracks=None, disc_number=None, total_discs=None, composer=None, performer=None):
     """
     Add metadata to an MP3 file.
     
@@ -187,6 +192,11 @@ def add_metadata_mp3(file_path, title, artist, album, cover_path=None, album_art
         date (str, optional): Release date or year. Defaults to None.
         genre (str, optional): Genre of the song. Defaults to None.
         track_number (str, optional): Track number. Defaults to None.
+        total_tracks (str, optional): Total number of tracks in the album. Defaults to None.
+        disc_number (str, optional): Disc number. Defaults to None.
+        total_discs (str, optional): Total number of discs. Defaults to None.
+        composer (str, optional): Composer of the song. Defaults to None.
+        performer (str, optional): Performer of the song. Defaults to None.
     """
     try:
         # Try to load existing ID3 tags or create new ones
@@ -234,6 +244,21 @@ def add_metadata_mp3(file_path, title, artist, album, cover_path=None, album_art
         if track_number:
             audio['tracknumber'] = track_number
             
+        if total_tracks:
+            audio['tracktotal'] = total_tracks
+            
+        if disc_number:
+            audio['discnumber'] = disc_number
+            
+        if total_discs:
+            audio['disctotal'] = total_discs
+            
+        if composer:
+            audio['composer'] = composer
+            
+        if performer:
+            audio['performer'] = performer
+            
         audio.save()
         
         # Add cover art if provided
@@ -269,7 +294,7 @@ def add_metadata_mp3(file_path, title, artist, album, cover_path=None, album_art
     except Exception as e:
         raise Exception(f"Failed to add metadata to MP3: {e}")
 
-def add_metadata_opus(file_path, title, artist, album, cover_path=None, album_artist=None, date=None, genre=None, track_number=None):
+def add_metadata_opus(file_path, title, artist, album, cover_path=None, album_artist=None, date=None, genre=None, track_number=None, total_tracks=None, disc_number=None, total_discs=None, composer=None, performer=None):
     """
     Add metadata to an Opus file.
     
@@ -283,6 +308,11 @@ def add_metadata_opus(file_path, title, artist, album, cover_path=None, album_ar
         date (str, optional): Release date or year. Defaults to None.
         genre (str, optional): Genre of the song. Defaults to None.
         track_number (str, optional): Track number. Defaults to None.
+        total_tracks (str, optional): Total number of tracks in the album. Defaults to None.
+        disc_number (str, optional): Disc number. Defaults to None.
+        total_discs (str, optional): Total number of discs. Defaults to None.
+        composer (str, optional): Composer of the song. Defaults to None.
+        performer (str, optional): Performer of the song. Defaults to None.
     """
     try:
         # Load the Opus file
@@ -322,6 +352,21 @@ def add_metadata_opus(file_path, title, artist, album, cover_path=None, album_ar
             
         if track_number:
             audio['tracknumber'] = track_number
+            
+        if total_tracks:
+            audio['tracktotal'] = total_tracks
+            
+        if disc_number:
+            audio['discnumber'] = disc_number
+            
+        if total_discs:
+            audio['disctotal'] = total_discs
+            
+        if composer:
+            audio['composer'] = composer
+            
+        if performer:
+            audio['performer'] = performer
         
         # Add cover art if provided
         if cover_path and os.path.exists(cover_path):
@@ -356,7 +401,7 @@ def add_metadata_opus(file_path, title, artist, album, cover_path=None, album_ar
     except Exception as e:
         raise Exception(f"Failed to add metadata to Opus: {e}")
 
-def add_metadata_m4a(file_path, title, artist, album, cover_path=None, album_artist=None, date=None, genre=None, track_number=None):
+def add_metadata_m4a(file_path, title, artist, album, cover_path=None, album_artist=None, date=None, genre=None, track_number=None, total_tracks=None, disc_number=None, total_discs=None, composer=None, performer=None):
     """
     Add metadata to an M4A file.
     
@@ -370,6 +415,11 @@ def add_metadata_m4a(file_path, title, artist, album, cover_path=None, album_art
         date (str, optional): Release date or year. Defaults to None.
         genre (str, optional): Genre of the song. Defaults to None.
         track_number (str, optional): Track number. Defaults to None.
+        total_tracks (str, optional): Total number of tracks in the album. Defaults to None.
+        disc_number (str, optional): Disc number. Defaults to None.
+        total_discs (str, optional): Total number of discs. Defaults to None.
+        composer (str, optional): Composer of the song. Defaults to None.
+        performer (str, optional): Performer of the song. Defaults to None.
     """
     try:
         # Load the M4A file
@@ -411,15 +461,31 @@ def add_metadata_m4a(file_path, title, artist, album, cover_path=None, album_art
             # Track number in M4A is stored as a tuple of (track_number, total_tracks)
             try:
                 track_num = int(track_number)
-                audio['trkn'] = [(track_num, 0)]  # Second value is total tracks, use 0 if unknown
+                total_tracks_num = int(total_tracks) if total_tracks else 0
+                audio['trkn'] = [(track_num, total_tracks_num)]
             except ValueError:
                 # If track number can't be converted to int, try to parse it
                 if '/' in track_number:
                     try:
-                        track_num, total_tracks = map(int, track_number.split('/', 1))
-                        audio['trkn'] = [(track_num, total_tracks)]
+                        track_num, total_tracks_parsed = map(int, track_number.split('/', 1))
+                        audio['trkn'] = [(track_num, total_tracks_parsed)]
                     except ValueError:
                         pass
+                        
+        if disc_number:
+            # Disc number in M4A is stored as a tuple of (disc_number, total_discs)
+            try:
+                disc_num = int(disc_number)
+                total_discs_num = int(total_discs) if total_discs else 0
+                audio['disk'] = [(disc_num, total_discs_num)]
+            except ValueError:
+                pass
+                
+        if composer:
+            audio['©wrt'] = [composer]
+            
+        if performer:
+            audio['©prf'] = [performer]
         
         # Add cover art if provided
         if cover_path and os.path.exists(cover_path):

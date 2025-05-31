@@ -313,6 +313,22 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
         # Add metadata with both artist and album_artist
         add_metadata(final_file, title=title, artist=artist, album=album, cover_path=cover_path, album_artist=full_artist)
         
+        # Check if this was a Bandcamp download and enhance with Spotify metadata if available
+        from meta_ops.downloader import is_bandcamp_url
+        if is_url(query) and is_bandcamp_url(query):
+            try:
+                from meta_ops.spotify_metadata import enhance_bandcamp_file_with_spotify
+                print(f"\033[32m[BANDCAMP]\033[0m Enhancing Bandcamp file with Spotify metadata...")
+                success, enhanced_metadata = enhance_bandcamp_file_with_spotify(final_file)
+                if success:
+                    print(f"\033[32m[BANDCAMP]\033[0m Successfully enhanced with additional metadata")
+                else:
+                    print(f"\033[33m[BANDCAMP]\033[0m No additional metadata enhancement available")
+            except ImportError:
+                print(f"\033[33m[WARNING]\033[0m Spotify enhancement not available for Bandcamp files")
+            except Exception as e:
+                print(f"\033[33m[WARNING]\033[0m Error enhancing Bandcamp file: {e}")
+        
         # Remove the temporary cover file if it exists
         if cover_path and os.path.exists(cover_path):
             os.remove(cover_path)
@@ -619,6 +635,156 @@ def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus
     except Exception as e:
         print(f"\033[31m[ERROR]\033[0m Error adding metadata: {e}")
         return False
+
+def run_playlist_with_spotify(query, output_file=None, music_dir=None, audio_format='opus'):
+    """
+    Download a YouTube playlist with Spotify metadata for each track.
+    
+    Args:
+        query (str): The YouTube playlist URL
+        output_file (str, optional): The output file path pattern. Defaults to '%(title)s.%(ext)s'.
+        music_dir (str, optional): Base directory for music organization. Defaults to 'Music' in user's home.
+        audio_format (str, optional): The audio format to download. Defaults to 'opus'.
+                                     Supported formats: opus, m4a, mp3, flac, wav, etc.
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    # Import Spotify metadata module
+    try:
+        from meta_ops.spotify_metadata import search_spotify_for_metadata, apply_spotify_metadata_to_file
+    except ImportError:
+        print("\033[31m[ERROR]\033[0m Failed to import Spotify metadata module. Make sure spotipy is installed.")
+        return False
+    
+    # Check if Spotify credentials are set
+    if not os.environ.get('SPOTIFY_CLIENT_ID') or not os.environ.get('SPOTIFY_CLIENT_SECRET'):
+        print("\033[33m[WARNING]\033[0m Spotify credentials not found. Falling back to regular playlist download.")
+        return run_playlist(query, output_file, music_dir, audio_format)
+    
+    if output_file is None:
+        output_file = '%(title)s.%(ext)s'
+    
+    # Download the playlist
+    try:
+        downloaded_files = download_audio(query, output_file, False, audio_format)
+        if not downloaded_files or not isinstance(downloaded_files, list):
+            print("\033[31m[FAIL]\033[0m Playlist download failed")
+            return False
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Error downloading playlist: {e}")
+        return False
+    
+    print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} tracks from playlist")
+    
+    # Process each file in the playlist with Spotify metadata
+    success_count = 0
+    for file_path in downloaded_files:
+        try:
+            # Extract metadata from the downloaded file
+            print(f"\033[32m[META]\033[0m Processing: {os.path.basename(file_path)}")
+            file_metadata = extract_metadata(file_path)
+            
+            # Initialize title and artist variables
+            title = ""
+            artist = ""
+            
+            # If we have metadata from the file, use it
+            if file_metadata['title'] and file_metadata['artist']:
+                print(f"\033[32m[META]\033[0m Found metadata in file: Title='{file_metadata['title']}', Artist='{file_metadata['artist']}'")
+                title = file_metadata['title']
+                artist = file_metadata['artist']
+            else:
+                # Fallback: Parse title and artist from filename
+                print(f"\033[33m[META]\033[0m No metadata found in file, using fallback method...")
+                filename = os.path.basename(file_path)
+                # Remove playlist index if present (e.g., "01 - ")
+                if re.match(r'^\d+\s*-\s*', filename):
+                    filename = re.sub(r'^\d+\s*-\s*', '', filename)
+                
+                name_without_ext = os.path.splitext(filename)[0]
+                
+                # Simple heuristic: try to split at " - " which is common in music filenames
+                if " - " in name_without_ext:
+                    artist, title = name_without_ext.split(" - ", 1)
+                else:
+                    # If no clear separator, use the whole name as title
+                    title = name_without_ext
+                    artist = "Unknown"
+            
+            # Search for Spotify metadata
+            print(f"\033[32m[SPOTIFY]\033[0m Searching for metadata: {title} by {artist}")
+            spotify_metadata = search_spotify_for_metadata(title, artist)
+            
+            if spotify_metadata:
+                # Use Spotify metadata
+                print(f"\033[32m[SPOTIFY]\033[0m Found Spotify metadata for: {spotify_metadata['title']} by {spotify_metadata['artist']}")
+                title = spotify_metadata['title']
+                artist = spotify_metadata['artist']
+                album = spotify_metadata['album']
+            else:
+                # Fallback to basic metadata
+                print(f"\033[33m[WARNING]\033[0m No Spotify metadata found, using basic metadata")
+                album = file_metadata.get("album", "") if file_metadata else (title or f"{artist}")
+            
+            # Create artist directory
+            artist_dir = create_artist_directory(artist, music_dir)
+            
+            # Create album directory inside artist directory
+            album_dir = create_album_directory(artist_dir, album, title)
+            
+            # Sanitize title for filename
+            safe_title = sanitize_filename(title)
+            
+            # Determine file extension
+            file_ext = os.path.splitext(file_path)[1]
+            
+            # Create the final file path (now in album directory)
+            final_file = os.path.join(album_dir, f"{safe_title}{file_ext}")
+            
+            # If the file already exists, add a number to make it unique
+            counter = 1
+            while os.path.exists(final_file):
+                final_file = os.path.join(album_dir, f"{safe_title}_{counter}{file_ext}")
+                counter += 1
+            
+            # Move the file to the album directory
+            print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
+            shutil.move(file_path, final_file)
+            
+            # Apply metadata to the file
+            if spotify_metadata:
+                # Apply Spotify metadata with all the enhanced fields
+                success = apply_spotify_metadata_to_file(final_file, spotify_metadata)
+                if success:
+                    print(f"\033[32m[COMPLETE]\033[0m Applied Spotify metadata to: {final_file}")
+                    success_count += 1
+                else:
+                    print(f"\033[31m[ERROR]\033[0m Failed to apply Spotify metadata to: {final_file}")
+            else:
+                # Apply basic metadata
+                try:
+                    full_artist = artist
+                    add_metadata(final_file, title=title, artist=artist, album=album, album_artist=full_artist)
+                    print(f"\033[32m[COMPLETE]\033[0m Applied basic metadata to: {final_file}")
+                    success_count += 1
+                except Exception as e:
+                    print(f"\033[31m[ERROR]\033[0m Error adding basic metadata: {e}")
+                    
+        except Exception as e:
+            print(f"\033[31m[ERROR]\033[0m Error processing file {file_path}: {e}")
+    
+    # Clean up the temporary playlist directory
+    temp_dir = os.path.join(os.getcwd(), 'temp_playlist')
+    if os.path.exists(temp_dir):
+        try:
+            shutil.rmtree(temp_dir)
+            print(f"\033[32m[CLEANUP]\033[0m Removed temporary directory: {temp_dir}")
+        except Exception as e:
+            print(f"\033[33m[WARNING]\033[0m Failed to remove temporary directory: {e}")
+    
+    print(f"\033[32m[SUMMARY]\033[0m Successfully processed {success_count} out of {len(downloaded_files)} tracks from the playlist with enhanced metadata")
+    return success_count > 0
 
 def main():
     """

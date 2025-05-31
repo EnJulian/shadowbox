@@ -6,11 +6,12 @@ Test script to verify that all components of the Music Downloader work correctly
 import os
 import sys
 
-# Add the meta_ops directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'meta_ops'))
+# Add the project root to the Python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
-from cover_art import get_album_cover_url, download_cover_image
-from metadata import extract_metadata, add_metadata
+from meta_ops.cover_art import get_album_cover_url, download_cover_image
+from meta_ops.metadata import extract_metadata, add_metadata
 
 def test_cover_art():
     """Test the cover art functionality."""

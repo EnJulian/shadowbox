@@ -231,6 +231,20 @@ def search_spotify_for_metadata(title, artist=None):
         # Get the first track
         track = results['tracks']['items'][0]
         
+        # Get additional album information for genre and total_discs
+        album_id = track['album']['id']
+        album_info = sp.album(album_id)
+        
+        # Calculate total discs by finding the highest disc number in the album
+        total_discs = 1
+        if 'tracks' in album_info and 'items' in album_info['tracks']:
+            disc_numbers = [t.get('disc_number', 1) for t in album_info['tracks']['items']]
+            total_discs = max(disc_numbers) if disc_numbers else 1
+        
+        # Extract genre from album
+        genres = album_info.get('genres', [])
+        genre = genres[0] if genres else None
+        
         # Extract metadata
         metadata = {
             'title': track['name'],
@@ -239,11 +253,16 @@ def search_spotify_for_metadata(title, artist=None):
             'release_date': track['album']['release_date'],
             'track_number': track['track_number'],
             'total_tracks': track['album']['total_tracks'],
+            'disc_number': track.get('disc_number', 1),
+            'total_discs': total_discs,
             'duration_ms': track['duration_ms'],
             'explicit': track['explicit'],
             'spotify_url': track['external_urls']['spotify'],
             'preview_url': track['preview_url'],
-            'cover_url': None
+            'cover_url': None,
+            'genre': genre,
+            'composer': None,  # Spotify doesn't provide composer information
+            'performer': ', '.join([artist['name'] for artist in track['artists']])
         }
         
         # Get album cover URL (highest resolution)
@@ -304,7 +323,14 @@ def apply_spotify_metadata_to_file(file_path, metadata, download_cover=True):
             album=metadata['album'],
             cover_path=cover_path,
             date=metadata.get('release_date'),
-            album_artist=full_artist
+            album_artist=full_artist,
+            genre=metadata.get('genre'),
+            track_number=metadata.get('track_number'),
+            total_tracks=metadata.get('total_tracks'),
+            disc_number=metadata.get('disc_number'),
+            total_discs=metadata.get('total_discs'),
+            composer=metadata.get('composer'),
+            performer=metadata.get('performer')
         )
         
         print(f"\033[32m[SUCCESS]\033[0m Applied Spotify metadata to: {file_path}")
@@ -396,6 +422,98 @@ def process_youtube_url_with_spotify(youtube_url, output_file=None, audio_format
     # Apply Spotify metadata to the downloaded file
     success = apply_spotify_metadata_to_file(downloaded_file, metadata)
     return success, metadata
+
+def enhance_bandcamp_file_with_spotify(file_path):
+    """
+    Enhance a Bandcamp-downloaded file with additional Spotify metadata if available.
+    
+    Args:
+        file_path (str): Path to the Bandcamp audio file
+        
+    Returns:
+        tuple: (success, metadata) where success is a boolean indicating if the operation was successful,
+               and metadata is a dictionary containing the Spotify metadata (or None if not found)
+    """
+    if not os.path.exists(file_path):
+        print(f"\033[31m[ERROR]\033[0m File not found: {file_path}")
+        return False, None
+    
+    # Extract existing metadata from the Bandcamp file
+    from meta_ops.metadata import extract_metadata
+    existing_metadata = extract_metadata(file_path)
+    
+    if not existing_metadata or not existing_metadata.get('title'):
+        print(f"\033[33m[WARNING]\033[0m No existing metadata found in Bandcamp file")
+        return False, None
+    
+    title = existing_metadata['title']
+    artist = existing_metadata.get('artist', '')
+    
+    print(f"\033[32m[INFO]\033[0m Enhancing Bandcamp file: '{title}' by '{artist}'")
+    
+    # Search Spotify for additional metadata
+    spotify_metadata = search_spotify_for_metadata(title, artist)
+    
+    if not spotify_metadata:
+        print(f"\033[33m[WARNING]\033[0m No Spotify metadata found for enhancement")
+        return False, None
+    
+    # Check if the Bandcamp file already has the enhanced metadata fields
+    needs_enhancement = False
+    enhancement_fields = ['genre', 'disc_number', 'total_discs', 'performer']
+    
+    for field in enhancement_fields:
+        if not existing_metadata.get(field) and spotify_metadata.get(field):
+            needs_enhancement = True
+            break
+    
+    if not needs_enhancement:
+        print(f"\033[32m[INFO]\033[0m Bandcamp file already has comprehensive metadata")
+        return True, existing_metadata
+    
+    # Merge existing Bandcamp metadata with Spotify enhancements
+    enhanced_metadata = existing_metadata.copy()
+    
+    # Only add Spotify fields that are missing from Bandcamp metadata
+    spotify_enhancements = {
+        'genre': spotify_metadata.get('genre'),
+        'disc_number': spotify_metadata.get('disc_number'),
+        'total_discs': spotify_metadata.get('total_discs'),
+        'performer': spotify_metadata.get('performer'),
+        'track_number': spotify_metadata.get('track_number'),
+        'total_tracks': spotify_metadata.get('total_tracks')
+    }
+    
+    for field, value in spotify_enhancements.items():
+        if value and not enhanced_metadata.get(field):
+            enhanced_metadata[field] = value
+    
+    # Apply the enhanced metadata
+    try:
+        from meta_ops.metadata import add_metadata
+        
+        add_metadata(
+            file_path=file_path,
+            title=enhanced_metadata['title'],
+            artist=enhanced_metadata['artist'],
+            album=enhanced_metadata.get('album', ''),
+            date=enhanced_metadata.get('date'),
+            album_artist=enhanced_metadata.get('album_artist'),
+            genre=enhanced_metadata.get('genre'),
+            track_number=enhanced_metadata.get('track_number'),
+            total_tracks=enhanced_metadata.get('total_tracks'),
+            disc_number=enhanced_metadata.get('disc_number'),
+            total_discs=enhanced_metadata.get('total_discs'),
+            composer=enhanced_metadata.get('composer'),
+            performer=enhanced_metadata.get('performer')
+        )
+        
+        print(f"\033[32m[SUCCESS]\033[0m Enhanced Bandcamp file with Spotify metadata")
+        return True, enhanced_metadata
+        
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Error enhancing Bandcamp metadata: {e}")
+        return False, None
 
 def enhance_existing_file_with_spotify(file_path, title=None, artist=None):
     """

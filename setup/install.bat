@@ -22,6 +22,16 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
+REM Check if aria2c is installed
+where aria2c >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo X aria2c is not installed. Please install aria2c and try again.
+    echo Download from: https://github.com/aria2/aria2/releases
+    echo Make sure to add aria2c to your PATH environment variable.
+    pause
+    exit /b 1
+)
+
 REM Create virtual environment if it doesn't exist
 if not exist ..\.venv (
     echo Creating virtual environment...
@@ -71,7 +81,25 @@ if not exist "%PROJECT_ROOT%\meta_ops\__init__.py" (
 )
 
 echo Installation complete!
+
+REM Ask if user wants to set up Spotify integration
+echo.
+echo Spotify Integration Setup
+echo ------------------------
+echo Shadowbox can use Spotify as the primary source for album covers.
+set /p setup_spotify="Would you like to set up Spotify integration now? [y/n]: "
+
+if /i "%setup_spotify%"=="y" (
+    REM Run the Spotify setup script
+    call "%SCRIPT_DIR%setup_spotify.bat"
+) else (
+    echo.
+    echo You can set up Spotify integration later by running:
+    echo %SCRIPT_DIR%setup_spotify.bat
+)
+
+echo.
 echo To run the application, double-click shbox.bat in the project root or use:
-echo %PROJECT_ROOT%\.venv\Scripts\activate.bat ^&^& python %PROJECT_ROOT%\core\main.py
+echo %PROJECT_ROOT%\.venv\Scripts\activate.bat ^&^& python %PROJECT_ROOT%\core\shbox.py
 
 pause

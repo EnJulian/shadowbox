@@ -102,10 +102,19 @@ REM Create symbolic links in the project root
 REM Windows requires administrator privileges to create symbolic links
 REM We'll use mklink command which requires admin rights
 echo Creating symbolic links (may require administrator privileges)...
-mklink shbox.sh exec_bin\shbox.sh
-mklink run.sh exec_bin\run.sh
-mklink shbox.bat exec_bin\shbox.bat
-mklink run.bat exec_bin\run.bat
+mklink shbox.sh exec_bin\shbox.sh 2>nul
+mklink run.sh exec_bin\run.sh 2>nul
+mklink shbox.bat exec_bin\shbox.bat 2>nul
+mklink run.bat exec_bin\run.bat 2>nul
+
+REM If mklink fails (no admin rights), copy files instead
+if not exist shbox.bat (
+    echo Symbolic links failed, copying files instead...
+    copy exec_bin\shbox.bat shbox.bat >nul
+    copy exec_bin\run.bat run.bat >nul
+    copy exec_bin\shbox.sh shbox.sh >nul
+    copy exec_bin\run.sh run.sh >nul
+)
 
 echo Project structure set up successfully!
 echo You can now run the application using:

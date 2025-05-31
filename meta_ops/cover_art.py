@@ -4,7 +4,19 @@ import urllib.parse
 import time
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-import os
+import sys
+
+# Import enhanced terminal UI
+try:
+    # Try to import from parent directory (core)
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'core'))
+    from terminal_ui import api, warning, success, error
+except ImportError:
+    # Fallback to basic print if terminal_ui is not available
+    def api(msg, tag="API"): print(f"\033[32m[{tag}]\033[0m {msg}")
+    def warning(msg, tag="WARNING"): print(f"\033[33m[{tag}]\033[0m {msg}")
+    def success(msg, tag="SUCCESS"): print(f"\033[32m[{tag}]\033[0m {msg}")
+    def error(msg, tag="ERROR"): print(f"\033[31m[{tag}]\033[0m {msg}")
 
 # Spotify API credentials will be loaded dynamically when needed
 # This allows the credentials to be loaded after the module is imported
@@ -26,11 +38,11 @@ def get_album_cover_url(title, artist):
     
     # Debug information about credentials
     if spotify_client_id:
-        print(f"\033[32m[API]\033[0m Spotify credentials found: ID {spotify_client_id[:4]}...{spotify_client_id[-4:]}")
+        api(f"Spotify credentials found: ID {spotify_client_id[:4]}...{spotify_client_id[-4:]}")
     
     # Try Spotify first (if credentials are available)
     if spotify_client_id and spotify_client_secret:
-        print(f"\033[32m[API]\033[0m Searching Spotify for album cover: '{title}' by '{artist}'")
+        api(f"Searching Spotify for album cover: '{title}' by '{artist}'")
         url = _search_spotify_api(title, artist, spotify_client_id, spotify_client_secret)
         if url:
             return url
@@ -38,39 +50,39 @@ def get_album_cover_url(title, artist):
         # If Spotify search fails with full artist name, try with just the first artist
         first_artist = artist.split(',')[0].strip() if ',' in artist else artist
         if first_artist != artist:
-            print(f"\033[33m[API]\033[0m Spotify search failed, trying with first artist only: '{title}' by '{first_artist}'")
+            warning(f"Spotify search failed, trying with first artist only: '{title}' by '{first_artist}'", "API")
             url = _search_spotify_api(title, first_artist, spotify_client_id, spotify_client_secret)
             if url:
                 return url
         
         # If Spotify search fails, try iTunes with the same search query first
-        print(f"\033[33m[API]\033[0m Spotify search failed, trying iTunes with same query: '{title}' by '{artist}'")
+        warning(f"Spotify search failed, trying iTunes with same query: '{title}' by '{artist}'", "API")
         url = _search_itunes_api(f"{title} {artist}")
         if url:
             return url
         
         # If iTunes fails with full artist, try with just the first artist
         if first_artist != artist:
-            print(f"\033[33m[API]\033[0m iTunes search failed, trying with first artist only: '{title}' by '{first_artist}'")
+            warning(f"iTunes search failed, trying with first artist only: '{title}' by '{first_artist}'", "API")
             url = _search_itunes_api(f"{title} {first_artist}")
             if url:
                 return url
             
         # If that fails, try with just the title on Spotify
-        print(f"\033[33m[API]\033[0m iTunes search failed, trying Spotify with just the title: '{title}'")
+        warning(f"iTunes search failed, trying Spotify with just the title: '{title}'", "API")
         url = _search_spotify_api(title, None, spotify_client_id, spotify_client_secret)
         if url:
             return url
     else:
-        print(f"\033[33m[API]\033[0m Spotify credentials not found, skipping Spotify search")
+        warning("Spotify credentials not found, skipping Spotify search", "API")
     
     # Fall back to iTunes API if not already tried
     if spotify_client_id and spotify_client_secret:
         # We already tried iTunes with title+artist above, so now try with just title
-        print(f"\033[33m[API]\033[0m Trying iTunes with just the title: '{title}'")
+        warning(f"Trying iTunes with just the title: '{title}'", "API")
     else:
         # If Spotify was skipped, this is our first attempt with iTunes
-        print(f"\033[33m[API]\033[0m Falling back to iTunes API for: '{title}' by '{artist}'")
+        warning(f"Falling back to iTunes API for: '{title}' by '{artist}'", "API")
         # Try with both title and artist first
         url = _search_itunes_api(f"{title} {artist}")
         if url:

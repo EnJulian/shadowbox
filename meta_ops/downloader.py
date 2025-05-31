@@ -3,6 +3,21 @@ import os
 import logging
 import re
 import subprocess
+import sys
+
+# Import enhanced terminal UI
+try:
+    # Try to import from parent directory (core)
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'core'))
+    from terminal_ui import audio, scan, system, error, warning, success
+except ImportError:
+    # Fallback to basic print if terminal_ui is not available
+    def audio(msg, tag="AUDIO"): print(f"\033[32m[{tag}]\033[0m {msg}")
+    def scan(msg, tag="SCAN"): print(f"\033[37m[{tag}]\033[0m {msg}")
+    def system(msg, tag="SYSTEM"): print(f"\033[32m[{tag}]\033[0m {msg}")
+    def error(msg, tag="ERROR"): print(f"\033[31m[{tag}]\033[0m {msg}")
+    def warning(msg, tag="WARNING"): print(f"\033[33m[{tag}]\033[0m {msg}")
+    def success(msg, tag="SUCCESS"): print(f"\033[32m[{tag}]\033[0m {msg}")
 
 def is_url(text):
     """
@@ -86,21 +101,21 @@ def download_audio(query, output_file='%(title)s.%(ext)s', use_spotify_metadata=
     if is_url(query):
         # Use different command based on URL type
         if is_bandcamp_url(query):
-            print("\033[32m[AUDIO]\033[0m Detected Bandcamp URL, using Bandcamp-specific settings...")
+            audio("Detected Bandcamp URL, using Bandcamp-specific settings...")
             return download_from_bandcamp(query, output_file, audio_format)
         elif is_youtube_playlist(query):
-            print("\033[32m[AUDIO]\033[0m Detected YouTube playlist URL, downloading playlist...")
+            audio("Detected YouTube playlist URL, downloading playlist...")
             return download_youtube_playlist(query, output_file, audio_format)
         elif is_youtube_url(query) and use_spotify_metadata:
-            print("\033[32m[AUDIO]\033[0m Detected YouTube URL, using Spotify for metadata...")
+            audio("Detected YouTube URL, using Spotify for metadata...")
             from meta_ops.spotify_metadata import process_youtube_url_with_spotify
             return process_youtube_url_with_spotify(query, output_file, audio_format)
         else:
-            print("\033[32m[AUDIO]\033[0m Detected YouTube URL, using YouTube-specific settings...")
+            audio("Detected YouTube URL, using YouTube-specific settings...")
             return download_from_youtube(query, output_file, audio_format)
     else:
         # If it's not a URL, search on YouTube
-        print(f"\033[37m[SCAN]\033[0m Searching for: {query}")
+        scan(f"Searching for: {query}")
         if use_spotify_metadata:
             from meta_ops.spotify_metadata import process_youtube_url_with_spotify
             return process_youtube_url_with_spotify(f"ytsearch1:{query}", output_file, audio_format)

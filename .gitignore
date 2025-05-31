@@ -31,6 +31,10 @@ ENV/
 *.swp
 *.swo
 
+# PyInstaller
+build/
+dist/
+
 # Project specific
 *.mp3
 *.mp4
@@ -38,5 +42,12 @@ ENV/
 *.m4a
 *.ogg
 *.wav
+*.opus
+*.flac
 cover.jpg
 output.*
+temp_playlist/
+
+# Release artifacts
+*.tar.gz
+*.zip

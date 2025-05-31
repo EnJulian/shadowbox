@@ -1,22 +1,36 @@
 import sys
 import os
-
-# Add the meta_ops directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'meta_ops'))
-
-from downloader import download_audio, is_url, is_youtube_playlist
-from metadata import add_metadata, extract_metadata
-from cover_art import get_album_cover_url, download_cover_image
-from settings import (
-    load_settings, save_settings, get_audio_format, set_audio_format,
-    get_music_directory, set_music_directory, get_use_spotify, set_use_spotify
-)
-import os
-import sys
 import argparse
 import glob
 import shutil
 import re
+
+# Add the meta_ops directory to the Python path for development
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+meta_ops_dir = os.path.join(parent_dir, 'meta_ops')
+
+if os.path.exists(meta_ops_dir) and meta_ops_dir not in sys.path:
+    sys.path.insert(0, meta_ops_dir)
+
+# Try absolute imports first (for PyInstaller), then relative imports (for development)
+try:
+    from meta_ops.downloader import download_audio, is_url, is_youtube_playlist
+    from meta_ops.metadata import add_metadata, extract_metadata
+    from meta_ops.cover_art import get_album_cover_url, download_cover_image
+    from meta_ops.settings import (
+        load_settings, save_settings, get_audio_format, set_audio_format,
+        get_music_directory, set_music_directory, get_use_spotify, set_use_spotify
+    )
+except ImportError:
+    # Fallback to direct imports (for development when meta_ops is in path)
+    from downloader import download_audio, is_url, is_youtube_playlist
+    from metadata import add_metadata, extract_metadata
+    from cover_art import get_album_cover_url, download_cover_image
+    from settings import (
+        load_settings, save_settings, get_audio_format, set_audio_format,
+        get_music_directory, set_music_directory, get_use_spotify, set_use_spotify
+    )
 
 def sanitize_filename(name):
     """

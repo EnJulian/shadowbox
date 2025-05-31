@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shadowbox"
+version = "0.1.0"
+description = "A Python application that downloads music from YouTube or Bandcamp, adds metadata, and embeds album art"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "lsnen"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "yt-dlp>=2025.5.22",
+    "mutagen>=1.47.0",
+    "requests>=2.32.3",
+    "pillow>=10.0.0",
+    "spotipy>=2.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0.0",
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+shadowbox = "core.main:main"
+shbox = "core.main:main"
+
+[project.urls]
+Homepage = "https://github.com/lsnen/shadowbox"
+Repository = "https://github.com/lsnen/shadowbox"
+Issues = "https://github.com/lsnen/shadowbox/issues"
+
+[tool.setuptools.packages.find]
+include = ["core*", "meta_ops*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.txt", "*.md", "*.sh", "*.bat"]

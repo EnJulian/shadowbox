@@ -8,7 +8,27 @@ Music acquisition command line tool that rips audio from YouTube/Bandcamp, conve
 - FFmpeg
 - aria2c (optional)
 
-## Deployment
+## Installation
+
+### Option 1: Download Pre-built Binaries (Recommended)
+
+Download the latest release for your platform from the [Releases page](https://github.com/lsnen/shadowbox/releases):
+
+- **Linux (x64)**: `shadowbox-linux-x64.tar.gz`
+- **Windows (x64)**: `shadowbox-windows-x64.zip`
+- **macOS (Intel)**: `shadowbox-macos-x64.tar.gz`
+- **macOS (Apple Silicon)**: `shadowbox-macos-arm64.tar.gz`
+
+**Prerequisites:**
+- FFmpeg (for audio processing)
+- aria2 (optional, for faster downloads)
+
+**Installation steps:**
+1. Download the appropriate file for your platform
+2. Extract the archive
+3. Run the executable directly
+
+### Option 2: Install from Source
 
 ```bash
 # Set up project structure (first time only)
@@ -129,8 +149,3 @@ This project wouldn't be possible without the following tools:
 - [aria2](https://aria2.github.io/) - A lightweight multi-protocol & multi-source command-line download utility
 - [spotipy](https://spotipy.readthedocs.io/) - A lightweight Python library for the Spotify Web API
 
-
-## License
-MIT License
-
-Crafted with intent by [enjulian](https://github.com/enjulian).

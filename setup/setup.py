@@ -12,7 +12,8 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'shadowbox=main:main',
+            'shadowbox=core.main:main',
+            'shbox=core.main:main',
         ],
     },
     python_requires='>=3.6',

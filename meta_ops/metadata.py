@@ -214,24 +214,24 @@ def add_metadata_mp3(file_path, title, artist, album, cover_path=None, album_art
         audio['album'] = album
         
         # Debug logging
-        print(f"\033[32m[DEBUG MP3]\033[0m Processing artist: '{artist}'")
-        print(f"\033[32m[DEBUG MP3]\033[0m Processing album_artist: '{album_artist}'")
+        # print(f"\033[32m[DEBUG MP3]\033[0m Processing artist: '{artist}'")
+        # print(f"\033[32m[DEBUG MP3]\033[0m Processing album_artist: '{album_artist}'")
         
         # Set album_artist first to preserve the full artist string
         if album_artist:
-            print(f"\033[32m[DEBUG MP3]\033[0m Setting albumartist to: '{album_artist}'")
+            # print(f"\033[32m[DEBUG MP3]\033[0m Setting albumartist to: '{album_artist}'")
             audio['albumartist'] = album_artist
         elif artist:  # Use full artist string as album artist
-            print(f"\033[32m[DEBUG MP3]\033[0m Setting albumartist to artist: '{artist}'")
+            # print(f"\033[32m[DEBUG MP3]\033[0m Setting albumartist to artist: '{artist}'")
             audio['albumartist'] = artist
             
         # Now handle artist field - use only the first artist if multiple are separated by commas
         if ',' in artist:
             first_artist = artist.split(',')[0].strip()
-            print(f"\033[32m[DEBUG MP3]\033[0m Setting artist to first name only: '{first_artist}'")
+            # print(f"\033[32m[DEBUG MP3]\033[0m Setting artist to first name only: '{first_artist}'")
             audio['artist'] = first_artist
         else:
-            print(f"\033[32m[DEBUG MP3]\033[0m Setting artist to: '{artist}'")
+            # print(f"\033[32m[DEBUG MP3]\033[0m Setting artist to: '{artist}'")
             audio['artist'] = artist
             
         if date:

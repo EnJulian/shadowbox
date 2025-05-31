@@ -292,10 +292,15 @@ def search_itunes_for_metadata(title, artist=None):
         dict or None: Dictionary with metadata if successful, None otherwise
     """
     try:
-        # Build search query
-        if artist:
+        # Build search query - use first word of artist if artist has multiple words
+        if artist and ' ' in artist:
+            search_artist = artist.split(' ')[0]
+            search_query = f"{title} {search_artist}"
+        elif artist:
+            search_artist = artist
             search_query = f"{title} {artist}"
         else:
+            search_artist = None
             search_query = title
         
         encoded_query = urllib.parse.quote(search_query)
@@ -321,10 +326,13 @@ def search_itunes_for_metadata(title, artist=None):
         if not data.get('results') or len(data['results']) == 0:
             print(f"\033[33m[ITUNES]\033[0m No results found for: {search_query}")
             
-            # Try with title without brackets, parentheses, or common features text
+            # Initialize variables for fallback strategies
             clean_title = title
+            found_results = False
+            
+            # Try with title without brackets, parentheses, or common features text
             has_brackets = any(x in title for x in ['(', ')', '[', ']', '{', '}', '<', '>', 'feat.', 'ft.', 'featuring'])
-            if has_brackets:
+            if has_brackets and not found_results:
                 # Remove content within various types of brackets and common feature indicators
                 clean_title = re.sub(r'\s*\([^)]*\)', '', clean_title)
                 clean_title = re.sub(r'\s*\[[^\]]*\]', '', clean_title)
@@ -348,17 +356,95 @@ def search_itunes_for_metadata(title, artist=None):
                         clean_data = clean_response.json()
                         if clean_data.get('results') and len(clean_data['results']) > 0:
                             data = clean_data
-                        else:
-                            return None
-                    else:
-                        return None
-                else:
-                    return None
-            else:
+                            found_results = True
+            
+            # Try with full artist name if we used first word in primary search
+            if artist and ' ' in artist and not found_results:
+                print(f"\033[33m[ITUNES]\033[0m Trying with full artist name: {title} - {artist}")
+                fallback_search_query = f"{title} {artist}"
+                
+                encoded_fallback_query = urllib.parse.quote(fallback_search_query)
+                fallback_url = f"https://itunes.apple.com/search?term={encoded_fallback_query}&entity=song&limit=5"
+                
+                fallback_response = requests.get(fallback_url, headers=headers, timeout=10)
+                if fallback_response.status_code == 200:
+                    fallback_data = fallback_response.json()
+                    if fallback_data.get('results') and len(fallback_data['results']) > 0:
+                        data = fallback_data
+                        found_results = True
+            
+            # Initialize simplified_artist variable
+            simplified_artist = artist if artist else ""
+            
+            # Try with simplified artist name (remove special characters) if artist contains special characters
+            if artist and any(c in artist for c in "'-_&+.") and not found_results:
+                simplified_artist = re.sub(r'[\'"\-_&+.]', '', artist)
+                if simplified_artist and simplified_artist != artist:
+                    print(f"\033[33m[ITUNES]\033[0m Trying with simplified artist name: {title} by {simplified_artist}")
+                    simplified_search_query = f"{title} {simplified_artist}"
+                    
+                    encoded_simplified_query = urllib.parse.quote(simplified_search_query)
+                    simplified_url = f"https://itunes.apple.com/search?term={encoded_simplified_query}&entity=song&limit=5"
+                    
+                    simplified_response = requests.get(simplified_url, headers=headers, timeout=10)
+                    if simplified_response.status_code == 200:
+                        simplified_data = simplified_response.json()
+                        if simplified_data.get('results') and len(simplified_data['results']) > 0:
+                            data = simplified_data
+                            found_results = True
+            
+            # Try with both clean title and simplified artist if both are different from the originals
+            if artist and not found_results:
+                if clean_title != title and simplified_artist != artist:
+                    print(f"\033[33m[ITUNES]\033[0m Trying with clean title and simplified artist: {clean_title} by {simplified_artist}")
+                    combined_search_query = f"{clean_title} {simplified_artist}"
+                    
+                    encoded_combined_query = urllib.parse.quote(combined_search_query)
+                    combined_url = f"https://itunes.apple.com/search?term={encoded_combined_query}&entity=song&limit=5"
+                    
+                    combined_response = requests.get(combined_url, headers=headers, timeout=10)
+                    if combined_response.status_code == 200:
+                        combined_data = combined_response.json()
+                        if combined_data.get('results') and len(combined_data['results']) > 0:
+                            data = combined_data
+                            found_results = True
+            
+            # If we still don't have results after all fallback attempts, return None
+            if not found_results:
                 return None
         
-        # Get the first track
-        track = data['results'][0]
+        # Validate and get the best matching track
+        track = None
+        for result in data['results']:
+            track_name = result.get('trackName', '').lower()
+            artist_name = result.get('artistName', '').lower()
+            
+            # Check if this track matches our search criteria
+            title_match = title.lower() in track_name or track_name in title.lower()
+            
+            # For artist matching, check against both full artist and first word
+            artist_match = False
+            if artist:
+                artist_lower = artist.lower()
+                first_word_artist = artist.split(' ')[0].lower() if ' ' in artist else artist_lower
+                
+                artist_match = (
+                    artist_lower in artist_name or 
+                    artist_name in artist_lower or
+                    first_word_artist in artist_name or
+                    artist_name in first_word_artist
+                )
+            else:
+                artist_match = True  # If no artist specified, don't filter by artist
+            
+            if title_match and artist_match:
+                track = result
+                break
+        
+        # If no good match found, return None
+        if not track:
+            print(f"\033[33m[ITUNES]\033[0m No matching track found for: {title} by {search_artist or 'Unknown'}")
+            return None
         
         # Extract metadata from iTunes response
         metadata = {
@@ -395,9 +481,10 @@ def search_itunes_for_metadata(title, artist=None):
         print(f"\033[31m[ERROR]\033[0m Error searching iTunes API: {e}")
         return None
 
-def search_metadata_with_fallback(title, artist=None):
+def search_lastfm_for_metadata(title, artist=None):
     """
-    Search for metadata using Spotify first, then iTunes as fallback for missing fields (especially genre).
+    Search Last.fm API for metadata using the title and artist.
+    Last.fm has excellent genre data and is free to use.
     
     Args:
         title (str): Song title
@@ -406,41 +493,329 @@ def search_metadata_with_fallback(title, artist=None):
     Returns:
         dict or None: Dictionary with metadata if successful, None otherwise
     """
-    # First try Spotify
+    try:
+        # Last.fm API endpoint for track.getInfo
+        api_key = "b25b959554ed76058ac220b7b2e0a026"  # Public API key for Last.fm
+        
+        # Clean up artist name for better matching
+        search_artist = artist
+        
+        if search_artist:
+            # Try direct track.getinfo first with autocorrect enabled
+            url = f"http://ws.audioscrobbler.com/2.0/?method=track.getinfo&api_key={api_key}&artist={urllib.parse.quote(search_artist)}&track={urllib.parse.quote(title)}&autocorrect=1&format=json"
+            print(f"\033[32m[LASTFM]\033[0m Searching for: {title} by {search_artist}")
+        else:
+            # If no artist, try track search
+            url = f"http://ws.audioscrobbler.com/2.0/?method=track.search&api_key={api_key}&track={urllib.parse.quote(title)}&format=json&limit=10"
+            print(f"\033[32m[LASTFM]\033[0m Searching for: {title}")
+        
+        headers = {
+            'User-Agent': 'shadowbox/0.1.0'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code != 200:
+            print(f"\033[33m[LASTFM]\033[0m Last.fm API returned status code {response.status_code}")
+            return None
+        
+        data = response.json()
+        
+        # Handle track.getinfo response
+        if 'track' in data and data['track']:
+            track = data['track']
+            
+            # Validate the track matches our search
+            track_name = track.get('name', '').lower()
+            artist_name = track.get('artist', {}).get('name', '').lower() if isinstance(track.get('artist'), dict) else str(track.get('artist', '')).lower()
+            
+            title_match = title.lower() in track_name or track_name in title.lower()
+            artist_match = True
+            
+            if search_artist:
+                search_artist_lower = search_artist.lower()
+                artist_match = (
+                    search_artist_lower in artist_name or 
+                    artist_name in search_artist_lower
+                )
+            
+            if title_match and artist_match:
+                # Extract genre from tags - check multiple possible tag sources
+                genre = None
+                
+                # Check toptags first
+                if 'toptags' in track and 'tag' in track['toptags']:
+                    tags = track['toptags']['tag']
+                    if tags and len(tags) > 0:
+                        # Get the top 2 tags as genre
+                        if isinstance(tags, list):
+                            genre_list = []
+                            for i, tag in enumerate(tags[:2]):  # Take first 2 tags
+                                tag_name = tag.get('name', '').title()
+                                if tag_name:
+                                    genre_list.append(tag_name)
+                            genre = ', '.join(genre_list) if genre_list else None
+                        else:
+                            genre = tags.get('name', '').title()
+                
+                # If no genre from toptags, try to get artist tags
+                if not genre and isinstance(track.get('artist'), dict) and 'name' in track['artist']:
+                    artist_name_for_tags = track['artist']['name']
+                    artist_url = f"http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&api_key={api_key}&artist={urllib.parse.quote(artist_name_for_tags)}&autocorrect=1&format=json"
+                    try:
+                        artist_response = requests.get(artist_url, headers=headers, timeout=10)
+                        if artist_response.status_code == 200:
+                            artist_data = artist_response.json()
+                            if 'toptags' in artist_data and 'tag' in artist_data['toptags']:
+                                artist_tags = artist_data['toptags']['tag']
+                                if artist_tags and len(artist_tags) > 0:
+                                    if isinstance(artist_tags, list):
+                                        genre_list = []
+                                        for i, tag in enumerate(artist_tags[:2]):  # Take first 2 tags
+                                            tag_name = tag.get('name', '').title()
+                                            if tag_name:
+                                                genre_list.append(tag_name)
+                                        genre = ', '.join(genre_list) if genre_list else None
+                                    else:
+                                        genre = artist_tags.get('name', '').title()
+                    except Exception as e:
+                        print(f"\033[33m[LASTFM]\033[0m Error fetching artist tags: {e}")
+                
+                metadata = {
+                    'title': track.get('name', title),
+                    'artist': artist_name.title() if artist_name else (artist or ''),
+                    'album': track.get('album', {}).get('title', '') if isinstance(track.get('album'), dict) else '',
+                    'genre': genre,
+                    'lastfm_url': track.get('url'),
+                    'duration_ms': int(track.get('duration', 0)) * 1000 if track.get('duration') else None
+                }
+                
+                print(f"\033[32m[LASTFM]\033[0m Found metadata for: {metadata['title']} by {metadata['artist']}")
+                if metadata['genre']:
+                    print(f"\033[32m[LASTFM]\033[0m Genre found: {metadata['genre']}")
+                else:
+                    print(f"\033[33m[LASTFM]\033[0m No genre found in track or artist tags")
+                
+                return metadata
+            else:
+                print(f"\033[33m[LASTFM]\033[0m No matching track found for: {title} by {search_artist or 'Unknown'}")
+                # Try fallback search if direct search failed
+                if search_artist:
+                    print(f"\033[33m[LASTFM]\033[0m Trying fallback search...")
+                    return search_lastfm_fallback(title, search_artist, api_key, headers)
+                return None
+        
+        # Handle track.search response
+        elif 'results' in data and 'trackmatches' in data['results']:
+            tracks = data['results']['trackmatches'].get('track', [])
+            if not tracks:
+                print(f"\033[33m[LASTFM]\033[0m No results found for: {title}")
+                return None
+            
+            # Find best match
+            for track in tracks if isinstance(tracks, list) else [tracks]:
+                track_name = track.get('name', '').lower()
+                artist_name = track.get('artist', '').lower()
+                
+                title_match = title.lower() in track_name or track_name in title.lower()
+                
+                if title_match:
+                    # Get detailed info for this track with autocorrect
+                    detail_url = f"http://ws.audioscrobbler.com/2.0/?method=track.getinfo&api_key={api_key}&artist={urllib.parse.quote(track.get('artist', ''))}&track={urllib.parse.quote(track.get('name', ''))}&autocorrect=1&format=json"
+                    detail_response = requests.get(detail_url, headers=headers, timeout=10)
+                    
+                    if detail_response.status_code == 200:
+                        detail_data = detail_response.json()
+                        if 'track' in detail_data and detail_data['track']:
+                            detail_track = detail_data['track']
+                            
+                            # Extract genre from tags
+                            genre = None
+                            if 'toptags' in detail_track and 'tag' in detail_track['toptags']:
+                                tags = detail_track['toptags']['tag']
+                                if tags and len(tags) > 0:
+                                    # Get the top 2 tags as genre
+                                    if isinstance(tags, list):
+                                        genre_list = []
+                                        for i, tag in enumerate(tags[:2]):  # Take first 2 tags
+                                            tag_name = tag.get('name', '').title()
+                                            if tag_name:
+                                                genre_list.append(tag_name)
+                                        genre = ', '.join(genre_list) if genre_list else None
+                                    else:
+                                        genre = tags.get('name', '').title()
+                            
+                            # If no genre from track tags, try artist tags
+                            if not genre and isinstance(detail_track.get('artist'), dict) and 'name' in detail_track['artist']:
+                                artist_name_for_tags = detail_track['artist']['name']
+                                artist_url = f"http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&api_key={api_key}&artist={urllib.parse.quote(artist_name_for_tags)}&autocorrect=1&format=json"
+                                try:
+                                    artist_response = requests.get(artist_url, headers=headers, timeout=10)
+                                    if artist_response.status_code == 200:
+                                        artist_data = artist_response.json()
+                                        if 'toptags' in artist_data and 'tag' in artist_data['toptags']:
+                                            artist_tags = artist_data['toptags']['tag']
+                                            if artist_tags and len(artist_tags) > 0:
+                                                if isinstance(artist_tags, list):
+                                                    genre_list = []
+                                                    for i, tag in enumerate(artist_tags[:2]):  # Take first 2 tags
+                                                        tag_name = tag.get('name', '').title()
+                                                        if tag_name:
+                                                            genre_list.append(tag_name)
+                                                    genre = ', '.join(genre_list) if genre_list else None
+                                                else:
+                                                    genre = artist_tags.get('name', '').title()
+                                except Exception as e:
+                                    print(f"\033[33m[LASTFM]\033[0m Error fetching artist tags: {e}")
+                            
+                            metadata = {
+                                'title': detail_track.get('name', title),
+                                'artist': detail_track.get('artist', {}).get('name', track.get('artist', '')) if isinstance(detail_track.get('artist'), dict) else str(detail_track.get('artist', track.get('artist', ''))),
+                                'album': detail_track.get('album', {}).get('title', '') if isinstance(detail_track.get('album'), dict) else '',
+                                'genre': genre,
+                                'lastfm_url': detail_track.get('url'),
+                                'duration_ms': int(detail_track.get('duration', 0)) * 1000 if detail_track.get('duration') else None
+                            }
+                            
+                            print(f"\033[32m[LASTFM]\033[0m Found metadata for: {metadata['title']} by {metadata['artist']}")
+                            if metadata['genre']:
+                                print(f"\033[32m[LASTFM]\033[0m Genre found: {metadata['genre']}")
+                            
+                            return metadata
+            
+            print(f"\033[33m[LASTFM]\033[0m No matching track found for: {title}")
+            return None
+        
+        else:
+            print(f"\033[33m[LASTFM]\033[0m No results found for: {title} by {search_artist or 'Unknown'}")
+            # Try fallback search if direct search failed
+            if search_artist:
+                print(f"\033[33m[LASTFM]\033[0m Trying fallback search...")
+                return search_lastfm_fallback(title, search_artist, api_key, headers)
+            return None
+    
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Error searching Last.fm API: {e}")
+        return None
+
+
+def search_lastfm_fallback(title, artist, api_key, headers):
+    """
+    Fallback search method for Last.fm when direct search fails.
+    Tries different search strategies.
+    """
+    try:
+        # Try search with just the first word of artist name
+        if ' ' in artist:
+            first_word_artist = artist.split(' ')[0]
+            url = f"http://ws.audioscrobbler.com/2.0/?method=track.getinfo&api_key={api_key}&artist={urllib.parse.quote(first_word_artist)}&track={urllib.parse.quote(title)}&autocorrect=1&format=json"
+            print(f"\033[33m[LASTFM]\033[0m Trying with first word of artist: {first_word_artist}")
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if 'track' in data and data['track']:
+                    track = data['track']
+                    
+                    # Extract genre from tags
+                    genre = None
+                    if 'toptags' in track and 'tag' in track['toptags']:
+                        tags = track['toptags']['tag']
+                        if tags and len(tags) > 0:
+                            if isinstance(tags, list):
+                                genre_list = []
+                                for i, tag in enumerate(tags[:2]):  # Take first 2 tags
+                                    tag_name = tag.get('name', '').title()
+                                    if tag_name:
+                                        genre_list.append(tag_name)
+                                genre = ', '.join(genre_list) if genre_list else None
+                            else:
+                                genre = tags.get('name', '').title()
+                    
+                    # If no genre from track tags, try artist tags
+                    if not genre and isinstance(track.get('artist'), dict) and 'name' in track['artist']:
+                        artist_name_for_tags = track['artist']['name']
+                        artist_url = f"http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&api_key={api_key}&artist={urllib.parse.quote(artist_name_for_tags)}&autocorrect=1&format=json"
+                        try:
+                            artist_response = requests.get(artist_url, headers=headers, timeout=10)
+                            if artist_response.status_code == 200:
+                                artist_data = artist_response.json()
+                                if 'toptags' in artist_data and 'tag' in artist_data['toptags']:
+                                    artist_tags = artist_data['toptags']['tag']
+                                    if artist_tags and len(artist_tags) > 0:
+                                        if isinstance(artist_tags, list):
+                                            genre_list = []
+                                            for i, tag in enumerate(artist_tags[:2]):  # Take first 2 tags
+                                                tag_name = tag.get('name', '').title()
+                                                if tag_name:
+                                                    genre_list.append(tag_name)
+                                            genre = ', '.join(genre_list) if genre_list else None
+                                        else:
+                                            genre = artist_tags.get('name', '').title()
+                        except Exception as e:
+                            print(f"\033[33m[LASTFM]\033[0m Error fetching artist tags in fallback: {e}")
+                    
+                    artist_name = track.get('artist', {}).get('name', '') if isinstance(track.get('artist'), dict) else str(track.get('artist', ''))
+                    
+                    metadata = {
+                        'title': track.get('name', title),
+                        'artist': artist_name,
+                        'album': track.get('album', {}).get('title', '') if isinstance(track.get('album'), dict) else '',
+                        'genre': genre,
+                        'lastfm_url': track.get('url'),
+                        'duration_ms': int(track.get('duration', 0)) * 1000 if track.get('duration') else None
+                    }
+                    
+                    print(f"\033[32m[LASTFM]\033[0m Fallback found metadata for: {metadata['title']} by {metadata['artist']}")
+                    if metadata['genre']:
+                        print(f"\033[32m[LASTFM]\033[0m Genre found: {metadata['genre']}")
+                    
+                    return metadata
+        
+        return None
+    
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Error in Last.fm fallback search: {e}")
+        return None
+
+def search_metadata_with_fallback(title, artist=None):
+    """
+    Search for metadata using Spotify with Last.fm for genre. iTunes completely removed.
+    
+    Args:
+        title (str): Song title
+        artist (str, optional): Artist name
+        
+    Returns:
+        dict or None: Dictionary with metadata if successful, None otherwise
+    """
+    # Try Spotify for all metadata
     spotify_metadata = search_spotify_for_metadata(title, artist)
     
-    # If Spotify fails completely, try iTunes
+    # If Spotify fails completely, return None (no iTunes fallback)
     if not spotify_metadata:
-        print(f"\033[33m[METADATA]\033[0m Spotify search failed, trying iTunes as primary source")
-        return search_itunes_for_metadata(title, artist)
+        print(f"\033[33m[METADATA]\033[0m Spotify search failed, no metadata available")
+        return None
     
-    # If Spotify succeeded but genre is missing, try iTunes for genre
+    # Spotify succeeded - get Last.fm genre if Spotify has no genre
     if not spotify_metadata.get('genre'):
-        print(f"\033[33m[METADATA]\033[0m Spotify metadata found but no genre, trying iTunes for genre")
-        itunes_metadata = search_itunes_for_metadata(title, artist)
+        print(f"\033[33m[METADATA]\033[0m Spotify metadata found but no genre, trying Last.fm for genre")
+        lastfm_metadata = search_lastfm_for_metadata(title, artist)
         
-        if itunes_metadata and itunes_metadata.get('genre'):
-            print(f"\033[32m[METADATA]\033[0m Using iTunes genre: {itunes_metadata['genre']}")
-            spotify_metadata['genre'] = itunes_metadata['genre']
-            
-            # Also use iTunes composer and performer if available and not in Spotify
-            if not spotify_metadata.get('composer') and itunes_metadata.get('composer'):
-                spotify_metadata['composer'] = itunes_metadata['composer']
-            
-            # iTunes performer might be more detailed than Spotify's artist list
-            if itunes_metadata.get('performer') and itunes_metadata['performer'] != spotify_metadata.get('performer'):
-                # Keep Spotify performer but note iTunes alternative
-                pass
+        if lastfm_metadata and lastfm_metadata.get('genre'):
+            print(f"\033[32m[METADATA]\033[0m Using Last.fm genre: {lastfm_metadata['genre']}")
+            spotify_metadata['genre'] = lastfm_metadata['genre']
+        else:
+            print(f"\033[33m[METADATA]\033[0m Last.fm search failed, no genre available")
     
     return spotify_metadata
 
 def apply_spotify_metadata_to_file(file_path, metadata, download_cover=True):
     """
-    Apply enhanced metadata (Spotify + iTunes fallback) to an audio file.
+    Apply enhanced metadata (Spotify + Last.fm for genre) to an audio file.
     
     Args:
         file_path (str): Path to the audio file
-        metadata (dict): Metadata from Spotify or iTunes
+        metadata (dict): Metadata from Spotify with Last.fm genre
         download_cover (bool, optional): Whether to download and embed cover art. Defaults to True.
         
     Returns:
@@ -526,11 +901,11 @@ def process_youtube_url_with_spotify(youtube_url, output_file=None, audio_format
     
     print(f"\033[32m[INFO]\033[0m Extracted from YouTube: Title='{title}', Artist='{artist or 'Unknown'}'")
     
-    # Search for metadata using Spotify with iTunes fallback
+    # Search for metadata using Spotify with Last.fm for genre
     metadata = search_metadata_with_fallback(title, artist)
     
     if not metadata:
-        print(f"\033[33m[WARNING]\033[0m Could not find metadata on Spotify or iTunes. Proceeding with download only.")
+        print(f"\033[33m[WARNING]\033[0m Could not find metadata on Spotify. Proceeding with download only.")
         success = download_from_youtube(youtube_url, output_file, audio_format)
         return success, None
     
@@ -715,11 +1090,11 @@ def enhance_existing_file_with_spotify(file_path, title=None, artist=None):
     
     print(f"\033[32m[INFO]\033[0m Using title='{title}', artist='{artist or 'Unknown'}' for search")
     
-    # Search for metadata using Spotify with iTunes fallback
+    # Search for metadata using Spotify with Last.fm for genre
     metadata = search_metadata_with_fallback(title, artist)
     
     if not metadata:
-        print(f"\033[31m[ERROR]\033[0m Could not find metadata on Spotify or iTunes")
+        print(f"\033[31m[ERROR]\033[0m Could not find metadata on Spotify")
         return False, None
     
     # Apply enhanced metadata to the file

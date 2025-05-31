@@ -652,7 +652,7 @@ def run_playlist_with_spotify(query, output_file=None, music_dir=None, audio_for
     """
     # Import Spotify metadata module
     try:
-        from meta_ops.spotify_metadata import search_spotify_for_metadata, apply_spotify_metadata_to_file
+        from meta_ops.spotify_metadata import search_metadata_with_fallback, apply_spotify_metadata_to_file
     except ImportError:
         print("\033[31m[ERROR]\033[0m Failed to import Spotify metadata module. Make sure spotipy is installed.")
         return False
@@ -712,19 +712,21 @@ def run_playlist_with_spotify(query, output_file=None, music_dir=None, audio_for
                     title = name_without_ext
                     artist = "Unknown"
             
-            # Search for Spotify metadata
-            print(f"\033[32m[SPOTIFY]\033[0m Searching for metadata: {title} by {artist}")
-            spotify_metadata = search_spotify_for_metadata(title, artist)
+            # Search for metadata using Spotify with iTunes fallback
+            print(f"\033[32m[METADATA]\033[0m Searching for metadata: {title} by {artist}")
+            spotify_metadata = search_metadata_with_fallback(title, artist)
             
             if spotify_metadata:
-                # Use Spotify metadata
-                print(f"\033[32m[SPOTIFY]\033[0m Found Spotify metadata for: {spotify_metadata['title']} by {spotify_metadata['artist']}")
+                # Use enhanced metadata (Spotify + iTunes fallback)
+                print(f"\033[32m[METADATA]\033[0m Found enhanced metadata for: {spotify_metadata['title']} by {spotify_metadata['artist']}")
+                if spotify_metadata.get('genre'):
+                    print(f"\033[32m[METADATA]\033[0m Genre: {spotify_metadata['genre']}")
                 title = spotify_metadata['title']
                 artist = spotify_metadata['artist']
                 album = spotify_metadata['album']
             else:
                 # Fallback to basic metadata
-                print(f"\033[33m[WARNING]\033[0m No Spotify metadata found, using basic metadata")
+                print(f"\033[33m[WARNING]\033[0m No enhanced metadata found, using basic metadata")
                 album = file_metadata.get("album", "") if file_metadata else (title or f"{artist}")
             
             # Create artist directory

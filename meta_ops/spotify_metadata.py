@@ -1,5 +1,7 @@
 import os
 import re
+import requests
+import urllib.parse
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from meta_ops.metadata import add_metadata
@@ -278,13 +280,167 @@ def search_spotify_for_metadata(title, artist=None):
         print(f"\033[31m[ERROR]\033[0m Error searching Spotify API: {e}")
         return None
 
+def search_itunes_for_metadata(title, artist=None):
+    """
+    Search iTunes API for metadata using the title and artist.
+    
+    Args:
+        title (str): Song title
+        artist (str, optional): Artist name
+        
+    Returns:
+        dict or None: Dictionary with metadata if successful, None otherwise
+    """
+    try:
+        # Build search query
+        if artist:
+            search_query = f"{title} {artist}"
+        else:
+            search_query = title
+        
+        encoded_query = urllib.parse.quote(search_query)
+        url = f"https://itunes.apple.com/search?term={encoded_query}&entity=song&limit=5"
+        
+        print(f"\033[32m[ITUNES]\033[0m Searching for: {search_query}")
+        
+        # Add a user agent to avoid potential blocks
+        headers = {
+            'User-Agent': 'shadowbox/0.1.0'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        # Check if the request was successful
+        if response.status_code != 200:
+            print(f"\033[33m[ITUNES]\033[0m iTunes API returned status code {response.status_code}")
+            return None
+        
+        # Parse the JSON response
+        data = response.json()
+        
+        # Check if we got any results
+        if not data.get('results') or len(data['results']) == 0:
+            print(f"\033[33m[ITUNES]\033[0m No results found for: {search_query}")
+            
+            # Try with title without brackets, parentheses, or common features text
+            clean_title = title
+            has_brackets = any(x in title for x in ['(', ')', '[', ']', '{', '}', '<', '>', 'feat.', 'ft.', 'featuring'])
+            if has_brackets:
+                # Remove content within various types of brackets and common feature indicators
+                clean_title = re.sub(r'\s*\([^)]*\)', '', clean_title)
+                clean_title = re.sub(r'\s*\[[^\]]*\]', '', clean_title)
+                clean_title = re.sub(r'\s*\{[^}]*\}', '', clean_title)
+                clean_title = re.sub(r'\s*<[^>]*>', '', clean_title)
+                clean_title = re.sub(r'\s*(feat\.|ft\.|featuring).*', '', clean_title, flags=re.IGNORECASE)
+                clean_title = clean_title.strip()
+                
+                if clean_title and clean_title != title:
+                    print(f"\033[33m[ITUNES]\033[0m Trying with clean title: {clean_title}")
+                    if artist:
+                        clean_search_query = f"{clean_title} {artist}"
+                    else:
+                        clean_search_query = clean_title
+                    
+                    encoded_clean_query = urllib.parse.quote(clean_search_query)
+                    clean_url = f"https://itunes.apple.com/search?term={encoded_clean_query}&entity=song&limit=5"
+                    
+                    clean_response = requests.get(clean_url, headers=headers, timeout=10)
+                    if clean_response.status_code == 200:
+                        clean_data = clean_response.json()
+                        if clean_data.get('results') and len(clean_data['results']) > 0:
+                            data = clean_data
+                        else:
+                            return None
+                    else:
+                        return None
+                else:
+                    return None
+            else:
+                return None
+        
+        # Get the first track
+        track = data['results'][0]
+        
+        # Extract metadata from iTunes response
+        metadata = {
+            'title': track.get('trackName', title),
+            'artist': track.get('artistName', artist or ''),
+            'album': track.get('collectionName', ''),
+            'release_date': track.get('releaseDate', '').split('T')[0] if track.get('releaseDate') else None,
+            'track_number': track.get('trackNumber'),
+            'total_tracks': track.get('trackCount'),
+            'disc_number': track.get('discNumber', 1),
+            'total_discs': track.get('discCount', 1),
+            'duration_ms': track.get('trackTimeMillis'),
+            'explicit': track.get('trackExplicitness') == 'explicit',
+            'itunes_url': track.get('trackViewUrl'),
+            'preview_url': track.get('previewUrl'),
+            'cover_url': None,
+            'genre': track.get('primaryGenreName'),
+            'composer': None,  # iTunes doesn't typically provide composer in search results
+            'performer': track.get('artistName', artist or '')
+        }
+        
+        # Get album cover URL (replace with higher resolution)
+        artwork_url = track.get('artworkUrl100')
+        if artwork_url:
+            metadata['cover_url'] = artwork_url.replace('100x100bb', '600x600bb')
+        
+        print(f"\033[32m[ITUNES]\033[0m Found metadata for: {metadata['title']} by {metadata['artist']}")
+        if metadata['genre']:
+            print(f"\033[32m[ITUNES]\033[0m Genre found: {metadata['genre']}")
+        
+        return metadata
+    
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Error searching iTunes API: {e}")
+        return None
+
+def search_metadata_with_fallback(title, artist=None):
+    """
+    Search for metadata using Spotify first, then iTunes as fallback for missing fields (especially genre).
+    
+    Args:
+        title (str): Song title
+        artist (str, optional): Artist name
+        
+    Returns:
+        dict or None: Dictionary with metadata if successful, None otherwise
+    """
+    # First try Spotify
+    spotify_metadata = search_spotify_for_metadata(title, artist)
+    
+    # If Spotify fails completely, try iTunes
+    if not spotify_metadata:
+        print(f"\033[33m[METADATA]\033[0m Spotify search failed, trying iTunes as primary source")
+        return search_itunes_for_metadata(title, artist)
+    
+    # If Spotify succeeded but genre is missing, try iTunes for genre
+    if not spotify_metadata.get('genre'):
+        print(f"\033[33m[METADATA]\033[0m Spotify metadata found but no genre, trying iTunes for genre")
+        itunes_metadata = search_itunes_for_metadata(title, artist)
+        
+        if itunes_metadata and itunes_metadata.get('genre'):
+            print(f"\033[32m[METADATA]\033[0m Using iTunes genre: {itunes_metadata['genre']}")
+            spotify_metadata['genre'] = itunes_metadata['genre']
+            
+            # Also use iTunes composer and performer if available and not in Spotify
+            if not spotify_metadata.get('composer') and itunes_metadata.get('composer'):
+                spotify_metadata['composer'] = itunes_metadata['composer']
+            
+            # iTunes performer might be more detailed than Spotify's artist list
+            if itunes_metadata.get('performer') and itunes_metadata['performer'] != spotify_metadata.get('performer'):
+                # Keep Spotify performer but note iTunes alternative
+                pass
+    
+    return spotify_metadata
+
 def apply_spotify_metadata_to_file(file_path, metadata, download_cover=True):
     """
-    Apply Spotify metadata to an audio file.
+    Apply enhanced metadata (Spotify + iTunes fallback) to an audio file.
     
     Args:
         file_path (str): Path to the audio file
-        metadata (dict): Metadata from Spotify
+        metadata (dict): Metadata from Spotify or iTunes
         download_cover (bool, optional): Whether to download and embed cover art. Defaults to True.
         
     Returns:
@@ -333,7 +489,7 @@ def apply_spotify_metadata_to_file(file_path, metadata, download_cover=True):
             performer=metadata.get('performer')
         )
         
-        print(f"\033[32m[SUCCESS]\033[0m Applied Spotify metadata to: {file_path}")
+        print(f"\033[32m[SUCCESS]\033[0m Applied enhanced metadata to: {file_path}")
         
         # Clean up cover file if it was created
         if cover_path and os.path.exists(cover_path):
@@ -370,11 +526,11 @@ def process_youtube_url_with_spotify(youtube_url, output_file=None, audio_format
     
     print(f"\033[32m[INFO]\033[0m Extracted from YouTube: Title='{title}', Artist='{artist or 'Unknown'}'")
     
-    # Search Spotify for metadata
-    metadata = search_spotify_for_metadata(title, artist)
+    # Search for metadata using Spotify with iTunes fallback
+    metadata = search_metadata_with_fallback(title, artist)
     
     if not metadata:
-        print(f"\033[33m[WARNING]\033[0m Could not find metadata on Spotify. Proceeding with download only.")
+        print(f"\033[33m[WARNING]\033[0m Could not find metadata on Spotify or iTunes. Proceeding with download only.")
         success = download_from_youtube(youtube_url, output_file, audio_format)
         return success, None
     
@@ -451,11 +607,11 @@ def enhance_bandcamp_file_with_spotify(file_path):
     
     print(f"\033[32m[INFO]\033[0m Enhancing Bandcamp file: '{title}' by '{artist}'")
     
-    # Search Spotify for additional metadata
-    spotify_metadata = search_spotify_for_metadata(title, artist)
+    # Search for additional metadata using Spotify with iTunes fallback
+    spotify_metadata = search_metadata_with_fallback(title, artist)
     
     if not spotify_metadata:
-        print(f"\033[33m[WARNING]\033[0m No Spotify metadata found for enhancement")
+        print(f"\033[33m[WARNING]\033[0m No enhanced metadata found for enhancement")
         return False, None
     
     # Check if the Bandcamp file already has the enhanced metadata fields
@@ -559,13 +715,13 @@ def enhance_existing_file_with_spotify(file_path, title=None, artist=None):
     
     print(f"\033[32m[INFO]\033[0m Using title='{title}', artist='{artist or 'Unknown'}' for search")
     
-    # Search Spotify for metadata
-    metadata = search_spotify_for_metadata(title, artist)
+    # Search for metadata using Spotify with iTunes fallback
+    metadata = search_metadata_with_fallback(title, artist)
     
     if not metadata:
-        print(f"\033[31m[ERROR]\033[0m Could not find metadata on Spotify")
+        print(f"\033[31m[ERROR]\033[0m Could not find metadata on Spotify or iTunes")
         return False, None
     
-    # Apply Spotify metadata to the file
+    # Apply enhanced metadata to the file
     success = apply_spotify_metadata_to_file(file_path, metadata)
     return success, metadata

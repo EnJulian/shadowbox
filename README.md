@@ -149,3 +149,69 @@ This project wouldn't be possible without the following tools:
 - [aria2](https://aria2.github.io/) - A lightweight multi-protocol & multi-source command-line download utility
 - [spotipy](https://spotipy.readthedocs.io/) - A lightweight Python library for the Spotify Web API
 
+## Troubleshooting
+
+### YouTube Download Issues
+
+If you encounter the error `"Sign in to confirm you're not a bot"` when downloading from YouTube, this is due to YouTube's anti-bot detection measures. Shadowbox includes several solutions:
+
+#### Quick Fix: Update yt-dlp
+
+**Using Shadowbox Interface:**
+1. Run Shadowbox
+2. Go to Settings (option 4)
+3. Select "Update yt-dlp" (option 5)
+4. Follow the prompts
+
+**Using Command Line:**
+```bash
+# Windows
+setup\update_ytdlp.bat
+
+# Linux/macOS
+./setup/update_ytdlp.sh
+
+# Python (cross-platform)
+python3 setup/update_ytdlp.py
+```
+
+#### Enhanced Download System
+
+Shadowbox v1.0.1+ includes an enhanced download system that automatically tries multiple strategies when YouTube blocks downloads:
+
+1. **Enhanced Headers**: Uses realistic browser headers and user agents
+2. **Alternative Extractor**: Uses Android client for extraction  
+3. **Web Client**: Uses web client with browser-like behavior
+4. **Original Method**: Falls back to the original aria2c method
+
+These strategies are applied automatically with delays between attempts to avoid rate limiting.
+
+#### Additional Solutions
+
+- **Try different search terms**: Use various combinations of artist and song names
+- **Use direct URLs**: Paste YouTube URLs instead of search queries
+- **Wait and retry**: YouTube's anti-bot measures are sometimes temporary
+- **Check video availability**: Some videos may be region-locked or private
+
+For detailed troubleshooting information, see [docs/YOUTUBE_DOWNLOAD_ISSUES.md](docs/YOUTUBE_DOWNLOAD_ISSUES.md).
+
+### Common Issues
+
+**FFmpeg not found:**
+- Install FFmpeg from [ffmpeg.org](https://ffmpeg.org/download.html)
+- Ensure FFmpeg is in your system PATH
+
+**Permission errors:**
+- Run setup scripts with appropriate permissions
+- On Windows, you may need to run as Administrator
+- On Linux/macOS, ensure scripts are executable: `chmod +x script_name.sh`
+
+**Spotify metadata not working:**
+- Run the Spotify setup: `./setup/setup_spotify.sh` (Linux/macOS) or `setup\setup_spotify.bat` (Windows)
+- Verify credentials are loaded: `./setup/test_spotify.sh`
+- Check that environment variables are set correctly
+
+**Virtual environment issues:**
+- Activate the virtual environment: `source .venv/bin/activate` (Linux/macOS) or `.venv\Scripts\activate` (Windows)
+- Reinstall dependencies: `pip3 install -r setup/requirements.txt`
+

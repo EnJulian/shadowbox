@@ -150,3 +150,61 @@ def set_use_spotify(use_spotify):
         bool: True if successful, False otherwise
     """
     return set_setting('use_spotify', use_spotify)
+
+def update_ytdlp():
+    """
+    Update yt-dlp to the latest version to fix YouTube download issues.
+    
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    import subprocess
+    import sys
+    
+    try:
+        print("\033[33m[UPDATE]\033[0m Updating yt-dlp to latest version...")
+        
+        # Try pip3 first, then pip
+        for pip_cmd in ['pip3', 'pip']:
+            try:
+                result = subprocess.run([pip_cmd, 'install', '--upgrade', 'yt-dlp'], 
+                                      check=True, capture_output=True, text=True)
+                print(f"\033[32m[SUCCESS]\033[0m yt-dlp updated successfully using {pip_cmd}")
+                print(f"Output: {result.stdout}")
+                return True
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+        
+        # If both pip commands failed, try with python -m pip
+        try:
+            result = subprocess.run([sys.executable, '-m', 'pip', 'install', '--upgrade', 'yt-dlp'], 
+                                  check=True, capture_output=True, text=True)
+            print(f"\033[32m[SUCCESS]\033[0m yt-dlp updated successfully using python -m pip")
+            print(f"Output: {result.stdout}")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"\033[31m[ERROR]\033[0m Failed to update yt-dlp: {e.stderr}")
+            return False
+            
+    except Exception as e:
+        print(f"\033[31m[ERROR]\033[0m Unexpected error updating yt-dlp: {e}")
+        return False
+
+def check_ytdlp_version():
+    """
+    Check the current version of yt-dlp.
+    
+    Returns:
+        str: The version string, or None if yt-dlp is not installed
+    """
+    import subprocess
+    
+    try:
+        result = subprocess.run(['yt-dlp', '--version'], 
+                              check=True, capture_output=True, text=True)
+        version = result.stdout.strip()
+        print(f"\033[32m[INFO]\033[0m Current yt-dlp version: {version}")
+        return version
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print(f"\033[31m[ERROR]\033[0m yt-dlp is not installed or not found in PATH")
+        return None

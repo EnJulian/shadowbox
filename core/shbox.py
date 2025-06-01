@@ -271,7 +271,7 @@ def settings():
         # Use the new enhanced settings menu
         ui.print_settings_menu(current_dir, use_spotify, audio_format)
         
-        choice = ui.input_prompt("Select an option (1-5)", "SETTINGS").strip()
+        choice = ui.input_prompt("Select an option (1-6)", "SETTINGS").strip()
         
         if choice == '1':
             ui.info("Enter the new music directory path")
@@ -373,6 +373,39 @@ def settings():
                 ui.input_prompt("Press Enter to continue", "CONTINUE")
         
         elif choice == '5':
+            # Update yt-dlp
+            print_header()
+            ui.hacker_banner("YT-DLP UPDATE")
+            ui.section_divider()
+            
+            # Import the update functions
+            from meta_ops.settings import check_ytdlp_version, update_ytdlp
+            
+            ui.info("Checking current yt-dlp version...")
+            current_version = check_ytdlp_version()
+            
+            if current_version:
+                ui.info(f"Current version: {current_version}")
+                ui.info("This will update yt-dlp to the latest version to fix YouTube download issues.")
+                
+                confirm = ui.input_prompt("Do you want to update yt-dlp? (y/n)", "CONFIRM").strip().lower()
+                if confirm in ['y', 'yes']:
+                    success = update_ytdlp()
+                    if success:
+                        ui.success("yt-dlp updated successfully!")
+                        ui.info("YouTube download issues should now be resolved.")
+                    else:
+                        ui.error("Failed to update yt-dlp. Please try updating manually:")
+                        ui.info("pip3 install --upgrade yt-dlp")
+                else:
+                    ui.info("Update cancelled.")
+            else:
+                ui.error("yt-dlp not found. Please install it first:")
+                ui.info("pip3 install yt-dlp")
+            
+            ui.input_prompt("Press Enter to continue", "CONTINUE")
+        
+        elif choice == '6':
             break
         
         else:

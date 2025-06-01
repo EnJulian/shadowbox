@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2025-06-01
+
+### Added
+- Enhanced YouTube download system with multiple anti-bot bypass strategies
+- Automatic retry logic with delays between attempts to avoid rate limiting
+- Built-in yt-dlp update functionality accessible from Settings menu
+- Update scripts for easy yt-dlp maintenance (`update_ytdlp.sh`, `update_ytdlp.bat`, `update_ytdlp.py`)
+- Comprehensive troubleshooting documentation for YouTube download issues
+- Better error handling and user feedback for download failures
+
+### Fixed
+- YouTube "Sign in to confirm you're not a bot" error through multiple download strategies
+- Enhanced user agents and headers to bypass YouTube's anti-bot detection
+- Improved error messages with specific suggestions for different failure types
+
+### Changed
+- Download system now tries 4 different strategies automatically when YouTube blocks downloads:
+  1. Enhanced Headers with realistic browser user agents
+  2. Alternative Extractor using Android client
+  3. Web Client with browser-like behavior  
+  4. Original method with aria2c as fallback
+- Settings menu expanded to include yt-dlp update option (now 6 options instead of 5)
+
 ## [1.0.1] - 2025-06-01
 
 ### Fixed

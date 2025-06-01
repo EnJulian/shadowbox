@@ -529,6 +529,7 @@ class TerminalUI:
             (f"{Symbols.MUSIC} Toggle Spotify metadata", "SPOTIFY_TOGGLE"),
             (f"{Symbols.GEAR} Change audio format", "FORMAT_CONFIG"),
             (f"{Symbols.PALETTE} Change color theme", "THEME_CONFIG"),
+            (f"{Symbols.DOWNLOAD} Update yt-dlp", "YTDLP_UPDATE"),
             (f"{Symbols.ARROW_LEFT} Back to main menu", "MAIN_RETURN")
         ]
         
@@ -555,8 +556,8 @@ class TerminalUI:
         print(border_line)
         
         for i, (item, code) in enumerate(menu_items, 1):
-            # Use consistent styling for all options except back (option 5)
-            number_color = self.theme['success'] if i != 5 else self.theme['warning']
+            # Use consistent styling for all options except back (option 6)
+            number_color = self.theme['success'] if i != 6 else self.theme['warning']
             
             # Extract just the text part (remove the symbol)
             item_parts = item.split(' ', 1)

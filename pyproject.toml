@@ -40,8 +40,9 @@ dev = [
 ]
 
 [project.scripts]
-shadowbox = "core.main:main"
-shbox = "core.main:main"
+shadowbox = "core.shbox:main"
+shbox = "core.shbox:main"
+shadowbox-cli = "core.main:main"
 
 [project.urls]
 Homepage = "https://github.com/lsnen/shadowbox"

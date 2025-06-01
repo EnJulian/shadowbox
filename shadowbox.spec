@@ -54,7 +54,7 @@ hiddenimports += [
 block_cipher = None
 
 a = Analysis(
-    ['core/main.py'],
+    ['core/shbox.py'],
     pathex=[],
     binaries=[],
     datas=datas,

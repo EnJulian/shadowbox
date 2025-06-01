@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-06-01
+
+### Fixed
+- Fixed Windows executable to show full menu interface instead of simple CLI prompt
+- Updated PyInstaller entry point from `core/main.py` to `core/shbox.py`
+- Fixed import issues in `core/shbox.py` for standalone execution
+
+### Changed
+- Updated project entry points: `shadowbox` and `shbox` now point to full menu interface
+- Added `shadowbox-cli` entry point for simple command-line interface
+
+## [1.0.0] - 2025-XX-XX
+
 ### Added
 - GitHub Actions workflow for automated cross-platform releases
 - PyInstaller configuration for standalone executables

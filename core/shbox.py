@@ -10,9 +10,9 @@ import os
 import sys
 import time
 import glob
-from main import run, run_with_spotify, run_playlist, run_playlist_with_spotify, sanitize_filename
-from downloader import is_youtube_playlist
-from terminal_ui import ui, clear_screen, print_header, print_menu, success, error, warning, info, system, exit_animation
+from .main import run, run_with_spotify, run_playlist, run_playlist_with_spotify, sanitize_filename
+from meta_ops.downloader import is_youtube_playlist
+from .terminal_ui import ui, clear_screen, print_header, print_menu, success, error, warning, info, system, exit_animation
 
 # Enhanced terminal UI functions are imported from terminal_ui module
 

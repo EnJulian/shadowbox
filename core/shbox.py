@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import glob
+import argparse
 
 # Add the parent directory to sys.path to handle imports when run as standalone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -526,6 +527,25 @@ def download_playlist():
 
 def main():
     """Main application loop."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Shadowbox Music Downloader - Interactive Menu Interface",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  shadowbox                    # Launch interactive menu
+  shadowbox --help            # Show this help message
+  shadowbox-cli "song artist" # Use simple CLI interface instead
+
+For the simple command-line interface, use 'shadowbox-cli' instead.
+        """
+    )
+    parser.add_argument('--version', action='version', version='Shadowbox 1.0.1')
+    
+    # Parse arguments
+    args = parser.parse_args()
+    
+    # If we get here, no special arguments were provided, so start the interactive menu
     first_run = True
     while True:
         # Show startup animation only on first run

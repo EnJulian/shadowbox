@@ -25,6 +25,7 @@ except ImportError:
     from terminal_ui import ui, clear_screen, print_header, print_menu, success, error, warning, info, system, exit_animation
 
 from meta_ops.downloader import is_youtube_playlist
+from meta_ops.settings import get_verbose_logging, set_verbose_logging
 
 # Enhanced terminal UI functions are imported from terminal_ui module
 
@@ -150,11 +151,11 @@ def search_and_download():
     ui.loading_spinner("Initializing download sequence", 1.0)
     
     if use_spotify:
-        success = run_with_spotify(query, music_dir=music_dir, audio_format=audio_format)
+        download_success = run_with_spotify(query, music_dir=music_dir, audio_format=audio_format)
     else:
-        success = run(query, music_dir=music_dir, audio_format=audio_format)
+        download_success = run(query, music_dir=music_dir, audio_format=audio_format)
     
-    if success:
+    if download_success:
         success("Operation completed successfully!", "MISSION_SUCCESS")
     else:
         error("Download failed. Please try again.", "MISSION_FAILED")
@@ -192,11 +193,11 @@ def download_from_url():
     ui.loading_spinner("Initiating URL extraction", 1.0)
     
     if use_spotify:
-        success = run_with_spotify(url, music_dir=music_dir, audio_format=audio_format)
+        download_success = run_with_spotify(url, music_dir=music_dir, audio_format=audio_format)
     else:
-        success = run(url, music_dir=music_dir, audio_format=audio_format)
+        download_success = run(url, music_dir=music_dir, audio_format=audio_format)
     
-    if success:
+    if download_success:
         success("URL extraction completed successfully!", "EXTRACTION_SUCCESS")
     else:
         error("URL extraction failed. Please try again.", "EXTRACTION_FAILED")
@@ -245,11 +246,11 @@ def batch_download():
         ui.download(f"Target: {song}", f"BATCH_{i+1}")
         
         if use_spotify:
-            success = run_with_spotify(song, music_dir=music_dir, audio_format=audio_format)
+            download_success = run_with_spotify(song, music_dir=music_dir, audio_format=audio_format)
         else:
-            success = run(song, music_dir=music_dir, audio_format=audio_format)
+            download_success = run(song, music_dir=music_dir, audio_format=audio_format)
             
-        if success:
+        if download_success:
             successful += 1
             success(f"Acquired: {song}", f"TARGET_{i+1}")
         else:
@@ -267,11 +268,12 @@ def settings():
         current_dir = get_music_directory()
         use_spotify = get_use_spotify()
         audio_format = get_audio_format()
+        verbose_logging = get_verbose_logging()
         
         # Use the new enhanced settings menu
-        ui.print_settings_menu(current_dir, use_spotify, audio_format)
+        ui.print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging)
         
-        choice = ui.input_prompt("Select an option (1-6)", "SETTINGS").strip()
+        choice = ui.input_prompt("Select an option (1-7)", "SETTINGS").strip()
         
         if choice == '1':
             ui.info("Enter the new music directory path")
@@ -406,6 +408,20 @@ def settings():
             ui.input_prompt("Press Enter to continue", "CONTINUE")
         
         elif choice == '6':
+            # Toggle verbose logging
+            new_verbose = not verbose_logging
+            set_verbose_logging(new_verbose)
+            
+            if new_verbose:
+                ui.success("Verbose logging enabled")
+                ui.info("You will now see detailed download information and debug messages")
+            else:
+                ui.success("Verbose logging disabled")
+                ui.info("Only essential messages will be shown")
+            
+            ui.input_prompt("Press Enter to continue", "CONTINUE")
+        
+        elif choice == '7':
             break
         
         else:
@@ -547,11 +563,11 @@ def download_playlist():
     
     # Use the appropriate function based on user choice
     if use_spotify:
-        success = run_playlist_with_spotify(url, music_dir=music_dir, audio_format=audio_format)
+        download_success = run_playlist_with_spotify(url, music_dir=music_dir, audio_format=audio_format)
     else:
-        success = run_playlist(url, music_dir=music_dir, audio_format=audio_format)
+        download_success = run_playlist(url, music_dir=music_dir, audio_format=audio_format)
     
-    if success:
+    if download_success:
         ui.success("Playlist download complete!")
     else:
         ui.error("Playlist download failed. Please try again.")

@@ -18,16 +18,50 @@ try:
     from terminal_ui import ui, success, error, warning, info, system, audio, download, scan, directory, api
 except ImportError:
     # Fallback to basic print if terminal_ui is not available
-    def success(msg, tag="SUCCESS"): print(f"[{tag}] {msg}")
-    def error(msg, tag="ERROR"): print(f"[{tag}] {msg}")
-    def warning(msg, tag="WARNING"): print(f"[{tag}] {msg}")
-    def info(msg, tag="INFO"): print(f"[{tag}] {msg}")
-    def system(msg, tag="SYSTEM"): print(f"[{tag}] {msg}")
-    def audio(msg, tag="AUDIO"): print(f"[{tag}] {msg}")
-    def download(msg, tag="DOWNLOAD"): print(f"[{tag}] {msg}")
-    def scan(msg, tag="SCAN"): print(f"[{tag}] {msg}")
-    def directory(msg, tag="DIR"): print(f"[{tag}] {msg}")
-    def api(msg, tag="API"): print(f"[{tag}] {msg}")
+    def success(msg, tag="SUCCESS"): 
+        try:
+            if get_verbose_logging(): print(f"[{tag}] {msg}")
+        except:
+            pass  # Silently ignore if settings not available
+    def error(msg, tag="ERROR"): 
+        print(f"[{tag}] {msg}")  # Always show errors
+    def warning(msg, tag="WARNING"): 
+        print(f"[{tag}] {msg}")  # Always show warnings
+    def info(msg, tag="INFO"): 
+        try:
+            if get_verbose_logging(): print(f"[{tag}] {msg}")
+        except:
+            pass  # Silently ignore if settings not available
+    def system(msg, tag="SYSTEM"): 
+        try:
+            if get_verbose_logging(): print(f"[{tag}] {msg}")
+        except:
+            pass  # Silently ignore if settings not available
+    def audio(msg, tag="AUDIO"): 
+        try:
+            if get_verbose_logging(): print(f"[{tag}] {msg}")
+        except:
+            pass  # Silently ignore if settings not available
+    def download(msg, tag="DOWNLOAD"): 
+        try:
+            if get_verbose_logging(): print(f"[{tag}] {msg}")
+        except:
+            pass  # Silently ignore if settings not available
+    def scan(msg, tag="SCAN"): 
+        try:
+            if get_verbose_logging(): print(f"[{tag}] {msg}")
+        except:
+            pass  # Silently ignore if settings not available
+    def directory(msg, tag="DIR"): 
+        try:
+            if get_verbose_logging(): print(f"[{tag}] {msg}")
+        except:
+            pass  # Silently ignore if settings not available
+    def api(msg, tag="API"): 
+        try:
+            if get_verbose_logging(): print(f"[{tag}] {msg}")
+        except:
+            pass  # Silently ignore if settings not available
     ui = None
 
 # Try absolute imports first (for PyInstaller), then relative imports (for development)
@@ -37,7 +71,8 @@ try:
     from meta_ops.cover_art import get_album_cover_url, download_cover_image
     from meta_ops.settings import (
         load_settings, save_settings, get_audio_format, set_audio_format,
-        get_music_directory, set_music_directory, get_use_spotify, set_use_spotify
+        get_music_directory, set_music_directory, get_use_spotify, set_use_spotify,
+        get_verbose_logging, set_verbose_logging
     )
 except ImportError:
     # Fallback to direct imports (for development when meta_ops is in path)
@@ -46,7 +81,8 @@ except ImportError:
     from cover_art import get_album_cover_url, download_cover_image
     from settings import (
         load_settings, save_settings, get_audio_format, set_audio_format,
-        get_music_directory, set_music_directory, get_use_spotify, set_use_spotify
+        get_music_directory, set_music_directory, get_use_spotify, set_use_spotify,
+        get_verbose_logging, set_verbose_logging
     )
 
 def sanitize_filename(name):
@@ -198,8 +234,8 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
     
     # Download the audio
     try:
-        success = download_audio(query, temp_output, False, audio_format)
-        if not success:
+        download_success = download_audio(query, temp_output, False, audio_format)
+        if not download_success:
             error("Download failed", "FAIL")
             return False
     except Exception as e:
@@ -336,8 +372,8 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
             try:
                 from meta_ops.spotify_metadata import enhance_bandcamp_file_with_spotify
                 system("Enhancing Bandcamp file with Spotify metadata...", "BANDCAMP")
-                success, enhanced_metadata = enhance_bandcamp_file_with_spotify(final_file)
-                if success:
+                enhancement_success, enhanced_metadata = enhance_bandcamp_file_with_spotify(final_file)
+                if enhancement_success:
                     success("Successfully enhanced with additional metadata", "BANDCAMP")
                 else:
                     warning("No additional metadata enhancement available", "BANDCAMP")
@@ -380,20 +416,22 @@ def run_playlist(query, output_file=None, music_dir=None, audio_format='opus'):
     try:
         downloaded_files = download_audio(query, output_file, False, audio_format)
         if not downloaded_files or not isinstance(downloaded_files, list):
-            print("\033[31m[FAIL]\033[0m Playlist download failed")
+            error("Playlist download failed", "FAIL")
             return False
     except Exception as e:
-        print(f"\033[31m[ERROR]\033[0m Error downloading playlist: {e}")
+        error(f"Error downloading playlist: {e}")
         return False
     
-    print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} tracks from playlist")
+    if get_verbose_logging():
+        print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} tracks from playlist")
     
     # Process each file in the playlist
     success_count = 0
     for file_path in downloaded_files:
         try:
             # Extract metadata from the downloaded file
-            print(f"\033[32m[META]\033[0m Extracting metadata from: {os.path.basename(file_path)}")
+            if get_verbose_logging():
+                print(f"\033[32m[META]\033[0m Extracting metadata from: {os.path.basename(file_path)}")
             file_metadata = extract_metadata(file_path)
             
             # Initialize title and artist variables
@@ -402,12 +440,14 @@ def run_playlist(query, output_file=None, music_dir=None, audio_format='opus'):
             
             # If we have metadata from the file, use it
             if file_metadata['title'] and file_metadata['artist']:
-                print(f"\033[32m[META]\033[0m Found metadata in file: Title='{file_metadata['title']}', Artist='{file_metadata['artist']}'")
+                if get_verbose_logging():
+                    print(f"\033[32m[META]\033[0m Found metadata in file: Title='{file_metadata['title']}', Artist='{file_metadata['artist']}'")
                 title = file_metadata['title']
                 artist = file_metadata['artist']
             else:
                 # Fallback: Parse title and artist from filename
-                print(f"\033[33m[META]\033[0m No metadata found in file, using fallback method...")
+                if get_verbose_logging():
+                    print(f"\033[33m[META]\033[0m No metadata found in file, using fallback method...")
                 filename = os.path.basename(file_path)
                 # Remove playlist index if present (e.g., "01 - ")
                 if re.match(r'^\d+\s*-\s*', filename):
@@ -451,13 +491,15 @@ def run_playlist(query, output_file=None, music_dir=None, audio_format='opus'):
                 counter += 1
             
             # Move the file to the album directory
-            print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
+            if get_verbose_logging():
+                print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
             shutil.move(file_path, final_file)
             
             # Use album from metadata if available, otherwise use artist name
             album = album_name if album_name else (title or f"{artist}")
             
-            print(f"\033[32m[ART]\033[0m Fetching album cover for {title} by {artist}")
+            if get_verbose_logging():
+                print(f"\033[32m[ART]\033[0m Fetching album cover for {title} by {artist}")
             image_url = get_album_cover_url(title, artist)
             cover_path = None
             if image_url:
@@ -535,16 +577,16 @@ def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus
     spotify_metadata = None
     try:
         if is_url(query):
-            success, spotify_metadata = process_youtube_url_with_spotify(query, temp_output, audio_format)
+            download_success, spotify_metadata = process_youtube_url_with_spotify(query, temp_output, audio_format)
         else:
             # If it's a search query, prepend ytsearch1:
-            success, spotify_metadata = process_youtube_url_with_spotify(f"ytsearch1:{query}", temp_output, audio_format)
+            download_success, spotify_metadata = process_youtube_url_with_spotify(f"ytsearch1:{query}", temp_output, audio_format)
             
-        if not success:
-            print("\033[31m[FAIL]\033[0m Download failed")
+        if not download_success:
+            error("Download failed", "FAIL")
             return False
     except Exception as e:
-        print(f"\033[31m[ERROR]\033[0m Error downloading audio: {e}")
+        error(f"Error downloading audio: {e}")
         return False
     
     # Find the downloaded file
@@ -671,12 +713,12 @@ def run_playlist_with_spotify(query, output_file=None, music_dir=None, audio_for
     try:
         from meta_ops.spotify_metadata import search_metadata_with_fallback, apply_spotify_metadata_to_file
     except ImportError:
-        print("\033[31m[ERROR]\033[0m Failed to import Spotify metadata module. Make sure spotipy is installed.")
+        error("Failed to import Spotify metadata module. Make sure spotipy is installed.")
         return False
     
     # Check if Spotify credentials are set
     if not os.environ.get('SPOTIFY_CLIENT_ID') or not os.environ.get('SPOTIFY_CLIENT_SECRET'):
-        print("\033[33m[WARNING]\033[0m Spotify credentials not found. Falling back to regular playlist download.")
+        warning("Spotify credentials not found. Falling back to regular playlist download.")
         return run_playlist(query, output_file, music_dir, audio_format)
     
     if output_file is None:
@@ -686,13 +728,14 @@ def run_playlist_with_spotify(query, output_file=None, music_dir=None, audio_for
     try:
         downloaded_files = download_audio(query, output_file, False, audio_format)
         if not downloaded_files or not isinstance(downloaded_files, list):
-            print("\033[31m[FAIL]\033[0m Playlist download failed")
+            error("Playlist download failed", "FAIL")
             return False
     except Exception as e:
-        print(f"\033[31m[ERROR]\033[0m Error downloading playlist: {e}")
+        error(f"Error downloading playlist: {e}")
         return False
     
-    print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} tracks from playlist")
+    if get_verbose_logging():
+        print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} tracks from playlist")
     
     # Process each file in the playlist with Spotify metadata
     success_count = 0
@@ -768,18 +811,20 @@ def run_playlist_with_spotify(query, output_file=None, music_dir=None, audio_for
                 counter += 1
             
             # Move the file to the album directory
-            print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
+            if get_verbose_logging():
+                print(f"\033[32m[FILE]\033[0m Moving file to: {final_file}")
             shutil.move(file_path, final_file)
             
             # Apply metadata to the file
             if spotify_metadata:
                 # Apply Spotify metadata with all the enhanced fields
-                success = apply_spotify_metadata_to_file(final_file, spotify_metadata)
-                if success:
-                    print(f"\033[32m[COMPLETE]\033[0m Applied Spotify metadata to: {final_file}")
+                metadata_success = apply_spotify_metadata_to_file(final_file, spotify_metadata)
+                if metadata_success:
+                    if get_verbose_logging():
+                        print(f"\033[32m[COMPLETE]\033[0m Applied Spotify metadata to: {final_file}")
                     success_count += 1
                 else:
-                    print(f"\033[31m[ERROR]\033[0m Failed to apply Spotify metadata to: {final_file}")
+                    error(f"Failed to apply Spotify metadata to: {final_file}")
             else:
                 # Apply basic metadata
                 try:
@@ -886,16 +931,17 @@ def main():
     
     # Check if the query is a YouTube playlist
     if is_url(query) and is_youtube_playlist(query):
-        print("\033[32m[PLAYLIST]\033[0m Detected YouTube playlist URL")
-        print("\033[32m[INFO]\033[0m Processing playlist using yt-dlp's playlist handling")
+        if get_verbose_logging():
+            print("\033[32m[PLAYLIST]\033[0m Detected YouTube playlist URL")
+            print("\033[32m[INFO]\033[0m Processing playlist using yt-dlp's playlist handling")
         # Don't use Spotify for playlists as it can cause issues
-        success = run_playlist(query, args.output, music_dir, audio_format)
+        result = run_playlist(query, args.output, music_dir, audio_format)
     elif use_spotify:
-        success = run_with_spotify(query, args.output, music_dir, audio_format)
+        result = run_with_spotify(query, args.output, music_dir, audio_format)
     else:
-        success = run(query, args.output, music_dir, audio_format)
+        result = run(query, args.output, music_dir, audio_format)
     
-    return 0 if success else 1
+    return 0 if result else 1
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -11,7 +11,8 @@ DEFAULT_SETTINGS = {
     'audio_format': 'opus',
     'music_directory': os.path.join(os.path.expanduser('~'), 'Music'),
     'use_spotify': False,
-    'default_output_pattern': '%(title)s.%(ext)s'
+    'default_output_pattern': '%(title)s.%(ext)s',
+    'verbose_logging': False
 }
 
 # Settings file path
@@ -150,6 +151,27 @@ def set_use_spotify(use_spotify):
         bool: True if successful, False otherwise
     """
     return set_setting('use_spotify', use_spotify)
+
+def get_verbose_logging():
+    """
+    Get whether verbose logging is enabled.
+    
+    Returns:
+        bool: True if verbose logging is enabled, False otherwise
+    """
+    return get_setting('verbose_logging', DEFAULT_SETTINGS['verbose_logging'])
+
+def set_verbose_logging(verbose):
+    """
+    Set whether to enable verbose logging.
+    
+    Args:
+        verbose (bool): Whether to enable verbose logging
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    return set_setting('verbose_logging', verbose)
 
 def update_ytdlp():
     """

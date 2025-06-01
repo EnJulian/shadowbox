@@ -5,6 +5,13 @@ import re
 import subprocess
 import sys
 
+# Import settings for verbose logging
+try:
+    from settings import get_verbose_logging
+except ImportError:
+    def get_verbose_logging():
+        return False  # Default to non-verbose
+
 # Import enhanced terminal UI
 try:
     # Try to import from parent directory (core)
@@ -12,12 +19,18 @@ try:
     from terminal_ui import audio, scan, system, error, warning, success
 except ImportError:
     # Fallback to basic print if terminal_ui is not available
-    def audio(msg, tag="AUDIO"): print(f"\033[32m[{tag}]\033[0m {msg}")
-    def scan(msg, tag="SCAN"): print(f"\033[37m[{tag}]\033[0m {msg}")
-    def system(msg, tag="SYSTEM"): print(f"\033[32m[{tag}]\033[0m {msg}")
-    def error(msg, tag="ERROR"): print(f"\033[31m[{tag}]\033[0m {msg}")
-    def warning(msg, tag="WARNING"): print(f"\033[33m[{tag}]\033[0m {msg}")
-    def success(msg, tag="SUCCESS"): print(f"\033[32m[{tag}]\033[0m {msg}")
+    def audio(msg, tag="AUDIO"): 
+        if get_verbose_logging(): print(f"\033[32m[{tag}]\033[0m {msg}")
+    def scan(msg, tag="SCAN"): 
+        if get_verbose_logging(): print(f"\033[37m[{tag}]\033[0m {msg}")
+    def system(msg, tag="SYSTEM"): 
+        if get_verbose_logging(): print(f"\033[32m[{tag}]\033[0m {msg}")
+    def error(msg, tag="ERROR"): 
+        print(f"\033[31m[{tag}]\033[0m {msg}")  # Always show errors
+    def warning(msg, tag="WARNING"): 
+        print(f"\033[33m[{tag}]\033[0m {msg}")  # Always show warnings
+    def success(msg, tag="SUCCESS"): 
+        if get_verbose_logging(): print(f"\033[32m[{tag}]\033[0m {msg}")
 
 def is_url(text):
     """
@@ -214,7 +227,8 @@ def download_from_youtube(url_or_query, output_file, audio_format='opus'):
                 time.sleep(delay)
             
             warning(f"Attempting download with strategy: {strategy['name']}")
-            print(f"\033[32m[GET]\033[0m Downloading audio using command: {' '.join(strategy['cmd'])}")
+            if get_verbose_logging():
+                print(f"\033[32m[GET]\033[0m Downloading audio using command: {' '.join(strategy['cmd'])}")
             
             # Run the command
             result = subprocess.run(strategy['cmd'], check=True, capture_output=True, text=True)
@@ -321,7 +335,8 @@ def download_youtube_playlist(url, output_file, audio_format='opus'):
             url
         ]
         
-        print(f"\033[32m[GET]\033[0m Downloading playlist using command: {' '.join(cmd)}")
+        if get_verbose_logging():
+            print(f"\033[32m[GET]\033[0m Downloading playlist using command: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         
         # Check if files exist after download
@@ -334,7 +349,8 @@ def download_youtube_playlist(url, output_file, audio_format='opus'):
             downloaded_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.endswith(f'.{audio_format}')]
         
         if downloaded_files:
-            print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} files from playlist")
+            if get_verbose_logging():
+                print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} files from playlist")
             # Sort files by playlist index (which should be at the start of the filename)
             downloaded_files.sort(key=lambda x: int(os.path.basename(x).split(' - ')[0]) if os.path.basename(x).split(' - ')[0].isdigit() else 999)
             return downloaded_files
@@ -376,7 +392,8 @@ def download_from_bandcamp(url, output_file, audio_format='opus'):
             url
         ]
         
-        print(f"\033[32m[GET]\033[0m Downloading audio using command: {' '.join(cmd)}")
+        if get_verbose_logging():
+            print(f"\033[32m[GET]\033[0m Downloading audio using command: {' '.join(cmd)}")
         subprocess.run(cmd, check=True)
         
         # Check if file exists after download
@@ -390,13 +407,15 @@ def download_from_bandcamp(url, output_file, audio_format='opus'):
         if audio_format.lower() == 'alac':
             m4a_files = [f for f in os.listdir(output_dir) if f.endswith('.m4a')]
             if m4a_files:
-                print(f"\033[32m[SUCCESS]\033[0m Download complete (converted from ALAC to M4A): {m4a_files[0]}")
+                if get_verbose_logging():
+                    print(f"\033[32m[SUCCESS]\033[0m Download complete (converted from ALAC to M4A): {m4a_files[0]}")
                 return True
         
         # Check for files with the specified format
         format_files = [f for f in os.listdir(output_dir) if f.endswith(f'.{audio_format}')]
         if format_files:
-            print(f"\033[32m[SUCCESS]\033[0m Download complete: {format_files[0]}")
+            if get_verbose_logging():
+                print(f"\033[32m[SUCCESS]\033[0m Download complete: {format_files[0]}")
             return True
         
         # If we're looking for ALAC but didn't find M4A files, show a more helpful error

@@ -522,7 +522,7 @@ class TerminalUI:
         
         self.section_divider()
     
-    def print_settings_menu(self, current_dir, use_spotify, audio_format):
+    def print_settings_menu(self, current_dir, use_spotify, audio_format, verbose_logging=False):
         """Print enhanced settings menu"""
         menu_items = [
             (f"{Symbols.FOLDER} Change music directory", "DIR_CONFIG"),
@@ -530,6 +530,7 @@ class TerminalUI:
             (f"{Symbols.GEAR} Change audio format", "FORMAT_CONFIG"),
             (f"{Symbols.PALETTE} Change color theme", "THEME_CONFIG"),
             (f"{Symbols.DOWNLOAD} Update yt-dlp", "YTDLP_UPDATE"),
+            (f"{Symbols.INFO} Toggle verbose logging", "VERBOSE_TOGGLE"),
             (f"{Symbols.ARROW_LEFT} Back to main menu", "MAIN_RETURN")
         ]
         
@@ -542,6 +543,7 @@ class TerminalUI:
         print(f"{self.theme['accent']}{Symbols.FOLDER}{Colors.RESET} {Colors.WHITE}Music Directory:{Colors.RESET} {Colors.DIM}{current_dir}{Colors.RESET}")
         print(f"{self.theme['accent']}{Symbols.MUSIC}{Colors.RESET} {Colors.WHITE}Spotify Metadata:{Colors.RESET} {self.theme['success'] if use_spotify else self.theme['error']}{'Enabled' if use_spotify else 'Disabled'}{Colors.RESET}")
         print(f"{self.theme['accent']}{Symbols.GEAR}{Colors.RESET} {Colors.WHITE}Audio Format:{Colors.RESET} {Colors.DIM}{audio_format}{Colors.RESET}")
+        print(f"{self.theme['accent']}{Symbols.INFO}{Colors.RESET} {Colors.WHITE}Verbose Logging:{Colors.RESET} {self.theme['success'] if verbose_logging else self.theme['error']}{'Enabled' if verbose_logging else 'Disabled'}{Colors.RESET}")
         print()
         
         # Center the menu title
@@ -556,8 +558,8 @@ class TerminalUI:
         print(border_line)
         
         for i, (item, code) in enumerate(menu_items, 1):
-            # Use consistent styling for all options except back (option 6)
-            number_color = self.theme['success'] if i != 6 else self.theme['warning']
+            # Use consistent styling for all options except back (option 7)
+            number_color = self.theme['success'] if i != 7 else self.theme['warning']
             
             # Extract just the text part (remove the symbol)
             item_parts = item.split(' ', 1)
@@ -896,8 +898,8 @@ def print_header(with_startup_animation=False):
 def print_menu():
     ui.print_menu()
 
-def print_settings_menu(current_dir, use_spotify, audio_format):
-    ui.print_settings_menu(current_dir, use_spotify, audio_format)
+def print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging=False):
+    ui.print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging)
 
 def print_audio_format_menu(current_format):
     ui.print_audio_format_menu(current_format)

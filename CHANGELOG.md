@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2025-01-15
+
+### Added
+- **Verbose Logging Control System**: New setting to control output verbosity
+  - Toggle verbose logging through Settings menu (option 6)
+  - When disabled: Shows only essential messages (errors, warnings, and critical info)
+  - When enabled: Shows detailed download commands, metadata processing, and debug information
+  - Setting is persistent and saved between sessions
+- Enhanced Settings menu with verbose logging option (now 7 options instead of 6)
+- Improved user experience with cleaner default output for new users
+
+### Fixed
+- **Variable Naming Conflicts**: Resolved conflicts between `success` variables and `success()` logging function
+  - Fixed "cannot access local variable 'success'" errors
+  - Renamed conflicting variables throughout codebase (`download_success`, `metadata_success`, etc.)
+  - All logging functions now work correctly without naming conflicts
+- **Controlled Verbose Output**: Wrapped verbose print statements with logging controls
+  - Download command details only show when verbose logging is enabled
+  - Metadata processing messages respect verbose setting
+  - File operation messages controlled by verbose setting
+- **Enhanced Error Handling**: Improved error message consistency and visibility
+  - Error and warning messages always visible regardless of verbose setting
+  - Better fallback handling when settings are not available
+
+### Changed
+- **Cleaner Default Experience**: Non-verbose mode provides minimal, clean output
+- **Settings Menu Layout**: Updated to accommodate new verbose logging option
+- **Logging Architecture**: Improved logging system with better separation of concerns
+
 ## [1.0.2] - 2025-06-01
 
 ### Added

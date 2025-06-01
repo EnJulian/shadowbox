@@ -44,6 +44,11 @@ hiddenimports += [
     'logging',
     'subprocess',
     'argparse',
+    'dis',  # Needed by PyInstaller runtime hooks
+    'inspect',  # Needed by PyInstaller runtime hooks
+    'locale',  # Needed by subprocess
+    'multiprocessing',
+    'multiprocessing.util',
 ]
 
 block_cipher = None
@@ -58,7 +63,7 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        # Exclude unnecessary modules to reduce build time and size
+        # Exclude only clearly unnecessary GUI and development modules
         'tkinter',
         'matplotlib',
         'numpy',
@@ -68,19 +73,8 @@ a = Analysis(
         'IPython',
         'notebook',
         'pytest',
-        'setuptools',
-        'distutils',
-        'test',
-        'tests',
-        'unittest',
-        'doctest',
-        'pydoc',
-        'xml.dom',
-        'xml.sax',
-        'xmlrpc',
-        'email.mime.audio',
-        'email.mime.image',
-        'email.mime.application',
+        'turtle',
+        'turtledemo',
         'curses',
         'readline',
         'rlcompleter',
@@ -88,21 +82,6 @@ a = Analysis(
         'profile',
         'pstats',
         'cProfile',
-        'trace',
-        'timeit',
-        'calendar',
-        'locale',
-        'gettext',
-        'optparse',
-        'cmd',
-        'code',
-        'codeop',
-        'py_compile',
-        'compileall',
-        'dis',
-        'pickletools',
-        'turtle',
-        'turtledemo',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

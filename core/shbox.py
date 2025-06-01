@@ -10,9 +10,20 @@ import os
 import sys
 import time
 import glob
-from .main import run, run_with_spotify, run_playlist, run_playlist_with_spotify, sanitize_filename
+
+# Add the parent directory to sys.path to handle imports when run as standalone
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+try:
+    # Try relative imports first (when run as module)
+    from .main import run, run_with_spotify, run_playlist, run_playlist_with_spotify, sanitize_filename
+    from .terminal_ui import ui, clear_screen, print_header, print_menu, success, error, warning, info, system, exit_animation
+except ImportError:
+    # Fall back to absolute imports (when run as standalone)
+    from main import run, run_with_spotify, run_playlist, run_playlist_with_spotify, sanitize_filename
+    from terminal_ui import ui, clear_screen, print_header, print_menu, success, error, warning, info, system, exit_animation
+
 from meta_ops.downloader import is_youtube_playlist
-from .terminal_ui import ui, clear_screen, print_header, print_menu, success, error, warning, info, system, exit_animation
 
 # Enhanced terminal UI functions are imported from terminal_ui module
 

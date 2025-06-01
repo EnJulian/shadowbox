@@ -14,6 +14,7 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       matrix:
         include:
@@ -25,11 +26,11 @@ jobs:
             platform: windows
             arch: x64
             executable_name: shadowbox.exe
-          - os: macos-latest
+          - os: macos-13
             platform: macos
             arch: x64
             executable_name: shadowbox
-          - os: macos-latest
+          - os: macos-14
             platform: macos
             arch: arm64
             executable_name: shadowbox
@@ -64,26 +65,39 @@ jobs:
         pip install -r setup/requirements.txt
         pip install pyinstaller
         
+    - name: Debug Python environment
+      run: |
+        python --version
+        pip list
+        python -c "import sys; print('Python path:', sys.path)"
+        ls -la
+        
     - name: Verify dependencies
       run: |
         python -c "
-        import yt_dlp; print('✅ yt_dlp')
-        import mutagen; print('✅ mutagen') 
-        import requests; print('✅ requests')
-        import PIL; print('✅ PIL')
-        import spotipy; print('✅ spotipy')
+        import yt_dlp; print('[OK] yt_dlp')
+        import mutagen; print('[OK] mutagen') 
+        import requests; print('[OK] requests')
+        import PIL; print('[OK] PIL')
+        import spotipy; print('[OK] spotipy')
         print('All dependencies verified successfully')
         "
 
     - name: Build executable (Linux/macOS)
       if: matrix.os != 'windows-latest'
       run: |
-        pyinstaller shadowbox.spec
+        echo "Building for ${{ matrix.platform }}-${{ matrix.arch }}"
+        pyinstaller --clean --noconfirm --log-level=WARN shadowbox.spec
+        echo "Build completed, checking output:"
+        ls -la dist/
         
     - name: Build executable (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        pyinstaller shadowbox.spec
+        echo "Building for ${{ matrix.platform }}-${{ matrix.arch }}"
+        pyinstaller --clean --noconfirm --log-level=WARN shadowbox.spec
+        echo "Build completed, checking output:"
+        dir dist\
         
     - name: Test executable
       shell: bash
@@ -98,11 +112,7 @@ jobs:
       id: archive
       shell: bash
       run: |
-        if [ "${{ matrix.platform }}" = "macos" ] && [ "${{ matrix.arch }}" = "arm64" ]; then
-          echo "name=shadowbox-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
-        else
-          echo "name=shadowbox-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
-        fi
+        echo "name=shadowbox-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
 
     - name: Create release archive (Linux/macOS)
       if: matrix.os != 'windows-latest'
@@ -120,9 +130,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.archive.outputs.name }}
-        path: |
-          dist/${{ steps.archive.outputs.name }}.tar.gz
-          dist/${{ steps.archive.outputs.name }}.zip
+        path: dist/${{ steps.archive.outputs.name }}.*
 
   release:
     needs: build

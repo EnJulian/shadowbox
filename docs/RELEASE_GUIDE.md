@@ -107,16 +107,16 @@ Use the `release.py` script to handle version bumping and tagging automatically:
 
 ```bash
 # Patch release (0.1.0 → 0.1.1) - for bug fixes
-python release.py patch
+python3 release.py patch
 
 # Minor release (0.1.0 → 0.2.0) - for new features
-python release.py minor
+python3 release.py minor
 
 # Major release (0.1.0 → 1.0.0) - for breaking changes
-python release.py major
+python3 release.py major
 
 # Specific version
-python release.py 1.2.3
+python3 release.py 1.2.3
 ```
 
 **What this does:**

@@ -4,13 +4,13 @@ import sys
 import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
-# Collect all data files and submodules
+# Collect essential data files only
 datas = []
-datas += collect_data_files('yt_dlp')
-datas += collect_data_files('mutagen')
-datas += collect_data_files('spotipy')
-datas += collect_data_files('requests')
-datas += collect_data_files('certifi')
+# Only collect essential data files, not all submodules
+try:
+    datas += collect_data_files('certifi')
+except:
+    pass
 
 # Add project-specific data files
 datas += [
@@ -18,55 +18,32 @@ datas += [
     ('core', 'core'),
 ]
 
-# Collect hidden imports
+# Essential hidden imports only
 hiddenimports = []
-hiddenimports += collect_submodules('yt_dlp')
-hiddenimports += collect_submodules('mutagen')
-hiddenimports += collect_submodules('spotipy')
+# Don't collect all submodules - too resource intensive
+# Only include essential ones
 hiddenimports += [
-    # Core dependencies
+    # Core dependencies - only essential ones
+    'yt_dlp',
+    'yt_dlp.extractor',
+    'mutagen',
+    'mutagen.mp3',
+    'mutagen.mp4',
+    'mutagen.flac',
     'requests',
     'PIL',
     'PIL.Image',
-    'PIL.ImageFile',
     'spotipy',
     'spotipy.oauth2',
     
-    # Standard library modules that might need explicit inclusion
+    # Essential system modules
     'urllib3',
-    'urllib.parse',
-    'urllib.request',
     'certifi',
     'charset_normalizer',
-    'idna',
     'json',
-    'base64',
     'logging',
     'subprocess',
-    'time',
-    'os',
-    'sys',
-    're',
-    'glob',
-    'shutil',
     'argparse',
-    
-    # Additional dependencies that might be needed
-    'http.client',
-    'ssl',
-    'socket',
-    'threading',
-    'queue',
-    'functools',
-    'itertools',
-    'collections',
-    'datetime',
-    'hashlib',
-    'hmac',
-    'email',
-    'email.mime',
-    'email.mime.text',
-    'email.mime.multipart',
 ]
 
 block_cipher = None
@@ -80,7 +57,53 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        # Exclude unnecessary modules to reduce build time and size
+        'tkinter',
+        'matplotlib',
+        'numpy',
+        'scipy',
+        'pandas',
+        'jupyter',
+        'IPython',
+        'notebook',
+        'pytest',
+        'setuptools',
+        'distutils',
+        'test',
+        'tests',
+        'unittest',
+        'doctest',
+        'pydoc',
+        'xml.dom',
+        'xml.sax',
+        'xmlrpc',
+        'email.mime.audio',
+        'email.mime.image',
+        'email.mime.application',
+        'curses',
+        'readline',
+        'rlcompleter',
+        'pdb',
+        'profile',
+        'pstats',
+        'cProfile',
+        'trace',
+        'timeit',
+        'calendar',
+        'locale',
+        'gettext',
+        'optparse',
+        'cmd',
+        'code',
+        'codeop',
+        'py_compile',
+        'compileall',
+        'dis',
+        'pickletools',
+        'turtle',
+        'turtledemo',
+    ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -100,7 +123,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=True,

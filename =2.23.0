@@ -1,0 +1,52 @@
+Collecting spotipy
+  Using cached spotipy-2.25.1-py3-none-any.whl.metadata (5.1 kB)
+Collecting redis>=3.5.3 (from spotipy)
+  Using cached redis-6.2.0-py3-none-any.whl.metadata (10 kB)
+Collecting requests>=2.25.0 (from spotipy)
+  Using cached requests-2.32.3-py3-none-any.whl.metadata (4.6 kB)
+Collecting urllib3>=1.26.0 (from spotipy)
+  Using cached urllib3-2.4.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting charset-normalizer<4,>=2 (from requests>=2.25.0->spotipy)
+  Using cached charset_normalizer-3.4.2-cp313-cp313-macosx_10_13_universal2.whl.metadata (35 kB)
+Collecting idna<4,>=2.5 (from requests>=2.25.0->spotipy)
+  Using cached idna-3.10-py3-none-any.whl.metadata (10 kB)
+Collecting certifi>=2017.4.17 (from requests>=2.25.0->spotipy)
+  Using cached certifi-2025.4.26-py3-none-any.whl.metadata (2.5 kB)
+Using cached spotipy-2.25.1-py3-none-any.whl (31 kB)
+Using cached redis-6.2.0-py3-none-any.whl (278 kB)
+Using cached requests-2.32.3-py3-none-any.whl (64 kB)
+Using cached charset_normalizer-3.4.2-cp313-cp313-macosx_10_13_universal2.whl (199 kB)
+Using cached idna-3.10-py3-none-any.whl (70 kB)
+Using cached urllib3-2.4.0-py3-none-any.whl (128 kB)
+Using cached certifi-2025.4.26-py3-none-any.whl (159 kB)
+Installing collected packages: urllib3, redis, idna, charset-normalizer, certifi, requests, spotipy
+  Attempting uninstall: urllib3
+    Found existing installation: urllib3 2.4.0
+    Uninstalling urllib3-2.4.0:
+      Successfully uninstalled urllib3-2.4.0
+  Attempting uninstall: redis
+    Found existing installation: redis 6.2.0
+    Uninstalling redis-6.2.0:
+      Successfully uninstalled redis-6.2.0
+  Attempting uninstall: idna
+    Found existing installation: idna 3.10
+    Uninstalling idna-3.10:
+      Successfully uninstalled idna-3.10
+  Attempting uninstall: charset-normalizer
+    Found existing installation: charset-normalizer 3.4.2
+    Uninstalling charset-normalizer-3.4.2:
+      Successfully uninstalled charset-normalizer-3.4.2
+  Attempting uninstall: certifi
+    Found existing installation: certifi 2025.4.26
+    Uninstalling certifi-2025.4.26:
+      Successfully uninstalled certifi-2025.4.26
+  Attempting uninstall: requests
+    Found existing installation: requests 2.32.3
+    Uninstalling requests-2.32.3:
+      Successfully uninstalled requests-2.32.3
+  Attempting uninstall: spotipy
+    Found existing installation: spotipy 2.25.1
+    Uninstalling spotipy-2.25.1:
+      Successfully uninstalled spotipy-2.25.1
+
+Successfully installed certifi-2025.4.26 charset-normalizer-3.4.2 idna-3.10 redis-6.2.0 requests-2.32.3 spotipy-2.25.1 urllib3-2.4.0

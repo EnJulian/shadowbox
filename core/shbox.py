@@ -625,9 +625,28 @@ For the simple command-line interface, use 'shadowbox-cli' instead.
 
 if __name__ == "__main__":
     try:
+        # Add debug info for macOS executable issues
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller executable
+            import platform
+            print(f"[DEBUG] Running as executable on {platform.system()} {platform.machine()}")
+            print(f"[DEBUG] Python version: {sys.version}")
+            print(f"[DEBUG] Executable path: {sys.executable}")
+            print(f"[DEBUG] Current working directory: {os.getcwd()}")
+            
         main()
     except KeyboardInterrupt:
         print()  # New line after ^C
         error("Program interrupted. Exiting...", "INTERRUPT")
         exit_animation()
         sys.exit(0)
+    except Exception as e:
+        # Enhanced error handling for debugging
+        print(f"\n[ERROR] Unexpected error occurred: {e}")
+        print(f"[ERROR] Error type: {type(e).__name__}")
+        if getattr(sys, 'frozen', False):
+            print("[ERROR] This error occurred in the compiled executable.")
+            print("[ERROR] Please report this issue with the above details.")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-01-16
+
+### Added
+- **Theme Saving Feature**: Users can now save and persist their preferred theme settings
+  - Theme preferences are automatically saved between sessions
+  - Seamless theme restoration on application startup
+  - Enhanced user experience with consistent visual preferences
+
+### Changed
+- **Improved Application Animations**: Updated and refined app animations for smoother user experience
+  - Enhanced transition effects throughout the interface
+  - More responsive and fluid visual feedback
+  - Better overall application performance and visual polish
+
+## [1.0.5] - 2025-01-15
+
+### Added
+- Enhanced error handling and recovery mechanisms
+- Improved download stability for various audio sources
+- Better user feedback during long-running operations
+
+### Fixed
+- Resolved intermittent download failures for certain YouTube videos
+- Fixed metadata extraction issues for specific audio formats
+- Improved error messages for better user understanding
+
+### Changed
+- Optimized download performance and reliability
+- Enhanced logging system for better debugging capabilities
+- Improved overall application stability
+
 ## [1.0.3] - 2025-01-15
 
 ### Added

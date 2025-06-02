@@ -49,7 +49,29 @@ hiddenimports += [
     'locale',  # Needed by subprocess
     'multiprocessing',
     'multiprocessing.util',
+    
+    # Cross-platform system modules
+    'platform',
+    'traceback',
+    'sys',
+    'os',
+    'time',
+    'glob',
+    'select',   # I/O multiplexing (cross-platform)
 ]
+
+# Add platform-specific hidden imports
+import platform
+if platform.system() in ['Darwin', 'Linux']:  # macOS and Linux
+    hiddenimports += [
+        'termios',  # Terminal I/O control (Unix/macOS/Linux)
+        'tty',      # Terminal control functions
+        'fcntl',    # File control and I/O control (Unix/macOS/Linux)
+    ]
+elif platform.system() == 'Windows':
+    hiddenimports += [
+        'msvcrt',   # Windows-specific console functions
+    ]
 
 block_cipher = None
 
@@ -107,7 +129,7 @@ exe = EXE(
     runtime_tmpdir=None,
     console=True,
     disable_windowed_traceback=False,
-    argv_emulation=False,
+    argv_emulation=(platform.system() == 'Darwin'),  # Enable argv emulation for macOS only
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,

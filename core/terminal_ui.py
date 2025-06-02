@@ -196,7 +196,11 @@ class TerminalUI:
         
         # Load theme from settings if not specified
         if theme is None:
-            theme = get_theme()
+            try:
+                theme = get_theme()
+            except Exception:
+                # Fallback for macOS executable issues
+                theme = 'hacker'
         
         self.theme_name = theme
         self.theme = ColorTheme.THEMES.get(theme, ColorTheme.THEMES['hacker'])
@@ -580,7 +584,21 @@ class TerminalUI:
     def input_prompt(self, prompt: str, input_type: str = "INPUT") -> str:
         """Enhanced input prompt with styling"""
         formatted_prompt = f"{self.theme['accent']}[{Symbols.ARROW_RIGHT}]{Colors.RESET} {Colors.BOLD}[{input_type}]{Colors.RESET} {Colors.WHITE}{prompt}{Colors.RESET} {self.theme['accent']}>{Colors.RESET} "
-        return input(formatted_prompt)
+        
+        # macOS executable fix: ensure stdout is flushed before input
+        import sys
+        sys.stdout.flush()
+        sys.stderr.flush()
+        
+        try:
+            return input(formatted_prompt)
+        except EOFError:
+            # Handle EOF error that can occur in macOS executables
+            print("\n[ERROR] Input stream closed unexpectedly")
+            return ""
+        except KeyboardInterrupt:
+            # Re-raise KeyboardInterrupt to be handled by main
+            raise
     
     def confirmation_prompt(self, message: str) -> bool:
         """Enhanced confirmation prompt"""
@@ -963,7 +981,16 @@ class TerminalUI:
         os.system('cls' if os.name == 'nt' else 'clear')
 
 # Global instance for easy access - loads theme from settings
-ui = TerminalUI()
+# Add macOS executable compatibility
+try:
+    ui = TerminalUI()
+except Exception as e:
+    # Fallback for macOS executable issues
+    import sys
+    print(f"[WARNING] Terminal UI initialization failed: {e}")
+    print("[WARNING] Using fallback terminal UI")
+    # Create a minimal UI instance with safe defaults
+    ui = TerminalUI(enable_animations=False, enable_sound=False)
 
 # Convenience functions for backward compatibility
 def clear_screen():

@@ -16,6 +16,7 @@ Music acquisition command line tool that rips audio from YouTube/Bandcamp, conve
 ## Specification
 
 - Python 3.6+
+- yt-dlp
 - FFmpeg
 - aria2c (optional)
 

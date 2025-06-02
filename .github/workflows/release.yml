@@ -50,7 +50,7 @@ jobs:
         sudo apt-get install -y ffmpeg aria2
 
     - name: Install system dependencies (macOS)
-      if: matrix.os == 'macos-latest'
+      if: startsWith(matrix.os, 'macos')
       run: |
         brew install ffmpeg aria2
 
@@ -61,21 +61,21 @@ jobs:
 
     - name: Install Python dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r setup/requirements.txt
-        pip install pyinstaller
+        python3 -m pip install --upgrade pip
+        pip3 install -r setup/requirements.txt
+        pip3 install pyinstaller
         
     - name: Debug Python environment
       shell: bash
       run: |
-        python --version
-        pip list
-        python -c "import sys; print('Python path:', sys.path)"
+        python3 --version
+        pip3 list
+        python3 -c "import sys; print('Python path:', sys.path)"
         ls -la
         
     - name: Verify dependencies
       run: |
-        python -c "
+        python3 -c "
         import yt_dlp; print('[OK] yt_dlp')
         import mutagen; print('[OK] mutagen') 
         import requests; print('[OK] requests')
@@ -179,28 +179,20 @@ jobs:
         tag_name: ${{ steps.version.outputs.version }}
         name: Shadowbox ${{ steps.version.outputs.version }}
         body: |
-          ## Shadowbox ${{ steps.version.outputs.version }}
-          
           ### Downloads
           - **Linux (x64)**: `shadowbox-linux-x64.tar.gz`
           - **Windows (x64)**: `shadowbox-windows-x64.zip`
           - **macOS (Intel)**: `shadowbox-macos-x64.tar.gz`
           - **macOS (Apple Silicon)**: `shadowbox-macos-arm64.tar.gz`
-          
-          ### Installation
-          1. Download the appropriate file for your platform
-          2. Extract the archive
-          3. Run the executable
-          
+                    
           ### Requirements
           - FFmpeg (for audio processing)
           - aria2 (for faster downloads)
           
-          ### Usage
-          ```bash
-          ./shadowbox "song name artist"
-          ./shadowbox https://youtube.com/watch?v=...
-          ```
+          ### Installation & Usage
+          1. Download the appropriate file for your platform
+          2. Extract the archive
+          3. Run the executable
           
           For more information, see the [README](https://github.com/lsnen/shadowbox/blob/main/README.md).
         files: release_files/*

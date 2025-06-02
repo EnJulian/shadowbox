@@ -4,32 +4,32 @@
 
 {Brief description of the main focus of this release}
 
-### ✨ New Features
+###  New Features
 
 #### **{Feature Name}**
 - **{Benefit}**: {Description}
 - **{Benefit}**: {Description}
 - **{Benefit}**: {Description}
 
-### 🐛 Bug Fixes
+###  Bug Fixes
 
 #### **{Bug Category}**
 - **{Issue Fixed}**: {Description}
 - **{Issue Fixed}**: {Description}
 
-### 🔧 Technical Improvements
+###  Technical Improvements
 
 #### **{Improvement Category}**
 - **{Enhancement}**: {Description}
 - **{Enhancement}**: {Description}
 
-### 📊 User Experience Improvements
+###  User Experience Improvements
 
 #### **{UX Category}**
 - {Improvement description}
 - {Improvement description}
 
-### 🎯 Benefits for Different User Types
+###  Benefits for Different User Types
 
 #### **New Users**
 - {Benefit for new users}
@@ -43,25 +43,25 @@
 - {Benefit for developers}
 - {Benefit for developers}
 
-### 🔄 Migration Notes
+###  Migration Notes
 
 - **{Migration Item}**: {Description}
 - **{Migration Item}**: {Description}
 
-### 🚀 How to Use
+###  How to Use
 
 1. **{Step 1}**: {Description}
 2. **{Step 2}**: {Description}
 3. **{Step 3}**: {Description}
 
-### 🔗 Technical Details
+###  Technical Details
 
 - **{Technical Detail}**: {Description}
 - **{Technical Detail}**: {Description}
 
 ---
 
-## 📦 Download Instructions
+##  Download Instructions
 
 Choose the appropriate file for your platform:
 
@@ -70,11 +70,11 @@ Choose the appropriate file for your platform:
 - **macOS (Intel)**: `shadowbox-macos-x64.tar.gz`
 - **macOS (Apple Silicon)**: `shadowbox-macos-arm64.tar.gz`
 
-## 🔧 Installation
+##  Installation
 
 Extract the downloaded file and run the executable. No additional dependencies required.
 
-## 🐛 Bug Reports
+##  Bug Reports
 
 If you encounter any issues, please report them at: https://github.com/lsnen/shadowbox/issues
 

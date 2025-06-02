@@ -120,7 +120,7 @@ def test_individual_strategies():
                 )
                 
                 # Check if any files were created
-                files = [f for f in os.listdir('.') if f.startswith('test_')]
+                files = [f for f in os.listdir('..') if f.startswith('test_')]
                 if files:
                     print(f"✅ SUCCESS: Downloaded {files[0]}")
                     file_size = os.path.getsize(files[0])

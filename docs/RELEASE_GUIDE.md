@@ -468,7 +468,9 @@ body: |
    - Minor: New features (backward compatible)
    - Patch: Bug fixes
 
-2. **Update CHANGELOG.md:**
+2. **Update Documentation:**
+   
+   **CHANGELOG.md (Technical):**
    ```markdown
    ## [1.2.3] - 2024-01-15
    
@@ -477,6 +479,13 @@ body: |
    
    ### Fixed
    - Bug fix description
+   ```
+   
+   **Release Notes (User-Friendly):**
+   ```bash
+   # Copy template and customize
+   cp docs/releases/template.md docs/releases/v1.2.3.md
+   # Edit docs/releases/v1.2.3.md with user-friendly content
    ```
 
 3. **Test Before Release:**

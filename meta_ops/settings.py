@@ -12,7 +12,8 @@ DEFAULT_SETTINGS = {
     'music_directory': os.path.join(os.path.expanduser('~'), 'Music'),
     'use_spotify': False,
     'default_output_pattern': '%(title)s.%(ext)s',
-    'verbose_logging': False
+    'verbose_logging': False,
+    'theme': 'hacker'
 }
 
 # Settings file path
@@ -172,6 +173,27 @@ def set_verbose_logging(verbose):
         bool: True if successful, False otherwise
     """
     return set_setting('verbose_logging', verbose)
+
+def get_theme():
+    """
+    Get the preferred UI theme.
+    
+    Returns:
+        str: The preferred theme name
+    """
+    return get_setting('theme', DEFAULT_SETTINGS['theme'])
+
+def set_theme(theme_name):
+    """
+    Set the preferred UI theme.
+    
+    Args:
+        theme_name (str): The theme name
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    return set_setting('theme', theme_name)
 
 def update_ytdlp():
     """

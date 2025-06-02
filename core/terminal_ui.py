@@ -12,6 +12,16 @@ import threading
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
+# Import settings functions
+try:
+    from meta_ops.settings import get_theme, set_theme
+except ImportError:
+    # Fallback if settings module is not available
+    def get_theme():
+        return 'hacker'
+    def set_theme(theme_name):
+        return True
+
 class ColorTheme:
     """Color theme definitions"""
     
@@ -175,14 +185,19 @@ class Symbols:
 class TerminalUI:
     """Enhanced terminal UI with hacker-style aesthetics"""
     
-    def __init__(self, enable_animations: bool = True, enable_sound: bool = False, theme: str = 'hacker', font_scale: float = 1.1):
+    def __init__(self, enable_animations: bool = True, enable_sound: bool = False, theme: str = None, font_scale: float = 1.1):
         self.enable_animations = enable_animations
         self.enable_sound = enable_sound
         self.terminal_width = self._get_terminal_width()
         self.loading_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
         self.matrix_chars = ['0', '1', '█', '▓', '▒', '░']
-        self.theme_name = theme
         self.font_scale = font_scale
+        
+        # Load theme from settings if not specified
+        if theme is None:
+            theme = get_theme()
+        
+        self.theme_name = theme
         self.theme = ColorTheme.THEMES.get(theme, ColorTheme.THEMES['hacker'])
         
         # Apply font scaling if supported
@@ -200,10 +215,12 @@ class TerminalUI:
                 pass  # Silently fail if not supported
     
     def set_theme(self, theme_name: str):
-        """Change the color theme"""
+        """Change the color theme and save to settings"""
         if theme_name in ColorTheme.THEMES:
             self.theme_name = theme_name
             self.theme = ColorTheme.THEMES[theme_name]
+            # Save theme to settings
+            set_theme(theme_name)
             return True
         return False
     
@@ -885,7 +902,7 @@ class TerminalUI:
         # Final clear
         os.system('cls' if os.name == 'nt' else 'clear')
 
-# Global instance for easy access
+# Global instance for easy access - loads theme from settings
 ui = TerminalUI()
 
 # Convenience functions for backward compatibility

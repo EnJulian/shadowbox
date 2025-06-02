@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-06-03
+
+### Fixed
+- **macOS Compatibility Improvements**: Enhanced stability for macOS executables
+  - Improved error diagnostics and reporting for macOS systems
+  - Fixed terminal I/O handling issues specific to macOS
+  - Added fallback mechanisms for theme loading on macOS
+  - Resolved input stream handling problems on macOS executables
+
+### Changed
+- **Enhanced Error Handling**: Improved error reporting throughout the application
+  - Added detailed exception handling with full traceback information
+  - Implemented special handling for compiled executable environments
+  - Enhanced error reporting with error type identification
+- **PyInstaller Configuration**: Optimized build settings for better cross-platform compatibility
+  - Added platform-specific hidden imports for macOS/Linux
+  - Enabled argv emulation specifically for macOS
+  - Improved executable packaging for all platforms
+
 ## [1.1.0] - 2025-01-16
 
 ### Added

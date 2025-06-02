@@ -190,7 +190,8 @@ class TerminalUI:
         self.enable_sound = enable_sound
         self.terminal_width = self._get_terminal_width()
         self.loading_chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-        self.matrix_chars = ['0', '1', '█', '▓', '▒', '░']
+        self.glitch_chars = ['█', '▓', '▒', '░', '▄', '▀', '■', '□', '▪', '▫', '╬', '╫', '╪', '┼', '┬', '┴', '├', '┤', '│', '─']
+        self.static_chars = ['*', '#', '@', '%', '&', '+', '=', '~', '^', ':', ';', '<', '>', '?', '!', '|', '\\', '/', '-', '_']
         self.font_scale = font_scale
         
         # Load theme from settings if not specified
@@ -238,34 +239,66 @@ class TerminalUI:
     def clear_screen(self, with_animation=False):
         """Clear the terminal screen with optional style"""
         os.system('cls' if os.name == 'nt' else 'clear')
-        if with_animation and self.enable_animations:
-            self._matrix_rain_effect(duration=0.5)
+        # Animation is now integrated into the menu/header display
     
-    def _matrix_rain_effect(self, duration: float = 1.0):
-        """Brief matrix rain effect"""
+    def _glitch_static_effect(self, duration: float = 1.0):
+        """Glitch/static effect with random characters and colors"""
         if not self.enable_animations:
             return
             
         width = min(self.terminal_width, 80)
-        height = 10
+        height = 8
         
-        for _ in range(int(duration * 20)):
-            line = ''
-            for _ in range(width):
-                if random.random() < 0.1:
-                    char = random.choice(self.matrix_chars)
-                    line += f"{self.theme['matrix']}{char}{Colors.RESET}"
-                else:
-                    line += ' '
-            print(f"\r{line}", end='', flush=True)
-            time.sleep(0.05)
+        # Create multiple phases of the glitch effect
+        phases = int(duration * 15)  # 15 frames per second
         
-        # Clear the matrix effect
-        print('\r' + ' ' * width + '\r', end='', flush=True)
+        for phase in range(phases):
+            # Clear previous lines
+            if phase > 0:
+                print(f"\033[{height}A", end='')  # Move cursor up
+            
+            # Generate glitch pattern
+            for line in range(height):
+                glitch_line = ''
+                
+                # Vary intensity based on phase for dynamic effect
+                intensity = 0.15 + 0.1 * abs(phase % 10 - 5) / 5  # Oscillating intensity
+                
+                for col in range(width):
+                    if random.random() < intensity:
+                        # Choose character type based on randomness
+                        if random.random() < 0.6:
+                            char = random.choice(self.static_chars)
+                            color = self.theme['accent']
+                        else:
+                            char = random.choice(self.glitch_chars)
+                            color = self.theme['matrix']
+                        
+                        # Occasionally add error/warning colors for more chaos
+                        if random.random() < 0.1:
+                            color = self.theme['error']
+                        elif random.random() < 0.05:
+                            color = self.theme['warning']
+                        
+                        glitch_line += f"{color}{char}{Colors.RESET}"
+                    else:
+                        glitch_line += ' '
+                
+                print(f"\r{glitch_line}")
+            
+            # Variable sleep for more organic feel
+            sleep_time = 0.04 + random.uniform(-0.01, 0.01)
+            time.sleep(sleep_time)
+        
+        # Clear the glitch effect
+        print(f"\033[{height}A", end='')  # Move cursor up
+        for _ in range(height):
+            print('\r' + ' ' * width)
+        print(f"\033[{height}A", end='')  # Move cursor back up
     
     def print_header(self, with_startup_animation=False):
         """Print enhanced application header"""
-        self.clear_screen(with_animation=with_startup_animation)
+        self.clear_screen()
         
         # ASCII art header with theme colors - centered
         header_lines = [
@@ -278,21 +311,34 @@ class TerminalUI:
         ]
         
         print()  # Add some space at the top
-        for line in header_lines:
-            # Center each line of the header
-            padding = (self.terminal_width - len(line)) // 2
-            print(f"{' ' * padding}{self.theme['header']}{Colors.BOLD}{line}{Colors.RESET}")
-        print()  # Add space after header
+        
+        if with_startup_animation and self.enable_animations:
+            # Typewriter effect for header lines
+            for line in header_lines:
+                padding = (self.terminal_width - len(line)) // 2
+                self._typewriter_line(f"{' ' * padding}{self.theme['header']}{Colors.BOLD}")
+                self._typewriter_effect(f"{line}{Colors.RESET}")
+                time.sleep(0.005)  # Brief pause between header lines
+            print()  # Add space after header
+            time.sleep(0.01)  # Pause before subtitle
+        else:
+            # Normal header display
+            for line in header_lines:
+                padding = (self.terminal_width - len(line)) // 2
+                print(f"{' ' * padding}{self.theme['header']}{Colors.BOLD}{line}{Colors.RESET}")
+            print()  # Add space after header
         
         # Animated subtitle only on startup
         subtitle = "ADVANCED AUDIO ACQUISITION SYSTEM"
         subtitle_with_symbols = f"[{Symbols.TERMINAL}] {subtitle} [{Symbols.TERMINAL}]"
         
-        if with_startup_animation:
+        if with_startup_animation and self.enable_animations:
             # Center the subtitle before animation
             subtitle_padding = (self.terminal_width - len(subtitle_with_symbols)) // 2
-            print(' ' * subtitle_padding, end='')
-            self._typewriter_effect(f"{self.theme['subtitle']}{Colors.BOLD}{subtitle_with_symbols}{Colors.RESET}")
+            self._typewriter_line(' ' * subtitle_padding)
+            # Slower typewriter effect for subtitle to make it more dramatic
+            self._typewriter_effect(f"{self.theme['subtitle']}{Colors.BOLD}{subtitle_with_symbols}{Colors.RESET}", delay=0.015)
+            time.sleep(0.1)  # Longer pause before system info for dramatic effect
         else:
             # Center the subtitle
             subtitle_padding = (self.terminal_width - len(subtitle_with_symbols)) // 2
@@ -303,12 +349,15 @@ class TerminalUI:
         system_info = f"{Colors.DIM}[{timestamp}] {self.theme['success']}SYSTEM ONLINE{Colors.DIM} | STATUS: {self.theme['success']}OPERATIONAL{Colors.RESET}"
         
         border = f"{self.theme['border']}{'═' * self.terminal_width}{Colors.RESET}"
+        
+        # System info always appears instantly - no typewriter effect
         print(border)
         print(f"{Colors.DIM}{system_info.center(self.terminal_width)}{Colors.RESET}")
         print(border)
+        
         print()
     
-    def _typewriter_effect(self, text: str, delay: float = 0.03):
+    def _typewriter_effect(self, text: str, delay: float = 0.001):
         """Typewriter effect for text"""
         if not self.enable_animations:
             print(text)
@@ -319,8 +368,18 @@ class TerminalUI:
             time.sleep(delay)
         print()
     
-    def print_menu(self):
-        """Print enhanced main menu"""
+    def _typewriter_line(self, text: str, delay: float = 0.0005):
+        """Typewriter effect for a single line without newline"""
+        if not self.enable_animations:
+            print(text, end='', flush=True)
+            return
+            
+        for char in text:
+            print(char, end='', flush=True)
+            time.sleep(delay)
+    
+    def print_menu(self, with_typewriter=False):
+        """Print enhanced main menu - typewriter only affects header, menu appears instantly"""
         menu_items = [
             (f"{Symbols.SEARCH} Search and download a song", "AUDIO_SCAN"),
             (f"{Symbols.DOWNLOAD} Download from URL (YouTube or Bandcamp)", "URL_EXTRACT"),
@@ -339,6 +398,7 @@ class TerminalUI:
         title = f"[{Symbols.TERMINAL}] MAIN CONTROL INTERFACE [{Symbols.TERMINAL}]"
         title_padding = (self.terminal_width - len(title)) // 2
         
+        # Menu always appears instantly - no typewriter effect for menu
         print(f"{' ' * title_padding}{self.theme['accent']}{Colors.BOLD}{title}{Colors.RESET}")
         
         # Create centered menu box
@@ -892,8 +952,8 @@ class TerminalUI:
         self.system("Shutting down...")
         time.sleep(0.2)
         
-        # Phase 2: Brief matrix rain effect
-        self._matrix_rain_effect(duration=0.4)
+        # Phase 2: Brief pause for dramatic effect
+        time.sleep(0.4)
         
         # Phase 3: Final shutdown message
         print(f"\n{self.theme['success']}[{Symbols.SUCCESS}]{Colors.RESET} {Colors.BRIGHT_GREEN}SHADOWBOX TERMINATED{Colors.RESET}")
@@ -912,8 +972,8 @@ def clear_screen():
 def print_header(with_startup_animation=False):
     ui.print_header(with_startup_animation)
 
-def print_menu():
-    ui.print_menu()
+def print_menu(with_typewriter=False):
+    ui.print_menu(with_typewriter)
 
 def print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging=False):
     ui.print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging)

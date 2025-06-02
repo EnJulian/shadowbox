@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shadowbox"
-version = "1.1.0"
+version = "1.1.1"
 description = "A Python application that downloads music from YouTube or Bandcamp, adds metadata, and embeds album art"
 readme = "README.md"
 license = {file = "LICENSE"}

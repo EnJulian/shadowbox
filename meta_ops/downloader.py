@@ -151,72 +151,69 @@ def download_from_youtube(url_or_query, output_file, audio_format='opus'):
     import time
     import random
     
-    # Try multiple strategies to bypass YouTube's anti-bot measures
+    # Three robust strategies optimized for desktop/laptop usage
     strategies = [
-        # Strategy 1: Enhanced headers and user agent
+        # Strategy 1: aria2c method (fastest downloads, best for reliable connections)
         {
-            "name": "Enhanced Headers",
-            "cmd": [
-                "yt-dlp",
-                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "--add-header", "Accept-Language:en-US,en;q=0.9",
-                "--add-header", "Accept-Encoding:gzip, deflate, br",
-                "--add-header", "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "--add-header", "Connection:keep-alive",
-                "--add-header", "Upgrade-Insecure-Requests:1",
-                "-x",
-                "-f", "ba",
-                "--embed-metadata",
-                "--audio-format", audio_format,
-                "-o", output_file,
-                url_or_query
-            ]
-        },
-        # Strategy 2: Use different extractor options
-        {
-            "name": "Alternative Extractor",
-            "cmd": [
-                "yt-dlp",
-                "--extractor-args", "youtube:player_client=android",
-                "--user-agent", "Mozilla/5.0 (Linux; Android 11; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
-                "-x",
-                "-f", "ba",
-                "--embed-metadata",
-                "--audio-format", audio_format,
-                "-o", output_file,
-                url_or_query
-            ]
-        },
-        # Strategy 3: Use web client with cookies
-        {
-            "name": "Web Client",
-            "cmd": [
-                "yt-dlp",
-                "--extractor-args", "youtube:player_client=web",
-                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "-x",
-                "-f", "ba",
-                "--embed-metadata",
-                "--audio-format", audio_format,
-                "-o", output_file,
-                url_or_query
-            ]
-        },
-        # Strategy 4: Original method with aria2c (fallback)
-        {
-            "name": "Original with aria2c",
+            "name": "aria2c Accelerated",
             "cmd": [
                 "yt-dlp",
                 "--downloader", "aria2c",
+                "--downloader-args", "aria2c:-x 16 -s 16 -j 16 --max-connection-per-server=16",
                 "-x",
-                "-f", "ba",
+                "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
                 "--embed-metadata",
                 "--audio-format", audio_format,
+                "--retry-sleep", "1",
+                "--retries", "3",
+                "-o", output_file,
+                url_or_query
+            ]
+        },
+        # Strategy 2: Standard method (reliable fallback, works in most cases)
+        {
+            "name": "Standard Download",
+            "cmd": [
+                "yt-dlp",
+                "-x",
+                "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
+                "--embed-metadata",
+                "--audio-format", audio_format,
+                "--no-check-certificates",
+                "--retry-sleep", "2",
+                "--retries", "5",
+                "--socket-timeout", "30",
+                "-o", output_file,
+                url_or_query
+            ]
+        },
+        # Strategy 3: Browser simulation (for anti-bot protection)
+        {
+            "name": "Browser Simulation",
+            "cmd": [
+                "yt-dlp",
+                "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "--referer", "https://www.youtube.com/",
+                "-x",
+                "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
+                "--embed-metadata",
+                "--audio-format", audio_format,
+                "--no-check-certificates",
+                "--no-warnings",
+                "--retry-sleep", "3",
+                "--retries", "3",
+                "--socket-timeout", "45",
                 "-o", output_file,
                 url_or_query
             ]
         }
     ]
+    
+    # Debug: Print strategy order
+    if get_verbose_logging():
+        print(f"\033[36m[DEBUG]\033[0m Available strategies in order:")
+        for idx, strat in enumerate(strategies):
+            print(f"\033[36m[DEBUG]\033[0m   {idx+1}. {strat['name']}")
     
     for i, strategy in enumerate(strategies):
         try:
@@ -226,7 +223,7 @@ def download_from_youtube(url_or_query, output_file, audio_format='opus'):
                 warning(f"Waiting {delay:.1f} seconds before trying next strategy...")
                 time.sleep(delay)
             
-            warning(f"Attempting download with strategy: {strategy['name']}")
+            warning(f"Attempting download with strategy {i+1}/{len(strategies)}: {strategy['name']}")
             if get_verbose_logging():
                 print(f"\033[32m[GET]\033[0m Downloading audio using command: {' '.join(strategy['cmd'])}")
             
@@ -238,36 +235,80 @@ def download_from_youtube(url_or_query, output_file, audio_format='opus'):
             if not output_dir:
                 output_dir = "."
             
-            # Special case for ALAC format which gets converted to M4A by yt-dlp
-            if audio_format.lower() == 'alac':
-                m4a_files = [f for f in os.listdir(output_dir) if f.endswith('.m4a')]
-                if m4a_files:
-                    success(f"Download complete (converted from ALAC to M4A): {m4a_files[0]}")
-                    return True
+            # Wait a moment for file system to sync
+            time.sleep(0.5)
             
-            # Check for files with the specified format
-            format_files = [f for f in os.listdir(output_dir) if f.endswith(f'.{audio_format}')]
-            if format_files:
-                success(f"Download complete: {format_files[0]}")
-                return True
+            # Look for downloaded files more comprehensively
+            downloaded_files = []
+            try:
+                all_files = os.listdir(output_dir)
+                
+                # Special case for ALAC format which gets converted to M4A by yt-dlp
+                if audio_format.lower() == 'alac':
+                    downloaded_files = [f for f in all_files if f.endswith('.m4a')]
+                else:
+                    # Look for files with the target format
+                    downloaded_files = [f for f in all_files if f.endswith(f'.{audio_format}')]
+                
+                # If no exact format match, look for any audio files that might have been created
+                if not downloaded_files:
+                    audio_extensions = ['.opus', '.m4a', '.mp3', '.flac', '.wav', '.webm', '.ogg']
+                    downloaded_files = [f for f in all_files 
+                                      for ext in audio_extensions 
+                                      if f.endswith(ext) and os.path.getmtime(os.path.join(output_dir, f)) > time.time() - 120]
+                
+                if downloaded_files:
+                    # Sort by modification time, newest first
+                    downloaded_files.sort(key=lambda x: os.path.getmtime(os.path.join(output_dir, x)), reverse=True)
+                    file_path = os.path.join(output_dir, downloaded_files[0])
+                    file_size = os.path.getsize(file_path)
+                    
+                    if file_size > 1000:  # File should be at least 1KB
+                        if audio_format.lower() == 'alac' and downloaded_files[0].endswith('.m4a'):
+                            success(f"Download complete (ALAC→M4A): {downloaded_files[0]} ({file_size:,} bytes)")
+                        else:
+                            success(f"Download complete: {downloaded_files[0]} ({file_size:,} bytes)")
+                        return True
+                    else:
+                        warning(f"Downloaded file too small ({file_size} bytes), may be corrupted")
+                
+            except OSError as e:
+                warning(f"Could not check output directory: {e}")
             
-            # If we reach here, the command succeeded but no file was found
-            warning(f"Strategy '{strategy['name']}' completed but no output file found")
+            # If we reach here, the command succeeded but no valid file was found
+            warning(f"Strategy '{strategy['name']}' completed but no valid output file found")
             
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             
-            # Check for specific YouTube errors
-            if "Sign in to confirm you're not a bot" in error_msg:
-                error(f"Strategy '{strategy['name']}' failed: YouTube anti-bot detection triggered")
-            elif "Video unavailable" in error_msg:
-                error(f"Strategy '{strategy['name']}' failed: Video unavailable")
-                break  # No point trying other strategies for unavailable videos
-            elif "Private video" in error_msg:
-                error(f"Strategy '{strategy['name']}' failed: Private video")
-                break  # No point trying other strategies for private videos
+            # Check for specific YouTube errors that indicate we should stop trying
+            if any(phrase in error_msg for phrase in [
+                "Video unavailable", "Private video", "This video is not available",
+                "Video has been removed", "This video is private"
+            ]):
+                error(f"Strategy '{strategy['name']}' failed: Video not accessible")
+                error("Video is unavailable, private, or removed - no other strategies will work")
+                break
+            
+            # Check for errors that suggest trying another strategy might work
+            elif any(phrase in error_msg for phrase in [
+                "Sign in to confirm you're not a bot", "HTTP Error 429", "Too Many Requests",
+                "Temporary failure", "Connection timed out", "Network is unreachable"
+            ]):
+                warning(f"Strategy '{strategy['name']}' failed: {error_msg[:100]}...")
+                if i < len(strategies) - 1:
+                    warning("This looks like a temporary issue - trying next strategy...")
+                else:
+                    error("All strategies failed due to network/rate limiting issues")
+            
+            # Check for aria2c specific errors
+            elif strategy['name'] == 'aria2c Accelerated' and 'aria2c' in error_msg:
+                warning(f"aria2c download failed: {error_msg[:100]}...")
+                warning("aria2c may not be properly installed or configured")
+            
+            # Generic error
             else:
-                error(f"Strategy '{strategy['name']}' failed: {error_msg}")
+                error(f"Strategy '{strategy['name']}' failed: {error_msg[:150]}...")
             
             # If this is the last strategy, don't continue
             if i == len(strategies) - 1:
@@ -284,15 +325,19 @@ def download_from_youtube(url_or_query, output_file, audio_format='opus'):
     error("All download strategies failed")
     
     # Provide helpful suggestions to the user
-    print("\n\033[33m[SUGGESTIONS]\033[0m Try the following:")
-    print("1. Update yt-dlp: pip install --upgrade yt-dlp")
-    print("2. Try a different search query or use a direct YouTube URL")
-    print("3. Check if the video is available in your region")
-    print("4. Try again later - YouTube's anti-bot measures are sometimes temporary")
+    print("\n\033[33m[TROUBLESHOOTING]\033[0m Try these solutions:")
+    print("1. 🔄 Update yt-dlp: pip install --upgrade yt-dlp")
+    print("2. 🔍 Try a different search query or use a direct YouTube URL")
+    print("3. 🌍 Check if the video is available in your region")
+    print("4. ⏰ Wait and try again - YouTube's anti-bot measures are often temporary")
+    print("5. 🚀 Install aria2c for better download reliability:")
+    print("   • macOS: brew install aria2")
+    print("   • Linux: sudo apt install aria2")
+    print("6. 🔗 Try copying the exact YouTube URL instead of searching")
     
     # If we're looking for ALAC but didn't find M4A files, show a more helpful error
     if audio_format.lower() == 'alac':
-        error("No m4a files found after download (ALAC is converted to M4A)", "FAIL")
+        error("No audio files found after download (ALAC converts to M4A format)", "FAIL")
     else:
         error(f"No {audio_format} files found after download", "FAIL")
     

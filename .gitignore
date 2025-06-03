@@ -44,6 +44,7 @@ dist/
 *.wav
 *.opus
 *.flac
+*.cache
 cover.jpg
 output.*
 temp_playlist/

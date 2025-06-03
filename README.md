@@ -13,13 +13,6 @@
 
 Music acquisition command line tool that rips audio from YouTube/Bandcamp, converts to Opus, and injects metadata + album art.
 
-## Specification
-
-- Python 3.6+
-- yt-dlp
-- FFmpeg
-- aria2c (optional)
-
 ## Installation
 
 ### Option 1: Download Pre-built Binaries (Recommended)
@@ -32,8 +25,10 @@ Download the latest release for your platform from the [Releases page](https://g
 - **macOS (Apple Silicon)**: `shadowbox-macos-arm64.tar.gz`
 
 **Prerequisites:**
-- FFmpeg (for audio processing)
-- aria2 (optional, for faster downloads)
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (for audio downloading)
+- [FFmpeg](https://ffmpeg.org/) (for audio processing)
+- [aria2](https://aria2.github.io/) (for faster downloads) (optional)
+
 
 **Installation steps:**
 1. Download the appropriate file for your platform

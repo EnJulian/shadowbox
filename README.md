@@ -15,7 +15,7 @@ Music acquisition command line tool that rips audio from YouTube/Bandcamp, conve
 
 ## Installation
 
-### Option 1: Download Pre-built Binaries (Recommended)
+### Option 1: Download Pre-built Binaries
 
 Download the latest release for your platform from the [Releases page](https://github.com/lsnen/shadowbox/releases):
 
@@ -38,7 +38,7 @@ Download the latest release for your platform from the [Releases page](https://g
 ### Option 2: Install from Source
 
 ```bash
-# Set up project structure (first time only)
+# Set up project structure after cloning
 ./setup/organize.sh  # Linux/macOS
 setup\organize.bat   # Windows (may require admin privileges)
 
@@ -55,14 +55,6 @@ Interactive:
 shbox.bat         # Windows
 ```
 In the interactive app, you can enable Spotify metadata in the Settings menu.
-
-CLI:
-```bash
-./run.sh -q "Artist Track"  # search (Linux/macOS)
-run.bat -q "Artist Track"   # search (Windows)
-./run.sh -q "https://youtube.com/watch?v=dQw4w9WgXcQ"  # direct URL
-./run.sh -q "Artist Track" -s  # search with Spotify metadata
-```
 
 ## How It Works
 

@@ -115,10 +115,44 @@ def search_spotify_for_metadata(title, artist=None):
             # Initialize clean_title variable
             clean_title = title
             
+            # First, try to extract core title before separator characters
+            core_title = title
+            separator_chars = ['~', '|', ':', '-', '–', '—', '•', '►', '♪', '♫']
+            
+            for separator in separator_chars:
+                if separator in title:
+                    # Split by separator and take the first part
+                    potential_core = title.split(separator)[0].strip()
+                    if potential_core and len(potential_core) > 3:  # Ensure it's not too short
+                        core_title = potential_core
+                        break
+            
+            # Try with core title and artist first if it's different from original
+            if core_title != title and artist:
+                print(f"\033[33m[SPOTIFY]\033[0m Trying with core title: {core_title} by {artist}")
+                modified_results = sp.search(q=f"track:{core_title} artist:{artist}", type='track', limit=5)
+                
+                if modified_results['tracks']['items']:
+                    # We found results with this combination
+                    results = modified_results
+                    # Continue with the rest of the function to process these results
+                else:
+                    # Try with just the core title (no artist)
+                    print(f"\033[33m[SPOTIFY]\033[0m Trying with just core title: {core_title}")
+                    modified_results = sp.search(q=f"track:{core_title}", type='track', limit=5)
+                    
+                    if modified_results['tracks']['items']:
+                        # We found results with this combination
+                        results = modified_results
+                        # Continue with the rest of the function to process these results
+                    else:
+                        # Continue with other fallback strategies
+                        pass
+            
             # Try with title without brackets, parentheses, or common features text
             # Check if title contains any type of brackets or common feature indicators
             has_brackets = any(x in title for x in ['(', ')', '[', ']', '{', '}', '<', '>', 'feat.', 'ft.', 'featuring'])
-            if has_brackets:
+            if has_brackets and not results['tracks']['items']:
                 # Remove content within various types of brackets and common feature indicators
                 # Remove parentheses content
                 clean_title = re.sub(r'\s*\([^)]*\)', '', clean_title)
@@ -142,8 +176,17 @@ def search_spotify_for_metadata(title, artist=None):
                         results = modified_results
                         # Continue with the rest of the function to process these results
                     else:
-                        # Continue with other fallback strategies
-                        pass
+                        # Try with just the clean title (no artist)
+                        print(f"\033[33m[SPOTIFY]\033[0m Trying with just clean title: {clean_title}")
+                        modified_results = sp.search(q=f"track:{clean_title}", type='track', limit=5)
+                        
+                        if modified_results['tracks']['items']:
+                            # We found results with this combination
+                            results = modified_results
+                            # Continue with the rest of the function to process these results
+                        else:
+                            # Continue with other fallback strategies
+                            pass
             
             # Try with track name and first word of artist if artist contains multiple words
             if artist and ' ' in artist and not results['tracks']['items']:
@@ -177,6 +220,38 @@ def search_spotify_for_metadata(title, artist=None):
                         # Continue with other fallback strategies
                         pass
             
+            # Try with first 2 words of title and artist if title contains multiple words
+            if artist and ' ' in title and not results['tracks']['items']:
+                title_words = title.split(' ')
+                if len(title_words) >= 2:
+                    first_two_words_of_title = ' '.join(title_words[:2])
+                    print(f"\033[33m[SPOTIFY]\033[0m Trying with first 2 words of title and artist: {first_two_words_of_title} by {artist}")
+                    modified_results = sp.search(q=f"track:{first_two_words_of_title} artist:{artist}", type='track', limit=5)
+                    
+                    if modified_results['tracks']['items']:
+                        # We found results with this combination
+                        results = modified_results
+                        # Continue with the rest of the function to process these results
+                    else:
+                        # Continue with other fallback strategies
+                        pass
+            
+            # Try with first 3 words of title and artist if title contains multiple words
+            if artist and ' ' in title and not results['tracks']['items']:
+                title_words = title.split(' ')
+                if len(title_words) >= 3:
+                    first_three_words_of_title = ' '.join(title_words[:3])
+                    print(f"\033[33m[SPOTIFY]\033[0m Trying with first 3 words of title and artist: {first_three_words_of_title} by {artist}")
+                    modified_results = sp.search(q=f"track:{first_three_words_of_title} artist:{artist}", type='track', limit=5)
+                    
+                    if modified_results['tracks']['items']:
+                        # We found results with this combination
+                        results = modified_results
+                        # Continue with the rest of the function to process these results
+                    else:
+                        # Continue with other fallback strategies
+                        pass
+            
             # Try with first word of title and artist if title contains multiple words
             if artist and ' ' in title and not results['tracks']['items']:
                 first_word_of_title = title.split(' ')[0]
@@ -196,6 +271,38 @@ def search_spotify_for_metadata(title, artist=None):
                 if clean_title != title and simplified_artist != artist:
                     print(f"\033[33m[SPOTIFY]\033[0m Trying with clean title and simplified artist: {clean_title} by {simplified_artist}")
                     modified_results = sp.search(q=f"track:{clean_title} artist:{simplified_artist}", type='track', limit=5)
+                    
+                    if modified_results['tracks']['items']:
+                        # We found results with this combination
+                        results = modified_results
+                        # Continue with the rest of the function to process these results
+                    else:
+                        # Continue with other fallback strategies
+                        pass
+            
+            # Try with just the first 2 words of the title (no artist)
+            if ' ' in title and not results['tracks']['items']:
+                title_words = title.split(' ')
+                if len(title_words) >= 2:
+                    first_two_words_of_title = ' '.join(title_words[:2])
+                    print(f"\033[33m[SPOTIFY]\033[0m Trying with first 2 words of title: {first_two_words_of_title}")
+                    modified_results = sp.search(q=f"track:{first_two_words_of_title}", type='track', limit=5)
+                    
+                    if modified_results['tracks']['items']:
+                        # We found results with this combination
+                        results = modified_results
+                        # Continue with the rest of the function to process these results
+                    else:
+                        # Continue with other fallback strategies
+                        pass
+            
+            # Try with just the first 3 words of the title (no artist)
+            if ' ' in title and not results['tracks']['items']:
+                title_words = title.split(' ')
+                if len(title_words) >= 3:
+                    first_three_words_of_title = ' '.join(title_words[:3])
+                    print(f"\033[33m[SPOTIFY]\033[0m Trying with first 3 words of title: {first_three_words_of_title}")
+                    modified_results = sp.search(q=f"track:{first_three_words_of_title}", type='track', limit=5)
                     
                     if modified_results['tracks']['items']:
                         # We found results with this combination

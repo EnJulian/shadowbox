@@ -155,6 +155,7 @@ class Symbols:
     UPLOAD = '⬆'
     SEARCH = '🔍'
     MUSIC = '♪'
+    NOTE = '🎵'  # For lyrics/notes
     FOLDER = '📁'
     FILE = '📄'
     
@@ -617,11 +618,12 @@ class TerminalUI:
         
         self.section_divider()
     
-    def print_settings_menu(self, current_dir, use_spotify, audio_format, verbose_logging=False):
+    def print_settings_menu(self, current_dir, use_spotify, audio_format, verbose_logging=False, use_genius=True, genius_configured=False):
         """Print enhanced settings menu"""
         menu_items = [
             (f"{Symbols.FOLDER} Change music directory", "DIR_CONFIG"),
             (f"{Symbols.MUSIC} Toggle Spotify metadata", "SPOTIFY_TOGGLE"),
+            (f"{Symbols.NOTE} Configure Genius lyrics", "GENIUS_CONFIG"),
             (f"{Symbols.GEAR} Change audio format", "FORMAT_CONFIG"),
             (f"{Symbols.PALETTE} Change color theme", "THEME_CONFIG"),
             (f"{Symbols.DOWNLOAD} Update yt-dlp", "YTDLP_UPDATE"),
@@ -637,6 +639,12 @@ class TerminalUI:
         self.section_divider("CURRENT SETTINGS")
         print(f"{self.theme['accent']}{Symbols.FOLDER}{Colors.RESET} {Colors.WHITE}Music Directory:{Colors.RESET} {Colors.DIM}{current_dir}{Colors.RESET}")
         print(f"{self.theme['accent']}{Symbols.MUSIC}{Colors.RESET} {Colors.WHITE}Spotify Metadata:{Colors.RESET} {self.theme['success'] if use_spotify else self.theme['error']}{'Enabled' if use_spotify else 'Disabled'}{Colors.RESET}")
+        
+        # Genius lyrics status
+        genius_status = "Configured & Enabled" if genius_configured and use_genius else "Not Configured" if not genius_configured else "Configured but Disabled"
+        genius_color = self.theme['success'] if genius_configured and use_genius else self.theme['warning'] if genius_configured else self.theme['error']
+        print(f"{self.theme['accent']}{Symbols.NOTE}{Colors.RESET} {Colors.WHITE}Genius Lyrics:{Colors.RESET} {genius_color}{genius_status}{Colors.RESET}")
+        
         print(f"{self.theme['accent']}{Symbols.GEAR}{Colors.RESET} {Colors.WHITE}Audio Format:{Colors.RESET} {Colors.DIM}{audio_format}{Colors.RESET}")
         print(f"{self.theme['accent']}{Symbols.INFO}{Colors.RESET} {Colors.WHITE}Verbose Logging:{Colors.RESET} {self.theme['success'] if verbose_logging else self.theme['error']}{'Enabled' if verbose_logging else 'Disabled'}{Colors.RESET}")
         print()
@@ -1002,8 +1010,8 @@ def print_header(with_startup_animation=False):
 def print_menu(with_typewriter=False):
     ui.print_menu(with_typewriter)
 
-def print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging=False):
-    ui.print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging)
+def print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging=False, use_genius=True, genius_configured=False):
+    ui.print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging, use_genius, genius_configured)
 
 def print_audio_format_menu(current_format):
     ui.print_audio_format_menu(current_format)

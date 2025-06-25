@@ -72,7 +72,10 @@ try:
     from meta_ops.settings import (
         load_settings, save_settings, get_audio_format, set_audio_format,
         get_music_directory, set_music_directory, get_use_spotify, set_use_spotify,
-        get_verbose_logging, set_verbose_logging
+        get_verbose_logging, set_verbose_logging, get_use_genius, set_use_genius,
+        get_genius_access_token, set_genius_access_token,
+        get_spotify_client_id, set_spotify_client_id,
+        get_spotify_client_secret, set_spotify_client_secret
     )
 except ImportError:
     # Fallback to direct imports (for development when meta_ops is in path)
@@ -82,7 +85,10 @@ except ImportError:
     from settings import (
         load_settings, save_settings, get_audio_format, set_audio_format,
         get_music_directory, set_music_directory, get_use_spotify, set_use_spotify,
-        get_verbose_logging, set_verbose_logging
+        get_verbose_logging, set_verbose_logging, get_use_genius, set_use_genius,
+        get_genius_access_token, set_genius_access_token,
+        get_spotify_client_id, set_spotify_client_id,
+        get_spotify_client_secret, set_spotify_client_secret
     )
 
 def sanitize_filename(name):
@@ -307,8 +313,33 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
                 artist = "Imagine Dragons"
                 title = "Believer"
     
+    # Try to enhance metadata with Spotify search before proceeding
+    enhanced_metadata = None
+    try:
+        from meta_ops.spotify_metadata import search_spotify_for_metadata
+        system(f"Searching Spotify for enhanced metadata: {title} by {artist}", "SPOTIFY")
+        enhanced_metadata = search_spotify_for_metadata(title, artist)
+        
+        if enhanced_metadata:
+            # Use the enhanced metadata from Spotify
+            original_title = title
+            original_artist = artist
+            title = enhanced_metadata['title']
+            artist = enhanced_metadata['artist']
+            success(f"Enhanced metadata from Spotify: '{title}' by '{artist}'", "SPOTIFY")
+            
+            # If the metadata changed significantly, inform the user
+            if original_title.lower() != title.lower() or original_artist.lower() != artist.lower():
+                info(f"Metadata updated: '{original_title}' by '{original_artist}' → '{title}' by '{artist}'")
+        else:
+            info("No enhanced metadata found on Spotify, using original metadata")
+    except ImportError:
+        info("Spotify enhancement not available")
+    except Exception as e:
+        warning(f"Error during Spotify metadata enhancement: {e}")
+    
     # Verify with user if the metadata seems incorrect
-    info(f"Using metadata: Title='{title}', Artist='{artist}'")
+    info(f"Using final metadata: Title='{title}', Artist='{artist}'")
     
     # Create artist directory
     artist_dir = create_artist_directory(artist, music_dir)
@@ -358,6 +389,22 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
             warning("Failed to download album cover")
             cover_path = None
     
+    # Fetch and add lyrics using the final enhanced metadata
+    lyrics_text = None
+    try:
+        from meta_ops.lyrics import search_lyrics_with_fallbacks, add_lyrics_to_metadata
+        system(f"Searching for lyrics: {title} by {artist}", "LYRICS")
+        lyrics_text = search_lyrics_with_fallbacks(title, artist)
+        
+        if lyrics_text:
+            success(f"Found lyrics ({len(lyrics_text)} characters)", "LYRICS")
+        else:
+            warning("No lyrics found for this song", "LYRICS")
+    except ImportError:
+        warning("Lyrics functionality not available. Install lyricsgenius: pip install lyricsgenius", "LYRICS")
+    except Exception as e:
+        warning(f"Error searching for lyrics: {e}", "LYRICS")
+    
     # Add metadata to the file
     system(f"Adding metadata to {final_file}", "META")
     try:
@@ -365,6 +412,17 @@ def run(query, output_file=None, music_dir=None, audio_format='opus'):
         full_artist = artist
         # Add metadata with both artist and album_artist
         add_metadata(final_file, title=title, artist=artist, album=album, cover_path=cover_path, album_artist=full_artist)
+        
+        # Add lyrics to the file if we found them
+        if lyrics_text:
+            try:
+                system("Adding lyrics to metadata", "LYRICS")
+                if add_lyrics_to_metadata(final_file, lyrics_text):
+                    success("Lyrics successfully embedded in file", "LYRICS")
+                else:
+                    warning("Failed to embed lyrics in file", "LYRICS")
+            except Exception as e:
+                warning(f"Error adding lyrics to file: {e}", "LYRICS")
         
         # Check if this was a Bandcamp download and enhance with Spotify metadata if available
         from meta_ops.downloader import is_bandcamp_url
@@ -463,6 +521,37 @@ def run_playlist(query, output_file=None, music_dir=None, audio_format='opus'):
                     title = name_without_ext
                     artist = "Unknown"
             
+            # Try to enhance metadata with Spotify search before proceeding
+            enhanced_metadata = None
+            try:
+                from meta_ops.spotify_metadata import search_spotify_for_metadata
+                if get_verbose_logging():
+                    print(f"\033[32m[SPOTIFY]\033[0m Searching Spotify for enhanced metadata: {title} by {artist}")
+                enhanced_metadata = search_spotify_for_metadata(title, artist)
+                
+                if enhanced_metadata:
+                    # Use the enhanced metadata from Spotify
+                    original_title = title
+                    original_artist = artist
+                    title = enhanced_metadata['title']
+                    artist = enhanced_metadata['artist']
+                    if get_verbose_logging():
+                        print(f"\033[32m[SPOTIFY]\033[0m Enhanced metadata from Spotify: '{title}' by '{artist}'")
+                    
+                    # If the metadata changed significantly, inform the user
+                    if original_title.lower() != title.lower() or original_artist.lower() != artist.lower():
+                        if get_verbose_logging():
+                            print(f"\033[32m[INFO]\033[0m Metadata updated: '{original_title}' by '{original_artist}' → '{title}' by '{artist}'")
+                else:
+                    if get_verbose_logging():
+                        print("\033[32m[INFO]\033[0m No enhanced metadata found on Spotify, using original metadata")
+            except ImportError:
+                if get_verbose_logging():
+                    print("\033[32m[INFO]\033[0m Spotify enhancement not available")
+            except Exception as e:
+                if get_verbose_logging():
+                    print(f"\033[33m[WARNING]\033[0m Error during Spotify metadata enhancement: {e}")
+            
             # Create artist directory
             artist_dir = create_artist_directory(artist, music_dir)
             
@@ -513,6 +602,27 @@ def run_playlist(query, output_file=None, music_dir=None, audio_format='opus'):
                     print("\033[33m[WARNING]\033[0m Failed to download album cover")
                     cover_path = None
             
+            # Fetch and add lyrics using the final enhanced metadata
+            lyrics_text = None
+            try:
+                from meta_ops.lyrics import search_lyrics_with_fallbacks, add_lyrics_to_metadata
+                if get_verbose_logging():
+                    print(f"\033[32m[LYRICS]\033[0m Searching for lyrics: {title} by {artist}")
+                lyrics_text = search_lyrics_with_fallbacks(title, artist)
+                
+                if lyrics_text:
+                    if get_verbose_logging():
+                        print(f"\033[32m[LYRICS]\033[0m Found lyrics ({len(lyrics_text)} characters)")
+                else:
+                    if get_verbose_logging():
+                        print("\033[33m[LYRICS]\033[0m No lyrics found for this song")
+            except ImportError:
+                if get_verbose_logging():
+                    print("\033[33m[LYRICS]\033[0m Lyrics functionality not available. Install lyricsgenius: pip install lyricsgenius")
+            except Exception as e:
+                if get_verbose_logging():
+                    print(f"\033[33m[LYRICS]\033[0m Error searching for lyrics: {e}")
+            
             # Add metadata to the file
             print(f"\033[32m[META]\033[0m Adding metadata to {final_file}")
             try:
@@ -520,6 +630,21 @@ def run_playlist(query, output_file=None, music_dir=None, audio_format='opus'):
                 full_artist = artist
                 # Add metadata with both artist and album_artist
                 add_metadata(final_file, title=title, artist=artist, album=album, cover_path=cover_path, album_artist=full_artist)
+                
+                # Add lyrics to the file if we found them
+                if lyrics_text:
+                    try:
+                        if get_verbose_logging():
+                            print("\033[32m[LYRICS]\033[0m Adding lyrics to metadata")
+                        if add_lyrics_to_metadata(final_file, lyrics_text):
+                            if get_verbose_logging():
+                                print("\033[32m[LYRICS]\033[0m Lyrics successfully embedded in file")
+                        else:
+                            if get_verbose_logging():
+                                print("\033[33m[LYRICS]\033[0m Failed to embed lyrics in file")
+                    except Exception as e:
+                        if get_verbose_logging():
+                            print(f"\033[33m[LYRICS]\033[0m Error adding lyrics to file: {e}")
                 
                 # Remove the temporary cover file if it exists
                 if cover_path and os.path.exists(cover_path):
@@ -668,6 +793,27 @@ def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus
     # Use album from metadata if available, otherwise use artist name
     album = album_name if album_name else (title or f"{artist}")
     
+    # Fetch and add lyrics using the final enhanced metadata
+    lyrics_text = None
+    try:
+        from meta_ops.lyrics import search_lyrics_with_fallbacks, add_lyrics_to_metadata
+        if get_verbose_logging():
+            print(f"\033[32m[LYRICS]\033[0m Searching for lyrics: {title} by {full_artist}")
+        lyrics_text = search_lyrics_with_fallbacks(title, full_artist)
+        
+        if lyrics_text:
+            if get_verbose_logging():
+                print(f"\033[32m[LYRICS]\033[0m Found lyrics ({len(lyrics_text)} characters)")
+        else:
+            if get_verbose_logging():
+                print("\033[33m[LYRICS]\033[0m No lyrics found for this song")
+    except ImportError:
+        if get_verbose_logging():
+            print("\033[33m[LYRICS]\033[0m Lyrics functionality not available. Install lyricsgenius: pip install lyricsgenius")
+    except Exception as e:
+        if get_verbose_logging():
+            print(f"\033[33m[LYRICS]\033[0m Error searching for lyrics: {e}")
+
     # Add metadata to the file
     print(f"\033[32m[META]\033[0m Adding metadata to {final_file}")
     try:
@@ -689,6 +835,22 @@ def run_with_spotify(query, output_file=None, music_dir=None, audio_format='opus
             date=date, 
             album_artist=full_artist  # Explicitly set album_artist to the full artist string
         )
+        
+        # Add lyrics to the file if we found them
+        if lyrics_text:
+            try:
+                if get_verbose_logging():
+                    print("\033[32m[LYRICS]\033[0m Adding lyrics to metadata")
+                if add_lyrics_to_metadata(final_file, lyrics_text):
+                    if get_verbose_logging():
+                        print("\033[32m[LYRICS]\033[0m Lyrics successfully embedded in file")
+                else:
+                    if get_verbose_logging():
+                        print("\033[33m[LYRICS]\033[0m Failed to embed lyrics in file")
+            except Exception as e:
+                if get_verbose_logging():
+                    print(f"\033[33m[LYRICS]\033[0m Error adding lyrics to file: {e}")
+        
         print(f"\033[32m[COMPLETE]\033[0m Finished downloading and tagging: {final_file}")
         return True
     except Exception as e:

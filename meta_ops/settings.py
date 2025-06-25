@@ -11,9 +11,13 @@ DEFAULT_SETTINGS = {
     'audio_format': 'opus',
     'music_directory': os.path.join(os.path.expanduser('~'), 'Music'),
     'use_spotify': False,
+    'use_genius': True,  # Enable lyrics by default if API key is available
     'default_output_pattern': '%(title)s.%(ext)s',
     'verbose_logging': False,
-    'theme': 'hacker'
+    'theme': 'hacker',
+    'genius_access_token': '',  # Store Genius API token
+    'spotify_client_id': '',    # Store Spotify credentials in settings too
+    'spotify_client_secret': ''
 }
 
 # Settings file path
@@ -194,6 +198,102 @@ def set_theme(theme_name):
         bool: True if successful, False otherwise
     """
     return set_setting('theme', theme_name)
+
+def get_use_genius():
+    """
+    Get whether to use Genius for lyrics.
+    
+    Returns:
+        bool: True if Genius should be used, False otherwise
+    """
+    return get_setting('use_genius', DEFAULT_SETTINGS['use_genius'])
+
+def set_use_genius(use_genius):
+    """
+    Set whether to use Genius for lyrics.
+    
+    Args:
+        use_genius (bool): Whether to use Genius
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    return set_setting('use_genius', use_genius)
+
+def get_genius_access_token():
+    """
+    Get the Genius API access token.
+    
+    Returns:
+        str: The Genius access token, or empty string if not set
+    """
+    # First check environment variable, then settings
+    env_token = os.environ.get('GENIUS_ACCESS_TOKEN', '')
+    if env_token:
+        return env_token
+    return get_setting('genius_access_token', DEFAULT_SETTINGS['genius_access_token'])
+
+def set_genius_access_token(token):
+    """
+    Set the Genius API access token.
+    
+    Args:
+        token (str): The Genius access token
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    return set_setting('genius_access_token', token)
+
+def get_spotify_client_id():
+    """
+    Get the Spotify client ID.
+    
+    Returns:
+        str: The Spotify client ID, or empty string if not set
+    """
+    # First check environment variable, then settings
+    env_id = os.environ.get('SPOTIFY_CLIENT_ID', '')
+    if env_id:
+        return env_id
+    return get_setting('spotify_client_id', DEFAULT_SETTINGS['spotify_client_id'])
+
+def set_spotify_client_id(client_id):
+    """
+    Set the Spotify client ID.
+    
+    Args:
+        client_id (str): The Spotify client ID
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    return set_setting('spotify_client_id', client_id)
+
+def get_spotify_client_secret():
+    """
+    Get the Spotify client secret.
+    
+    Returns:
+        str: The Spotify client secret, or empty string if not set
+    """
+    # First check environment variable, then settings
+    env_secret = os.environ.get('SPOTIFY_CLIENT_SECRET', '')
+    if env_secret:
+        return env_secret
+    return get_setting('spotify_client_secret', DEFAULT_SETTINGS['spotify_client_secret'])
+
+def set_spotify_client_secret(client_secret):
+    """
+    Set the Spotify client secret.
+    
+    Args:
+        client_secret (str): The Spotify client secret
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    return set_setting('spotify_client_secret', client_secret)
 
 def update_ytdlp():
     """

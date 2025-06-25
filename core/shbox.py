@@ -270,10 +270,20 @@ def settings():
         audio_format = get_audio_format()
         verbose_logging = get_verbose_logging()
         
-        # Use the new enhanced settings menu
-        ui.print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging)
+        # Check Genius configuration
+        try:
+            from meta_ops.settings import get_use_genius, get_genius_access_token
+            use_genius = get_use_genius()
+            genius_token = get_genius_access_token()
+            genius_configured = bool(genius_token)
+        except ImportError:
+            use_genius = True
+            genius_configured = bool(os.environ.get('GENIUS_ACCESS_TOKEN'))
         
-        choice = ui.input_prompt("Select an option (1-7)", "SETTINGS").strip()
+        # Use the new enhanced settings menu
+        ui.print_settings_menu(current_dir, use_spotify, audio_format, verbose_logging, use_genius, genius_configured)
+        
+        choice = ui.input_prompt("Select an option (1-8)", "SETTINGS").strip()
         
         if choice == '1':
             ui.info("Enter the new music directory path")
@@ -325,6 +335,111 @@ def settings():
             ui.input_prompt("Press Enter to continue", "CONTINUE")
         
         elif choice == '3':
+            # Configure Genius lyrics
+            print_header()
+            ui.hacker_banner("GENIUS LYRICS CONFIGURATION")
+            ui.section_divider()
+            
+            if genius_configured:
+                ui.success("Genius API is already configured")
+                ui.info(f"Current status: {'Enabled' if use_genius else 'Disabled'}")
+                print()
+                
+                ui.info("Options:")
+                ui.info("1. Toggle lyrics on/off")
+                ui.info("2. Reconfigure API token")
+                ui.info("3. Test current configuration")
+                ui.info("4. Back to settings")
+                
+                sub_choice = ui.input_prompt("Select option (1-4)", "GENIUS").strip()
+                
+                if sub_choice == '1':
+                    # Toggle lyrics
+                    from meta_ops.settings import set_use_genius
+                    new_setting = not use_genius
+                    set_use_genius(new_setting)
+                    
+                    if new_setting:
+                        ui.success("Genius lyrics enabled")
+                    else:
+                        ui.success("Genius lyrics disabled")
+                
+                elif sub_choice == '2':
+                    # Reconfigure token
+                    ui.info("Enter your new Genius API access token:")
+                    ui.info("Get it from: https://genius.com/api-clients")
+                    
+                    new_token = ui.input_prompt("Genius Access Token", "TOKEN").strip()
+                    if new_token:
+                        from meta_ops.settings import set_genius_access_token
+                        set_genius_access_token(new_token)
+                        ui.success("Genius API token updated")
+                
+                elif sub_choice == '3':
+                    # Test configuration
+                    ui.info("Testing Genius API connection...")
+                    try:
+                        from meta_ops.lyrics import get_lyrics_from_genius
+                        test_lyrics = get_lyrics_from_genius("Bohemian Rhapsody", "Queen")
+                        
+                        if test_lyrics:
+                            ui.success("Genius API test successful!")
+                            ui.info(f"Retrieved lyrics ({len(test_lyrics)} characters)")
+                        else:
+                            ui.warning("Test failed - no lyrics found")
+                    except Exception as e:
+                        ui.error(f"Test failed: {e}")
+                
+                elif sub_choice == '4':
+                    pass  # Back to settings
+                
+            else:
+                ui.warning("Genius API is not configured")
+                ui.info("To enable lyrics functionality, you need a Genius API access token")
+                ui.info("Get one from: https://genius.com/api-clients")
+                print()
+                
+                ui.info("Options:")
+                ui.info("1. Enter API token manually")
+                ui.info("2. Run setup script")
+                ui.info("3. Back to settings")
+                
+                sub_choice = ui.input_prompt("Select option (1-3)", "GENIUS").strip()
+                
+                if sub_choice == '1':
+                    ui.info("Enter your Genius API access token:")
+                    token = ui.input_prompt("Genius Access Token", "TOKEN").strip()
+                    
+                    if token:
+                        from meta_ops.settings import set_genius_access_token, set_use_genius
+                        set_genius_access_token(token)
+                        set_use_genius(True)
+                        
+                        # Test the token
+                        ui.info("Testing API token...")
+                        try:
+                            from meta_ops.lyrics import get_lyrics_from_genius
+                            test_lyrics = get_lyrics_from_genius("Bohemian Rhapsody", "Queen")
+                            
+                            if test_lyrics:
+                                ui.success("Genius API configured successfully!")
+                                ui.info("Lyrics will now be automatically added to downloaded songs")
+                            else:
+                                ui.warning("Token saved but test failed - please verify your token")
+                        except Exception as e:
+                            ui.error(f"Configuration test failed: {e}")
+                
+                elif sub_choice == '2':
+                    ui.info("Run the setup script:")
+                    ui.info("Linux/macOS: ./setup/setup_genius.sh")
+                    ui.info("Windows: setup\\setup_genius.bat")
+                
+                elif sub_choice == '3':
+                    pass  # Back to settings
+            
+            ui.input_prompt("Press Enter to continue", "CONTINUE")
+        
+        elif choice == '4':
             print_header()
             
             # Use the new enhanced audio format menu
@@ -368,13 +483,13 @@ def settings():
             
             ui.input_prompt("Press Enter to continue", "CONTINUE")
         
-        elif choice == '4':
+        elif choice == '5':
             # Theme selection
             selected_theme = ui.theme_selection_menu()
             if selected_theme:
                 ui.input_prompt("Press Enter to continue", "CONTINUE")
         
-        elif choice == '5':
+        elif choice == '6':
             # Update yt-dlp
             print_header()
             ui.hacker_banner("YT-DLP UPDATE")
@@ -407,7 +522,7 @@ def settings():
             
             ui.input_prompt("Press Enter to continue", "CONTINUE")
         
-        elif choice == '6':
+        elif choice == '7':
             # Toggle verbose logging
             new_verbose = not verbose_logging
             set_verbose_logging(new_verbose)
@@ -421,7 +536,7 @@ def settings():
             
             ui.input_prompt("Press Enter to continue", "CONTINUE")
         
-        elif choice == '7':
+        elif choice == '8':
             break
         
         else:

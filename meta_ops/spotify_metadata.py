@@ -35,33 +35,87 @@ def extract_title_from_youtube_url(url):
         # Get the title
         title = video_info.get('title', '')
         
-        # Try to extract artist from title
+        # First, try to get artist from YouTube's metadata fields
         artist = None
         
-        # Common patterns in YouTube music titles
-        patterns = [
-            r'^(.*?)\s*-\s*(.*?)$',  # Artist - Title
-            r'^(.*?)\s*–\s*(.*?)$',  # Artist – Title (en dash)
-            r'^(.*?)\s*—\s*(.*?)$',  # Artist — Title (em dash)
-            r'^(.*?)\s*:\s*(.*?)$',  # Artist: Title
-            r'^(.*?)\s*\|\s*(.*?)$'  # Artist | Title
-        ]
+        # Check for artist field first (YouTube Music often provides this)
+        if 'artist' in video_info and video_info['artist']:
+            artist_field = video_info['artist']
+            # Sometimes artist field contains multiple artists separated by commas
+            if isinstance(artist_field, str):
+                # Take the first artist if multiple are listed
+                artist = artist_field.split(',')[0].strip()
         
-        for pattern in patterns:
-            match = re.match(pattern, title)
-            if match:
-                artist = match.group(1).strip()
-                title = match.group(2).strip()
-                break
+        # If no artist field, try creator field
+        if not artist and 'creator' in video_info and video_info['creator']:
+            creator_field = video_info['creator']
+            if isinstance(creator_field, str):
+                artist = creator_field.split(',')[0].strip()
+        
+        # If still no artist, try to extract from title using patterns
+        if not artist:
+            # Common patterns in YouTube music titles
+            patterns = [
+                # Complex case: Title with -MIX- format - Artist (Mix)
+                r'^(.*?-[^-]*(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental)[^-]*-)\s*-\s*(.*?\s*\([^)]*(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental)[^)]*\))$',
+                # Title (Mix/Remix/Version) - Artist
+                r'^(.*?\s*\([^)]*(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental)[^)]*\))\s*-\s*(.*?)$',
+                # Title (Mix/Remix/Version) by Artist  
+                r'^(.*?\s*\([^)]*(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental)[^)]*\))\s+by\s+(.*?)$',
+                # Artist - Title (Mix/Remix/Version)
+                r'^(.*?)\s*-\s*(.*?\s*\([^)]*(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental)[^)]*\))$',
+                # Standard patterns
+                r'^(.*?)\s*-\s*(.*?)$',  # Artist - Title
+                r'^(.*?)\s*–\s*(.*?)$',  # Artist – Title (en dash)
+                r'^(.*?)\s*—\s*(.*?)$',  # Artist — Title (em dash)
+                r'^(.*?)\s*:\s*(.*?)$',  # Artist: Title
+                r'^(.*?)\s*\|\s*(.*?)$',  # Artist | Title
+                r'^(.*?)\s+by\s+(.*?)$'   # Title by Artist
+            ]
+            
+            for i, pattern in enumerate(patterns):
+                match = re.match(pattern, title, re.IGNORECASE)
+                if match:
+                    if i < 4 or i == 9:  # First 4 patterns and "by" pattern have title first, then artist
+                        title = match.group(1).strip()
+                        artist = match.group(2).strip()
+                    else:  # Standard patterns have artist first, then title
+                        artist = match.group(1).strip()
+                        title = match.group(2).strip()
+                    break
         
         # If no pattern matched, try to use the uploader as artist
         if not artist and 'uploader' in video_info:
             artist = video_info.get('uploader', '').replace(' - Topic', '')
         
+        # Additional check: if the "artist" looks like it's just another version of the title
+        # (contains mix/remix terms and is very similar to the title), use uploader instead
+        if artist and title and 'uploader' in video_info:
+            # Check if artist contains mix terms and shares significant text with title
+            artist_lower = artist.lower()
+            title_lower = title.lower()
+            
+            # Remove mix-related terms and parentheses for comparison
+            clean_artist = re.sub(r'\s*[\(\[].*?(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental).*?[\)\]]', '', artist_lower)
+            clean_artist = re.sub(r'-.*?(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental).*?-', '', clean_artist)
+            clean_title = re.sub(r'\s*[\(\[].*?(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental).*?[\)\]]', '', title_lower)
+            clean_title = re.sub(r'-.*?(?:mix|remix|version|edit|extended|radio|acoustic|live|instrumental).*?-', '', clean_title)
+            
+            # If the cleaned versions are very similar, use uploader as artist
+            if clean_artist.strip() and clean_title.strip():
+                # Simple similarity check - if they share most of their words
+                artist_words = set(clean_artist.strip().split())
+                title_words = set(clean_title.strip().split())
+                if len(artist_words & title_words) / max(len(artist_words), len(title_words)) > 0.7:
+                    uploader = video_info.get('uploader', '').replace(' - Topic', '')
+                    if uploader and uploader.lower() not in [artist_lower, title_lower]:
+                        artist = uploader
+        
         # Clean up title and artist
         if title:
-            # Remove common suffixes like "(Official Video)", "[Official Music Video]", etc.
-            title = re.sub(r'\s*[\(\[].*?(official|music|video|audio|lyrics|hd|4k).*?[\)\]]', '', title, flags=re.IGNORECASE)
+            # Remove common video-related suffixes, but preserve music-related ones like (Mix), (Remix), etc.
+            # Only remove if it contains video/visual related terms
+            title = re.sub(r'\s*[\(\[].*?(official\s+(?:music\s+)?video|music\s+video|lyric\s+video|hd|4k|1080p|720p).*?[\)\]]', '', title, flags=re.IGNORECASE)
             title = title.strip()
         
         if artist:
@@ -588,10 +642,73 @@ def search_itunes_for_metadata(title, artist=None):
         print(f"\033[31m[ERROR]\033[0m Error searching iTunes API: {e}")
         return None
 
+def _filter_and_prioritize_genres(tags):
+    """
+    Filter out non-musical tags and prioritize meaningful genres.
+    
+    Args:
+        tags: List of tag dictionaries from Last.fm
+        
+    Returns:
+        list: Filtered and prioritized list of genre names
+    """
+    # Tags to exclude (non-musical or too generic)
+    excluded_tags = {
+        'seen live', 'favorite', 'favorites', 'love', 'loved', 'awesome', 'great',
+        'good', 'best', 'top', 'amazing', 'perfect', 'beautiful', 'epic',
+        'classic', 'legendary', 'masterpiece', 'genius', 'brilliant',
+        'male vocalists', 'female vocalists', 'vocalist', 'vocals',
+        'guitar', 'drums', 'bass', 'piano', 'instrumental',
+        'albums i own', 'my music', 'music', 'songs', 'track',
+        'artist', 'band', 'group', 'solo', 'duo',
+        'recommended', 'must hear', 'essential', 'influential',
+        'oldies', 'golden', 'timeless', 'nostalgic',
+        'radio', 'fm', 'am', 'playlist', 'compilation',
+        'cover', 'remix', 'live', 'acoustic', 'unplugged',
+        'studio', 'album', 'single', 'ep', 'lp'
+    }
+    
+    # Country/location tags (less useful for genre)
+    location_tags = {
+        'american', 'british', 'english', 'canadian', 'australian',
+        'german', 'french', 'italian', 'spanish', 'japanese',
+        'usa', 'uk', 'canada', 'australia', 'germany', 'france',
+        'italy', 'spain', 'japan', 'europe', 'america'
+    }
+    
+    filtered_genres = []
+    
+    for tag in tags:
+        if isinstance(tag, dict):
+            tag_name = tag.get('name', '').lower().strip()
+        else:
+            tag_name = str(tag).lower().strip()
+        
+        if not tag_name:
+            continue
+            
+        # Skip excluded tags
+        if tag_name in excluded_tags:
+            continue
+            
+        # Deprioritize location tags (add them later if needed)
+        if tag_name in location_tags:
+            continue
+            
+        # Skip very short tags (likely not meaningful genres)
+        if len(tag_name) < 3:
+            continue
+            
+        # Convert to title case and add to filtered list
+        filtered_genres.append(tag_name.title())
+    
+    return filtered_genres
+
 def search_lastfm_for_metadata(title, artist=None):
     """
     Search Last.fm API for metadata using the title and artist.
     Last.fm has excellent genre data and is free to use.
+    Enhanced to ensure at least 2 genres when possible.
     
     Args:
         title (str): Song title
@@ -646,26 +763,26 @@ def search_lastfm_for_metadata(title, artist=None):
                 )
             
             if title_match and artist_match:
-                # Extract genre from tags - check multiple possible tag sources
+                # Extract genre from tags - ensure we get at least 2 genres when possible
                 genre = None
+                genre_list = []
                 
                 # Check toptags first
                 if 'toptags' in track and 'tag' in track['toptags']:
                     tags = track['toptags']['tag']
                     if tags and len(tags) > 0:
-                        # Get the top 2 tags as genre
                         if isinstance(tags, list):
-                            genre_list = []
-                            for i, tag in enumerate(tags[:2]):  # Take first 2 tags
-                                tag_name = tag.get('name', '').title()
-                                if tag_name:
-                                    genre_list.append(tag_name)
-                            genre = ', '.join(genre_list) if genre_list else None
+                            filtered_track_genres = _filter_and_prioritize_genres(tags[:5])  # Check more tags for better filtering
+                            for genre_name in filtered_track_genres[:3]:  # Take up to 3 filtered track genres
+                                if genre_name not in genre_list:
+                                    genre_list.append(genre_name)
                         else:
-                            genre = tags.get('name', '').title()
+                            filtered_track_genres = _filter_and_prioritize_genres([tags])
+                            if filtered_track_genres:
+                                genre_list.extend(filtered_track_genres[:1])
                 
-                # If no genre from toptags, try to get artist tags
-                if not genre and isinstance(track.get('artist'), dict) and 'name' in track['artist']:
+                # If we don't have at least 2 genres, try to get artist tags
+                if len(genre_list) < 2 and isinstance(track.get('artist'), dict) and 'name' in track['artist']:
                     artist_name_for_tags = track['artist']['name']
                     artist_url = f"http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&api_key={api_key}&artist={urllib.parse.quote(artist_name_for_tags)}&autocorrect=1&format=json"
                     try:
@@ -676,16 +793,22 @@ def search_lastfm_for_metadata(title, artist=None):
                                 artist_tags = artist_data['toptags']['tag']
                                 if artist_tags and len(artist_tags) > 0:
                                     if isinstance(artist_tags, list):
-                                        genre_list = []
-                                        for i, tag in enumerate(artist_tags[:2]):  # Take first 2 tags
-                                            tag_name = tag.get('name', '').title()
-                                            if tag_name:
-                                                genre_list.append(tag_name)
-                                        genre = ', '.join(genre_list) if genre_list else None
+                                        filtered_artist_genres = _filter_and_prioritize_genres(artist_tags[:5])  # Check more tags for better filtering
+                                        for genre_name in filtered_artist_genres[:3]:  # Take up to 3 filtered artist genres
+                                            if genre_name not in genre_list:
+                                                genre_list.append(genre_name)
+                                                if len(genre_list) >= 2:  # Stop when we have at least 2
+                                                    break
                                     else:
-                                        genre = artist_tags.get('name', '').title()
+                                        filtered_artist_genres = _filter_and_prioritize_genres([artist_tags])
+                                        if filtered_artist_genres and filtered_artist_genres[0] not in genre_list:
+                                            genre_list.append(filtered_artist_genres[0])
                     except Exception as e:
                         print(f"\033[33m[LASTFM]\033[0m Error fetching artist tags: {e}")
+                
+                # Create genre string from collected genres
+                if genre_list:
+                    genre = ', '.join(genre_list[:2])  # Use at most 2 genres to keep it clean
                 
                 metadata = {
                     'title': track.get('name', title),
@@ -735,24 +858,26 @@ def search_lastfm_for_metadata(title, artist=None):
                         if 'track' in detail_data and detail_data['track']:
                             detail_track = detail_data['track']
                             
-                            # Extract genre from tags
+                            # Extract genre from tags - ensure we get at least 2 genres when possible
                             genre = None
+                            genre_list = []
+                            
+                            # Check toptags first
                             if 'toptags' in detail_track and 'tag' in detail_track['toptags']:
                                 tags = detail_track['toptags']['tag']
                                 if tags and len(tags) > 0:
-                                    # Get the top 2 tags as genre
                                     if isinstance(tags, list):
-                                        genre_list = []
-                                        for i, tag in enumerate(tags[:2]):  # Take first 2 tags
-                                            tag_name = tag.get('name', '').title()
-                                            if tag_name:
-                                                genre_list.append(tag_name)
-                                        genre = ', '.join(genre_list) if genre_list else None
+                                        filtered_track_genres = _filter_and_prioritize_genres(tags[:5])  # Check more tags for better filtering
+                                        for genre_name in filtered_track_genres[:3]:  # Take up to 3 filtered track genres
+                                            if genre_name not in genre_list:
+                                                genre_list.append(genre_name)
                                     else:
-                                        genre = tags.get('name', '').title()
+                                        filtered_track_genres = _filter_and_prioritize_genres([tags])
+                                        if filtered_track_genres:
+                                            genre_list.extend(filtered_track_genres[:1])
                             
-                            # If no genre from track tags, try artist tags
-                            if not genre and isinstance(detail_track.get('artist'), dict) and 'name' in detail_track['artist']:
+                            # If we don't have at least 2 genres, try to get artist tags
+                            if len(genre_list) < 2 and isinstance(detail_track.get('artist'), dict) and 'name' in detail_track['artist']:
                                 artist_name_for_tags = detail_track['artist']['name']
                                 artist_url = f"http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&api_key={api_key}&artist={urllib.parse.quote(artist_name_for_tags)}&autocorrect=1&format=json"
                                 try:
@@ -763,16 +888,22 @@ def search_lastfm_for_metadata(title, artist=None):
                                             artist_tags = artist_data['toptags']['tag']
                                             if artist_tags and len(artist_tags) > 0:
                                                 if isinstance(artist_tags, list):
-                                                    genre_list = []
-                                                    for i, tag in enumerate(artist_tags[:2]):  # Take first 2 tags
-                                                        tag_name = tag.get('name', '').title()
-                                                        if tag_name:
-                                                            genre_list.append(tag_name)
-                                                    genre = ', '.join(genre_list) if genre_list else None
+                                                    filtered_artist_genres = _filter_and_prioritize_genres(artist_tags[:5])  # Check more tags for better filtering
+                                                    for genre_name in filtered_artist_genres[:3]:  # Take up to 3 filtered artist genres
+                                                        if genre_name not in genre_list:
+                                                            genre_list.append(genre_name)
+                                                            if len(genre_list) >= 2:  # Stop when we have at least 2
+                                                                break
                                                 else:
-                                                    genre = artist_tags.get('name', '').title()
+                                                    filtered_artist_genres = _filter_and_prioritize_genres([artist_tags])
+                                                    if filtered_artist_genres and filtered_artist_genres[0] not in genre_list:
+                                                        genre_list.append(filtered_artist_genres[0])
                                 except Exception as e:
                                     print(f"\033[33m[LASTFM]\033[0m Error fetching artist tags: {e}")
+                            
+                            # Create genre string from collected genres
+                            if genre_list:
+                                genre = ', '.join(genre_list[:2])  # Use at most 2 genres to keep it clean
                             
                             metadata = {
                                 'title': detail_track.get('name', title),
@@ -823,23 +954,26 @@ def search_lastfm_fallback(title, artist, api_key, headers):
                 if 'track' in data and data['track']:
                     track = data['track']
                     
-                    # Extract genre from tags
+                    # Extract genre from tags - ensure we get at least 2 genres when possible
                     genre = None
+                    genre_list = []
+                    
+                    # Check toptags first
                     if 'toptags' in track and 'tag' in track['toptags']:
                         tags = track['toptags']['tag']
                         if tags and len(tags) > 0:
                             if isinstance(tags, list):
-                                genre_list = []
-                                for i, tag in enumerate(tags[:2]):  # Take first 2 tags
-                                    tag_name = tag.get('name', '').title()
-                                    if tag_name:
-                                        genre_list.append(tag_name)
-                                genre = ', '.join(genre_list) if genre_list else None
+                                filtered_track_genres = _filter_and_prioritize_genres(tags[:5])  # Check more tags for better filtering
+                                for genre_name in filtered_track_genres[:3]:  # Take up to 3 filtered track genres
+                                    if genre_name not in genre_list:
+                                        genre_list.append(genre_name)
                             else:
-                                genre = tags.get('name', '').title()
+                                filtered_track_genres = _filter_and_prioritize_genres([tags])
+                                if filtered_track_genres:
+                                    genre_list.extend(filtered_track_genres[:1])
                     
-                    # If no genre from track tags, try artist tags
-                    if not genre and isinstance(track.get('artist'), dict) and 'name' in track['artist']:
+                    # If we don't have at least 2 genres, try to get artist tags
+                    if len(genre_list) < 2 and isinstance(track.get('artist'), dict) and 'name' in track['artist']:
                         artist_name_for_tags = track['artist']['name']
                         artist_url = f"http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&api_key={api_key}&artist={urllib.parse.quote(artist_name_for_tags)}&autocorrect=1&format=json"
                         try:
@@ -850,16 +984,22 @@ def search_lastfm_fallback(title, artist, api_key, headers):
                                     artist_tags = artist_data['toptags']['tag']
                                     if artist_tags and len(artist_tags) > 0:
                                         if isinstance(artist_tags, list):
-                                            genre_list = []
-                                            for i, tag in enumerate(artist_tags[:2]):  # Take first 2 tags
-                                                tag_name = tag.get('name', '').title()
-                                                if tag_name:
-                                                    genre_list.append(tag_name)
-                                            genre = ', '.join(genre_list) if genre_list else None
+                                            filtered_artist_genres = _filter_and_prioritize_genres(artist_tags[:5])  # Check more tags for better filtering
+                                            for genre_name in filtered_artist_genres[:3]:  # Take up to 3 filtered artist genres
+                                                if genre_name not in genre_list:
+                                                    genre_list.append(genre_name)
+                                                    if len(genre_list) >= 2:  # Stop when we have at least 2
+                                                        break
                                         else:
-                                            genre = artist_tags.get('name', '').title()
+                                            filtered_artist_genres = _filter_and_prioritize_genres([artist_tags])
+                                            if filtered_artist_genres and filtered_artist_genres[0] not in genre_list:
+                                                genre_list.append(filtered_artist_genres[0])
                         except Exception as e:
                             print(f"\033[33m[LASTFM]\033[0m Error fetching artist tags in fallback: {e}")
+                    
+                    # Create genre string from collected genres
+                    if genre_list:
+                        genre = ', '.join(genre_list[:2])  # Use at most 2 genres to keep it clean
                     
                     artist_name = track.get('artist', {}).get('name', '') if isinstance(track.get('artist'), dict) else str(track.get('artist', ''))
                     

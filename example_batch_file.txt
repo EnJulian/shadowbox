@@ -1,0 +1,33 @@
+# Example batch download file for Shadowbox
+# 
+# This file demonstrates the different types of entries you can use:
+# 1. Song title and artist (will search YouTube)
+# 2. YouTube URLs
+# 3. Bandcamp URLs
+# 4. Comments (lines starting with #)
+# 5. Empty lines (ignored)
+#
+# Usage: Select option 5 in Shadowbox menu and provide the path to this file
+
+# Classic rock songs - will search YouTube for these
+Bohemian Rhapsody Queen
+Stairway to Heaven Led Zeppelin
+Hotel California Eagles
+Sweet Child O' Mine Guns N' Roses
+
+# Direct YouTube URLs
+# https://www.youtube.com/watch?v=dQw4w9WgXcQ
+# https://www.youtube.com/watch?v=9bZkp7q19f0
+
+# More songs to search for
+Imagine John Lennon
+Hey Jude The Beatles
+Like a Rolling Stone Bob Dylan
+
+# You can also use Bandcamp URLs
+# https://artist.bandcamp.com/track/song-name
+
+# Mix of different genres
+Billie Jean Michael Jackson
+Smells Like Teen Spirit Nirvana
+What's Going On Marvin Gaye

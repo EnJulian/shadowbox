@@ -1,0 +1,15 @@
+# Test file for batch download from text file
+# Lines starting with # are comments and will be ignored
+
+# Some popular songs for testing
+Bohemian Rhapsody Queen
+Stairway to Heaven Led Zeppelin
+Hotel California Eagles
+
+# YouTube URLs can also be used
+# https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+# Empty lines are ignored
+
+Imagine John Lennon
+Hey Jude The Beatles

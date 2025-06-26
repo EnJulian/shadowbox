@@ -260,6 +260,124 @@ def batch_download():
     success(f"Batch completed: {successful}/{len(songs)} targets acquired", "BATCH_COMPLETE")
     ui.input_prompt("Press Enter to continue", "CONTINUE")
 
+def batch_download_from_file():
+    """Download multiple songs from a text file."""
+    print_header()
+    ui.hacker_banner("FILE BATCH PROCESSING")
+    ui.section_divider()
+    
+    ui.info("Enter the path to a text file containing songs/URLs")
+    ui.info("Each line should contain one song or URL")
+    ui.info("Empty lines and lines starting with # will be ignored")
+    ui.info("Type 'back' to return to the main menu")
+    print()
+    
+    while True:
+        file_path = ui.input_prompt("Text file path", "FILE_PATH").strip()
+        
+        if file_path.lower() == 'back':
+            return
+        
+        if not file_path:
+            error("Please enter a file path")
+            continue
+        
+        # Expand user path (~)
+        file_path = os.path.expanduser(file_path)
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            error(f"File not found: {file_path}")
+            continue
+        
+        # Check if it's a file (not a directory)
+        if not os.path.isfile(file_path):
+            error(f"Path is not a file: {file_path}")
+            continue
+        
+        break
+    
+    # Read the file and extract songs/URLs
+    songs = []
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                # Skip empty lines and comments
+                if not line or line.startswith('#'):
+                    continue
+                songs.append(line)
+        
+        ui.info(f"Loaded {len(songs)} entries from file: {os.path.basename(file_path)}")
+        
+    except Exception as e:
+        error(f"Error reading file: {e}")
+        time.sleep(2)
+        return
+    
+    if not songs:
+        error("No valid songs/URLs found in the file")
+        time.sleep(2)
+        return
+    
+    # Show preview of first few entries
+    ui.info("Preview of entries:")
+    for i, song in enumerate(songs[:5]):
+        ui.info(f"  {i+1}. {song}")
+    if len(songs) > 5:
+        ui.info(f"  ... and {len(songs) - 5} more entries")
+    print()
+    
+    # Confirm before proceeding
+    confirm = ui.input_prompt(f"Proceed with downloading {len(songs)} entries? (y/n)", "CONFIRM").strip().lower()
+    if confirm not in ['y', 'yes']:
+        ui.info("Operation cancelled")
+        time.sleep(1)
+        return
+    
+    music_dir = get_music_directory()
+    use_spotify = get_use_spotify()
+    audio_format = get_audio_format()
+    
+    ui.directory(f"Music will be saved to: {music_dir}")
+    system(f"Using audio format: {audio_format}")
+    if use_spotify:
+        ui.api("Using Spotify for metadata enhancement")
+    
+    ui.loading_spinner(f"Initializing file batch processing for {len(songs)} targets", 1.5)
+    
+    successful = 0
+    failed_entries = []
+    
+    for i, song in enumerate(songs):
+        ui.progress_bar(i, len(songs), f"Processing file batch", f"({i+1}/{len(songs)})")
+        ui.download(f"Target: {song}", f"FILE_BATCH_{i+1}")
+        
+        if use_spotify:
+            download_success = run_with_spotify(song, music_dir=music_dir, audio_format=audio_format)
+        else:
+            download_success = run(song, music_dir=music_dir, audio_format=audio_format)
+            
+        if download_success:
+            successful += 1
+            success(f"Acquired: {song}", f"TARGET_{i+1}")
+        else:
+            failed_entries.append(f"Line {i+1}: {song}")
+            error(f"Failed: {song}", f"TARGET_{i+1}")
+    
+    ui.progress_bar(len(songs), len(songs), "File batch processing", "Complete")
+    success(f"File batch completed: {successful}/{len(songs)} targets acquired", "FILE_BATCH_COMPLETE")
+    
+    # Show failed entries if any
+    if failed_entries:
+        ui.info(f"Failed entries ({len(failed_entries)}):")
+        for failed in failed_entries[:10]:  # Show first 10 failed entries
+            ui.info(f"  {failed}")
+        if len(failed_entries) > 10:
+            ui.info(f"  ... and {len(failed_entries) - 10} more failed entries")
+    
+    ui.input_prompt("Press Enter to continue", "CONTINUE")
+
 def settings():
     """Change application settings."""
     while True:
@@ -717,7 +835,7 @@ For the simple command-line interface, use 'shadowbox-cli' instead.
         print_menu()
         first_run = False
         
-        choice = ui.input_prompt("Select an option (1-7)", "COMMAND").strip()
+        choice = ui.input_prompt("Select an option (1-8)", "COMMAND").strip()
         
         if choice == '1':
             search_and_download()
@@ -728,10 +846,12 @@ For the simple command-line interface, use 'shadowbox-cli' instead.
         elif choice == '4':
             batch_download()
         elif choice == '5':
-            settings()
+            batch_download_from_file()
         elif choice == '6':
-            view_downloads()
+            settings()
         elif choice == '7':
+            view_downloads()
+        elif choice == '8':
             exit_animation()
             sys.exit(0)
         else:

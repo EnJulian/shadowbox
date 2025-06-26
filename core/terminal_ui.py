@@ -390,6 +390,7 @@ class TerminalUI:
             (f"{Symbols.DOWNLOAD} Download from URL (YouTube or Bandcamp)", "URL_EXTRACT"),
             (f"{Symbols.MUSIC} Download YouTube playlist", "PLAYLIST_SYNC"),
             (f"{Symbols.FILE} Batch download from a list", "BATCH_PROCESS"),
+            (f"{Symbols.FILE} Batch download from text file", "FILE_BATCH_PROCESS"),
             (f"{Symbols.GEAR} Settings", "CONFIG_MODE"),
             (f"{Symbols.FOLDER} View downloaded songs", "ARCHIVE_VIEW"),
             (f"{Symbols.SKULL} Exit", "SYSTEM_HALT")
@@ -412,8 +413,8 @@ class TerminalUI:
         print(border_line)
         
         for i, (item, code) in enumerate(menu_items, 1):
-            # Use consistent styling for all options except exit (option 7)
-            number_color = self.theme['success'] if i != 7 else self.theme['error']
+            # Use consistent styling for all options except exit (option 8)
+            number_color = self.theme['success'] if i != 8 else self.theme['error']
             
             # Extract just the text part (remove the symbol)
             item_parts = item.split(' ', 1)

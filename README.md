@@ -35,7 +35,23 @@ Download the latest release for your platform from the [Releases page](https://g
 2. Extract the archive
 3. Run the executable directly
 
-### Option 2: Install from Source
+### Option 2: Docker (Recommended for Easy Setup)
+
+**Prerequisites:** Docker and Docker Compose
+
+```bash
+# Clone the repository
+git clone https://github.com/lsnen/shadowbox.git
+cd shadowbox
+
+# Quick setup and run
+./docker-run.sh setup
+./docker-run.sh run
+```
+
+For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
+
+### Option 3: Install from Source
 
 ```bash
 # Set up project structure after cloning
@@ -49,11 +65,33 @@ setup\install.bat    # Windows
 
 ## Execution
 
-Interactive:
+### Docker (Recommended)
+```bash
+# Interactive mode (recommended - better terminal support)
+./docker-run.sh run
+
+# CLI mode for single downloads
+./docker-run.sh cli "Artist - Song Title"
+
+# Background mode
+./docker-run.sh background
+
+# Check dependencies
+./docker-run.sh check
+
+# Rebuild container (if needed)
+./docker-run.sh rebuild
+
+# Test interactive mode
+./test-interactive.sh
+```
+
+### Native Installation
 ```bash
 ./shbox.sh        # Linux/macOS
 shbox.bat         # Windows
 ```
+
 In the interactive app, you can enable Spotify metadata in the Settings menu.
 
 ## How It Works

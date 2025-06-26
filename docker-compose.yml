@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  shadowbox:
+    build: .
+    container_name: shadowbox
+    stdin_open: true
+    tty: true
+    environment:
+      # Terminal configuration for interactive mode
+      - TERM=xterm-256color
+      # Spotify API credentials (optional)
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+      # Genius API credentials (optional)
+      - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN:-}
+    volumes:
+      # Mount downloads directory to persist downloaded files
+      - ./downloads:/app/downloads
+      # Mount music directory for organized output
+      - ./music:/app/music
+      # Mount user Music directory for downloads
+      - ./music:/home/appuser/Music
+      # Mount config directory for settings persistence
+      - ./config:/home/appuser/.config
+    working_dir: /app
+    # Override default command for different modes
+    # Uncomment one of the following based on your preference:
+    
+    # Interactive mode (default) - Note: Use docker-compose run for better interaction
+    command: ["python", "/app/core/shbox.py"]
+    
+    # CLI mode example (uncomment and modify as needed)
+    # command: ["python", "/app/core/main.py", "-q", "your search query here"]
+    
+    # Keep container running for manual commands
+    # command: ["tail", "-f", "/dev/null"]
+
+# Optional: Add a web interface service (for future enhancement)
+# services:
+#   shadowbox-web:
+#     build: .
+#     container_name: shadowbox-web
+#     ports:
+#       - "8000:8000"
+#     environment:
+#       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+#       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+#       - GENIUS_ACCESS_TOKEN=${GENIUS_ACCESS_TOKEN:-}
+#     volumes:
+#       - ./downloads:/app/downloads
+#       - ./music:/app/music
+#       - ./config:/home/appuser/.config
+#     command: ["python", "-m", "http.server", "8000"]

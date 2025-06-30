@@ -391,6 +391,98 @@ def search_spotify_for_metadata(title, artist=None):
         
         # If we reach here, we have results either from the original search or from one of the fallback searches
         
+        # Validate the results - if we have an original artist, check if the found artist is reasonable
+        if artist and results['tracks']['items']:
+            found_track = results['tracks']['items'][0]
+            found_artists = [artist_info['name'] for artist_info in found_track['artists']]
+            found_artist_str = ', '.join(found_artists)
+            
+            # Check if the found artist is reasonably similar to the original artist
+            def artists_are_similar(original, found):
+                """Check if two artist names are reasonably similar."""
+                original_lower = original.lower().strip()
+                found_lower = found.lower().strip()
+                
+                # Handle empty strings
+                if not original_lower or not found_lower:
+                    return False
+                
+                # Exact match
+                if original_lower == found_lower:
+                    return True
+                
+                # Check if one contains the other (for cases like "Artist" vs "Artist feat. Someone")
+                # But only if both have reasonable length to avoid false positives
+                if len(original_lower) >= 3 and len(found_lower) >= 3:
+                    if original_lower in found_lower or found_lower in original_lower:
+                        return True
+                
+                # Check if they share significant words (for cases like "Artist Name" vs "Artist")
+                original_words = set(original_lower.split())
+                found_words = set(found_lower.split())
+                
+                # Filter out common/generic words that shouldn't be used for matching
+                common_words = {'artist', 'band', 'group', 'music', 'the', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'word'}
+                original_words = {word for word in original_words if word not in common_words and len(word) >= 3}
+                found_words = {word for word in found_words if word not in common_words and len(word) >= 3}
+                
+                # Only proceed if both have meaningful words after filtering
+                if original_words and found_words:
+                    overlap = len(original_words & found_words)
+                    min_words = min(len(original_words), len(found_words))
+                    # Require at least 50% overlap and at least one meaningful word match
+                    if overlap > 0 and overlap / min_words >= 0.5:
+                        return True
+                
+                # Handle transliteration cases (e.g., Japanese vs English names)
+                # Check if one name contains non-ASCII characters (likely different script)
+                def has_non_ascii(text):
+                    return any(ord(char) > 127 for char in text)
+                
+                def has_cjk_characters(text):
+                    """Check if text contains Chinese, Japanese, or Korean characters."""
+                    return any('\u4e00' <= char <= '\u9fff' or  # CJK Unified Ideographs
+                              '\u3040' <= char <= '\u309f' or  # Hiragana
+                              '\u30a0' <= char <= '\u30ff' or  # Katakana
+                              '\uac00' <= char <= '\ud7af'     # Hangul
+                              for char in text)
+                
+                original_has_non_ascii = has_non_ascii(original)
+                found_has_non_ascii = has_non_ascii(found)
+                original_has_cjk = has_cjk_characters(original)
+                found_has_cjk = has_cjk_characters(found)
+                
+                # If one has CJK characters and the other doesn't, they might be transliterations
+                # This is common for Japanese artists who have both Japanese and romanized names
+                if (original_has_cjk and not found_has_cjk) or (found_has_cjk and not original_has_cjk):
+                    # For CJK transliteration cases, we'll allow the match
+                    # This handles cases like "石元 丈晴" vs "Takeharu Ishimoto"
+                    return True
+                
+                # For other non-ASCII cases (like accented characters), be more restrictive
+                if original_has_non_ascii != found_has_non_ascii:
+                    # Check if they might be the same name with/without accents
+                    # Remove common accents and compare
+                    import unicodedata
+                    def remove_accents(text):
+                        return ''.join(c for c in unicodedata.normalize('NFD', text)
+                                     if unicodedata.category(c) != 'Mn')
+                    
+                    original_no_accents = remove_accents(original_lower)
+                    found_no_accents = remove_accents(found_lower)
+                    
+                    if original_no_accents == found_no_accents:
+                        return True
+                
+                return False
+            
+            # Check if any of the found artists are similar to the original
+            is_similar = any(artists_are_similar(artist, found_artist) for found_artist in found_artists)
+            
+            if not is_similar:
+                print(f"\033[33m[SPOTIFY]\033[0m Found track '{found_track['name']}' by '{found_artist_str}' but artist doesn't match original '{artist}' - rejecting match")
+                return None
+        
         # Get the first track
         track = results['tracks']['items'][0]
         

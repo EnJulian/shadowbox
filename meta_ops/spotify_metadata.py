@@ -1236,7 +1236,7 @@ def process_youtube_url_with_spotify(youtube_url, output_file=None, audio_format
     
     if not title:
         print(f"\033[31m[ERROR]\033[0m Could not extract title from YouTube URL")
-        return False
+        return False, None
     
     print(f"\033[32m[INFO]\033[0m Extracted from YouTube: Title='{title}', Artist='{artist or 'Unknown'}'")
     

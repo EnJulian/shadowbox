@@ -116,16 +116,14 @@ def download_audio(query, output_file='%(title)s.%(ext)s', use_spotify_metadata=
         if is_bandcamp_url(query):
             audio("Detected Bandcamp URL, using Bandcamp-specific settings...")
             return download_from_bandcamp(query, output_file, audio_format)
-        elif is_youtube_playlist(query):
-            audio("Detected YouTube playlist URL, downloading playlist...")
-            return download_youtube_playlist(query, output_file, audio_format)
-        elif is_youtube_url(query) and use_spotify_metadata:
-            audio("Detected YouTube URL, using Spotify for metadata...")
-            from meta_ops.spotify_metadata import process_youtube_url_with_spotify
-            return process_youtube_url_with_spotify(query, output_file, audio_format)
-        else:
-            audio("Detected YouTube URL, using YouTube-specific settings...")
-            return download_from_youtube(query, output_file, audio_format)
+        elif is_youtube_url(query):
+            if use_spotify_metadata:
+                audio("Detected YouTube URL, using Spotify for metadata...")
+                from meta_ops.spotify_metadata import process_youtube_url_with_spotify
+                return process_youtube_url_with_spotify(query, output_file, audio_format)
+            else:
+                audio("Detected YouTube URL, using standard download...")
+                return download_from_youtube(query, output_file, audio_format)
     else:
         # If it's not a URL, search on YouTube
         scan(f"Searching for: {query}")
@@ -343,76 +341,12 @@ def download_from_youtube(url_or_query, output_file, audio_format='opus'):
     
     return False
 
-def download_youtube_playlist(url, output_file, audio_format='opus'):
-    """
-    Download a YouTube playlist using specified settings.
-    
-    Args:
-        url (str): The YouTube playlist URL
-        output_file (str): The output file path pattern
-        audio_format (str, optional): The audio format to download. Defaults to 'opus'.
-                                     Supported formats: opus, m4a, mp3, flac, wav, etc.
-        
-    Returns:
-        list: List of downloaded file paths if successful, empty list if failed
-    """
-    try:
-        # Create a temporary directory for playlist downloads
-        temp_dir = os.path.join(os.getcwd(), 'temp_playlist')
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        # Modify output pattern to include playlist index
-        playlist_output = os.path.join(temp_dir, "%(playlist_index)s - %(title)s.%(ext)s")
-        
-        # Use the exact command format that's known to work well with playlists
-        cmd = [
-            "yt-dlp",
-            "-f", "bestaudio",
-            "--extract-audio",
-            "--audio-format", audio_format,
-            "--audio-quality", "0",
-            "--embed-metadata",
-            "--embed-thumbnail",
-            "--add-metadata",
-            "--metadata-from-title", "%(artist)s - %(title)s",
-            "--parse-metadata", "%(playlist)s:%(album)s",  # Set playlist name as album
-            "-o", playlist_output,
-            url
-        ]
-        
-        if get_verbose_logging():
-            print(f"\033[32m[GET]\033[0m Downloading playlist using command: {' '.join(cmd)}")
-        subprocess.run(cmd, check=True)
-        
-        # Check if files exist after download
-        downloaded_files = []
-        
-        # Special case for ALAC format which gets converted to M4A by yt-dlp
-        if audio_format.lower() == 'alac':
-            downloaded_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.endswith('.m4a')]
-        else:
-            downloaded_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.endswith(f'.{audio_format}')]
-        
-        if downloaded_files:
-            if get_verbose_logging():
-                print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} files from playlist")
-            # Sort files by playlist index (which should be at the start of the filename)
-            downloaded_files.sort(key=lambda x: int(os.path.basename(x).split(' - ')[0]) if os.path.basename(x).split(' - ')[0].isdigit() else 999)
-            return downloaded_files
-        
-        # If no files were found, show an error
-        if audio_format.lower() == 'alac':
-            print(f"\033[31m[FAIL]\033[0m No m4a files found after download (ALAC is converted to M4A)")
-        else:
-            print(f"\033[31m[FAIL]\033[0m No {audio_format} files found after download")
-        return []
-    except Exception as e:
-        print(f"\033[31m[ERROR]\033[0m Error downloading YouTube playlist: {e}")
-        return []
+
 
 def download_from_bandcamp(url, output_file, audio_format='opus'):
     """
     Download audio from Bandcamp using specified settings.
+    Handles both single tracks and full albums, preserving original metadata.
     
     Args:
         url (str): The Bandcamp URL
@@ -421,54 +355,68 @@ def download_from_bandcamp(url, output_file, audio_format='opus'):
                                      Supported formats: opus, m4a, mp3, flac, wav, etc.
         
     Returns:
-        bool: True if successful, False otherwise
+        list or bool: List of downloaded file paths if successful, False otherwise
     """
     try:
+        # Create a temporary directory for Bandcamp downloads to handle multiple files
+        temp_dir = os.path.join(os.getcwd(), 'temp_bandcamp')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Set output pattern to save files in the temporary directory
+        # This pattern is optimized for Bandcamp albums, including track number, artist, and title
+        bandcamp_output = os.path.join(temp_dir, "%(playlist_index)s - %(artist)s - %(title)s.%(ext)s")
+        
+        # Command optimized for Bandcamp to preserve all metadata and handle albums
         cmd = [
             "yt-dlp",
-            "--downloader", "aria2c",
-            "--audio-quality", "0",
+            "-x",  # Extract audio
             "--audio-format", audio_format,
-            "-x",
-            "-f", "ba",
-            "--embed-metadata",
-            "--embed-thumbnail",
-            "-o", output_file,
+            "--audio-quality", "0",  # Best quality
+            "--embed-metadata",  # Embed all available metadata
+            "--embed-thumbnail",  # Embed album art
+            "--parse-metadata", "%(playlist_index)s:%(track_number)s",  # Get track number
+            "--parse-metadata", "%(playlist)s:%(album)s",  # Get album title
+            "-o", bandcamp_output,
             url
         ]
         
         if get_verbose_logging():
-            print(f"\033[32m[GET]\033[0m Downloading audio using command: {' '.join(cmd)}")
+            print(f"\033[32m[GET]\033[0m Downloading from Bandcamp using command: {' '.join(cmd)}")
+        
+        # Run the command
         subprocess.run(cmd, check=True)
         
-        # Check if file exists after download
-        # Note: yt-dlp will replace %(title)s and %(ext)s with actual values
-        # So we need to check if any files with the specified format were created
-        output_dir = os.path.dirname(output_file)
-        if not output_dir:
-            output_dir = "."
+        # Check for downloaded files in the temporary directory
+        downloaded_files = []
+        target_ext = '.m4a' if audio_format.lower() == 'alac' else f'.{audio_format}'
         
-        # Special case for ALAC format which gets converted to M4A by yt-dlp
-        if audio_format.lower() == 'alac':
-            m4a_files = [f for f in os.listdir(output_dir) if f.endswith('.m4a')]
-            if m4a_files:
-                if get_verbose_logging():
-                    print(f"\033[32m[SUCCESS]\033[0m Download complete (converted from ALAC to M4A): {m4a_files[0]}")
-                return True
+        for f in os.listdir(temp_dir):
+            if f.endswith(target_ext):
+                downloaded_files.append(os.path.join(temp_dir, f))
         
-        # Check for files with the specified format
-        format_files = [f for f in os.listdir(output_dir) if f.endswith(f'.{audio_format}')]
-        if format_files:
+        if downloaded_files:
             if get_verbose_logging():
-                print(f"\033[32m[SUCCESS]\033[0m Download complete: {format_files[0]}")
-            return True
+                print(f"\033[32m[SUCCESS]\033[0m Downloaded {len(downloaded_files)} file(s) from Bandcamp")
+            # If only one file, return it as a single success
+            if len(downloaded_files) == 1:
+                # Move the single file to the expected output location
+                final_path = output_file.replace('%(ext)s', target_ext.strip('.'))
+                os.rename(downloaded_files[0], final_path)
+                # Clean up temp dir
+                os.rmdir(temp_dir)
+                return True
+            else:
+                # For multiple files (album), return the list of paths
+                return downloaded_files
         
-        # If we're looking for ALAC but didn't find M4A files, show a more helpful error
-        if audio_format.lower() == 'alac':
-            print(f"\033[31m[FAIL]\033[0m No m4a files found after download (ALAC is converted to M4A)")
-        else:
-            print(f"\033[31m[FAIL]\033[0m No {audio_format} files found after download")
+        # If no files were found, show an error
+        error(f"No {target_ext} files found after download from Bandcamp", "FAIL")
         return False
+        
     except Exception as e:
-        print(f"\033[31m[ERROR]\033[0m Error downloading from Bandcamp: {e}")
+        error(f"Error downloading from Bandcamp: {e}")
+        # Clean up temp dir on error
+        if os.path.exists(temp_dir):
+            import shutil
+            shutil.rmtree(temp_dir)
         return False

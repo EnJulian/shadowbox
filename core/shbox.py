@@ -24,7 +24,7 @@ except ImportError:
     from main import run, run_with_spotify, run_playlist, run_playlist_with_spotify, sanitize_filename
     from terminal_ui import ui, clear_screen, print_header, print_menu, success, error, warning, info, system, exit_animation
 
-from meta_ops.downloader import is_youtube_playlist
+from meta_ops.downloader import is_youtube_playlist, is_bandcamp_url
 from meta_ops.settings import get_verbose_logging, set_verbose_logging
 
 # Enhanced terminal UI functions are imported from terminal_ui module
@@ -145,8 +145,7 @@ def search_and_download():
     
     ui.directory(f"Music will be saved to: {music_dir}")
     system(f"Using audio format: {audio_format}")
-    if use_spotify:
-        ui.api("Using Spotify for metadata enhancement")
+    
     
     ui.loading_spinner("Initializing download sequence", 1.0)
     
@@ -187,12 +186,12 @@ def download_from_url():
     
     ui.directory(f"Music will be saved to: {music_dir}")
     system(f"Using audio format: {audio_format}")
-    if use_spotify:
+    if use_spotify and not is_bandcamp_url(url):
         ui.api("Using Spotify for metadata enhancement")
     
     ui.loading_spinner("Initiating URL extraction", 1.0)
     
-    if use_spotify:
+    if use_spotify and not is_bandcamp_url(url):
         download_success = run_with_spotify(url, music_dir=music_dir, audio_format=audio_format)
     else:
         download_success = run(url, music_dir=music_dir, audio_format=audio_format)
@@ -235,8 +234,7 @@ def batch_download():
     
     ui.directory(f"Music will be saved to: {music_dir}")
     system(f"Using audio format: {audio_format}")
-    if use_spotify:
-        ui.api("Using Spotify for metadata enhancement")
+    
     
     ui.loading_spinner(f"Initializing batch processing for {len(songs)} targets", 1.5)
     
@@ -245,7 +243,7 @@ def batch_download():
         ui.progress_bar(i, len(songs), f"Processing batch", f"({i}/{len(songs)})")
         ui.download(f"Target: {song}", f"BATCH_{i+1}")
         
-        if use_spotify:
+        if use_spotify and not is_bandcamp_url(song):
             download_success = run_with_spotify(song, music_dir=music_dir, audio_format=audio_format)
         else:
             download_success = run(song, music_dir=music_dir, audio_format=audio_format)
@@ -341,8 +339,7 @@ def batch_download_from_file():
     
     ui.directory(f"Music will be saved to: {music_dir}")
     system(f"Using audio format: {audio_format}")
-    if use_spotify:
-        ui.api("Using Spotify for metadata enhancement")
+    
     
     ui.loading_spinner(f"Initializing file batch processing for {len(songs)} targets", 1.5)
     
@@ -353,7 +350,7 @@ def batch_download_from_file():
         ui.progress_bar(i, len(songs), f"Processing file batch", f"({i+1}/{len(songs)})")
         ui.download(f"Target: {song}", f"FILE_BATCH_{i+1}")
         
-        if use_spotify:
+        if use_spotify and not is_bandcamp_url(song):
             download_success = run_with_spotify(song, music_dir=music_dir, audio_format=audio_format)
         else:
             download_success = run(song, music_dir=music_dir, audio_format=audio_format)

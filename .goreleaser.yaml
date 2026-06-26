@@ -98,7 +98,7 @@ release:
 
     ### Homebrew (macOS / Linux)
     ```
-    brew install EnJulian/shadowbox/shadowbox
+    brew install EnJulian/shadowbox
     ```
 
     ### WinGet (Windows)

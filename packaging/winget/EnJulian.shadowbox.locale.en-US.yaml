@@ -1,0 +1,28 @@
+# Locale manifest (reference).
+PackageIdentifier: EnJulian.shadowbox
+PackageVersion: <VERSION>
+PackageLocale: en-US
+Publisher: EnJulian
+PublisherUrl: https://github.com/EnJulian
+PackageName: Shadowbox
+PackageUrl: https://github.com/EnJulian/shadowbox
+License: MIT
+LicenseUrl: https://github.com/EnJulian/shadowbox/blob/main/LICENSE
+ShortDescription: Music acquisition CLI for YouTube and Bandcamp.
+Description: >-
+  Shadowbox downloads audio from YouTube and Bandcamp, converts it with ffmpeg,
+  and injects rich metadata, cover art, and lyrics from Spotify, iTunes,
+  Last.fm, and Genius.
+Tags:
+  - audio
+  - music
+  - youtube
+  - bandcamp
+  - cli
+  - yt-dlp
+Documentation:
+  - DocumentLabel: README
+    DocumentUrl: https://github.com/EnJulian/shadowbox/blob/main/README.md
+ReleaseNotesUrl: https://github.com/EnJulian/shadowbox/releases/tag/v<VERSION>
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

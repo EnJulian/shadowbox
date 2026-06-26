@@ -1,0 +1,7 @@
+# Version manifest (reference). Submitted automatically to microsoft/winget-pkgs
+# by the release workflow; replace <VERSION> when crafting a manual submission.
+PackageIdentifier: EnJulian.shadowbox
+PackageVersion: <VERSION>
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.6.0

@@ -1,0 +1,22 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  settings:
+    errcheck:
+      # These calls are conventionally fire-and-forget in this codebase.
+      exclude-functions:
+        - (io.Closer).Close
+        - os.RemoveAll
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+  exclusions:
+    rules:
+      # Tests frequently ignore write/encode errors for brevity.
+      - path: _test\.go
+        linters:
+          - errcheck

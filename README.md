@@ -1,254 +1,194 @@
-<div align="center">
+# Shadowbox
 
-```
-           ███████╗██╗  ██╗ █████╗ ██████╗  ██████╗ ██╗    ██╗██████╗  ██████╗ ██╗  ██╗
-           ██╔════╝██║  ██║██╔══██╗██╔══██╗██╔═══██╗██║    ██║██╔══██╗██╔═══██╗╚██╗██╔╝
-           ███████╗███████║███████║██║  ██║██║   ██║██║ █╗ ██║██████╔╝██║   ██║ ╚███╔╝ 
-           ╚════██║██╔══██║██╔══██║██║  ██║██║   ██║██║███╗██║██╔══██╗██║   ██║ ██╔██╗ 
-           ███████║██║  ██║██║  ██║██████╔╝╚██████╔╝╚███╔███╔╝██████╔╝╚██████╔╝██╔╝ ██╗
-           ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝  ╚═════╝  ╚══╝╚══╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝
-```
+Shadowbox is a fast, single-binary music acquisition tool. It downloads audio
+from YouTube and Bandcamp, converts it to Opus (or your chosen format), and
+injects rich metadata, cover art, and lyrics — then files everything neatly under
+`~/Music/Artist/Album/`.
 
-</div>
+It ships as one statically-linked Go binary with no runtime to install. You only
+need a couple of external tools on your `PATH`.
 
-Music acquisition command line tool that rips audio from YouTube/Bandcamp, converts to Opus, and injects metadata + album art.
+## Features
+
+- Download from YouTube videos, YouTube playlists, and Bandcamp.
+- Robust downloading with three `yt-dlp` strategies (aria2 acceleration, a
+  standard pass, and a browser-simulating fallback for anti-bot situations).
+- Metadata enrichment from Spotify, with a Last.fm genre fallback.
+- Cover art from Spotify, falling back to the iTunes Search API.
+- Lyrics embedding via Genius.
+- Pure-Go tag writing for Opus, MP3, M4A, and FLAC (cover art and lyrics
+  included) — no `ffmpeg` round-trip for tagging.
+- An interactive terminal interface with five themes, settings, and a library
+  browser, plus a fully scriptable CLI.
+
+## Requirements
+
+Shadowbox shells out to a few well-known tools:
+
+| Tool | Required | Purpose |
+|------|----------|---------|
+| [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) | yes | downloading audio |
+| [`ffmpeg`](https://ffmpeg.org/) | yes | audio extraction and conversion |
+| [`aria2`](https://aria2.github.io/) | optional | faster, multi-connection downloads |
+
+Run `shadowbox doctor` at any time to check what is installed and configured.
 
 ## Installation
 
-### Option 1: Download Pre-built Binaries
-
-Download the latest release for your platform from the [Releases page](https://github.com/lsnen/shadowbox/releases):
-
-- **Linux (x64)**: `shadowbox-linux-x64.tar.gz`
-- **Windows (x64)**: `shadowbox-windows-x64.zip`
-- **macOS (Intel)**: `shadowbox-macos-x64.tar.gz`
-- **macOS (Apple Silicon)**: `shadowbox-macos-arm64.tar.gz`
-
-**Prerequisites:**
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (for audio downloading)
-- [FFmpeg](https://ffmpeg.org/) (for audio processing)
-- [aria2](https://aria2.github.io/) (for faster downloads) (optional)
-
-
-**Installation steps:**
-1. Download the appropriate file for your platform
-2. Extract the archive
-3. Run the executable directly
-
-### Option 2: Docker (Recommended for Easy Setup)
-
-**Prerequisites:** Docker and Docker Compose
+### Homebrew (macOS / Linux)
 
 ```bash
-# Clone the repository
-git clone https://github.com/lsnen/shadowbox.git
+brew tap EnJulian/shadowbox
+brew install shadowbox
+```
+
+(Or as a one-liner: `brew install EnJulian/shadowbox/shadowbox`.)
+
+This pulls in `ffmpeg` and `yt-dlp` automatically. Add `aria2` for faster
+downloads: `brew install aria2`.
+
+### WinGet (Windows)
+
+```bash
+winget install EnJulian.shadowbox
+```
+
+Install the dependencies separately, for example with WinGet:
+
+```bash
+winget install yt-dlp.yt-dlp Gyan.FFmpeg aria2.aria2
+```
+
+### Manual
+
+Download the archive for your platform from the
+[latest release](https://github.com/EnJulian/shadowbox/releases/latest),
+extract it, and place the `shadowbox` binary on your `PATH`.
+
+### From source
+
+```bash
+git clone https://github.com/EnJulian/shadowbox.git
 cd shadowbox
-
-# Quick setup and run
-./docker-run.sh setup
-./docker-run.sh run
+make build      # produces ./shadowbox
 ```
 
-For detailed Docker instructions, see [DOCKER.md](DOCKER.md).
+## Usage
 
-### Option 3: Install from Source
+Run Shadowbox with no arguments to launch the interactive interface:
 
 ```bash
-# Set up project structure after cloning
-./setup/organize.sh  # Linux/macOS
-setup\organize.bat   # Windows (may require admin privileges)
-
-# Install dependencies
-./setup/install.sh   # Linux/macOS
-setup\install.bat    # Windows
+shadowbox
 ```
 
-## Execution
+Or use the CLI directly:
 
-### Docker (Recommended)
 ```bash
-# Interactive mode (recommended - better terminal support)
-./docker-run.sh run
+# Search and download
+shadowbox download -q "Imagine Dragons Believer"
 
-# CLI mode for single downloads
-./docker-run.sh cli "Artist - Song Title"
+# Download a specific URL (YouTube or Bandcamp)
+shadowbox download -q "https://youtu.be/7wtfhZwyrcc"
 
-# Background mode
-./docker-run.sh background
+# Download a whole playlist
+shadowbox download -q "https://www.youtube.com/playlist?list=..."
 
-# Check dependencies
-./docker-run.sh check
+# Use Spotify metadata, choose a format and output directory
+shadowbox download -q "Adele Hello" -s -f opus -d ~/Music
 
-# Rebuild container (if needed)
-./docker-run.sh rebuild
+# Tag an existing file in place
+shadowbox tag -f track.opus -t "Hello" -a "Adele"
 
-# Test interactive mode
-./test-interactive.sh
+# Batch-enhance a directory of files
+shadowbox enhance ~/Music/Unsorted -r
 ```
 
-### Native Installation
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `shadowbox` | Launch the interactive interface |
+| `shadowbox download` | Download a track or playlist and tag it |
+| `shadowbox tag` | Tag an existing file, or download using Spotify metadata |
+| `shadowbox enhance <dir>` | Batch-enhance existing audio files |
+| `shadowbox config` | View and edit configuration |
+| `shadowbox doctor` | Check external tools and credentials |
+| `shadowbox version` | Print version information |
+
+### `download` flags
+
+| Flag | Description |
+|------|-------------|
+| `-q, --query` | Song title and artist, or a URL |
+| `-d, --directory` | Base music directory (default `~/Music`) |
+| `-o, --output` | Output filename override (no extension) |
+| `-f, --format` | Audio format: `opus`, `m4a`, `mp3`, `flac`, `wav` |
+| `-s, --spotify` | Use Spotify for metadata |
+| `-v, --verbose` | Verbose logging |
+
+## Configuration
+
+Configuration lives at `~/.config/shadowbox/config.yaml` (or the platform
+equivalent) and can be managed with the `config` command:
+
 ```bash
-./shbox.sh        # Linux/macOS
-shbox.bat         # Windows
+shadowbox config set spotify.client_id     YOUR_ID
+shadowbox config set spotify.client_secret YOUR_SECRET
+shadowbox config set genius.access_token   YOUR_TOKEN
+shadowbox config set audio_format          opus
+shadowbox config list
 ```
 
-In the interactive app, you can enable Spotify metadata in the Settings menu.
+Credentials may also be supplied through environment variables, which take
+precedence over the config file:
 
-## How It Works
+- `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`
+- `GENIUS_ACCESS_TOKEN`
+- Any `SHADOWBOX_*` equivalent (e.g. `SHADOWBOX_AUDIO_FORMAT`).
 
-1. Infiltrates YouTube/Bandcamp
-2. Extracts highest quality audio stream
-3. Transmutes to the superior Opus format
-4. Injects metadata + cover art from Spotify (primary) or iTunes (fallback)
-5. Auto-organizes by artist
+On first run, an existing `~/.shadowbox_settings.json` from the previous Python
+version is imported automatically.
 
-## Flags
+### Getting API credentials
 
-- `-q` query/URL
-- `-d` output directory
-- `-o` filename override
-- `-s` use Spotify for metadata
+- **Spotify**: create an app at the
+  [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) to get a
+  client ID and secret. Used for metadata and cover art.
+- **Genius**: create a client at
+  [Genius API](https://genius.com/api-clients) to get an access token. Used for
+  lyrics.
 
-## Project Structure
+Shadowbox works without these — it falls back to iTunes for cover art and
+Last.fm for genres — but Spotify and Genius produce the best results.
 
-- `core/` - Main application files
-- `meta_ops/` - Metadata and download operations
-- `exec_bin/` - Executable scripts
-- `tests/` - Test files
-- `setup/` - Installation and setup files
+## Project layout
 
+```
+cmd/shadowbox/        program entry point
+internal/
+  cmd/                Cobra commands
+  config/             Viper config + legacy JSON migration
+  app/                download-and-tag pipeline orchestration
+  download/           yt-dlp wrapper, strategies, URL routing
+  apis/               Spotify, iTunes, Last.fm, Genius clients
+  cover/              cover-art resolution cascade
+  tag/                pure-Go tag writers (opus, mp3, m4a, flac)
+  organize/           filename/dir sanitisation and layout
+  ui/                 Bubble Tea interactive interface and themes
+  log/                styled, tagged output
+packaging/            Homebrew and WinGet manifest references
+.goreleaser.yaml      release configuration
+```
 
-## Spotify Integration
+## Development
 
-shadowbox uses Spotify for both album covers and metadata enrichment, with iTunes as a fallback for cover art.
-
-**During installation**, you'll be prompted to set up Spotify integration. If you choose to set it up:
-
-1. You'll need a Spotify Developer account at [developer.spotify.com](https://developer.spotify.com/dashboard/)
-2. Create a new application to get your Client ID and Client Secret
-3. Enter these credentials when prompted during installation
-
-**To set up later or update credentials**:
 ```bash
-./setup/setup_spotify.sh
+make test     # go test -race ./...
+make lint     # golangci-lint run
+make build    # build the binary
+make snapshot # cross-platform build via GoReleaser
 ```
 
-**To verify your Spotify credentials are working**:
-```bash
-./setup/test_spotify.sh
-```
+## License
 
-**For future sessions**, you may need to load your credentials:
-```bash
-source ~/.shadowbox_spotify
-```
-(Consider adding this line to your shell profile for convenience)
-
-### Using Spotify Metadata for YouTube Downloads
-
-shadowbox can now find and bind Spotify metadata to music files downloaded from YouTube:
-
-**Download a YouTube video and tag it with Spotify metadata**:
-```bash
-./exec_bin/spotify_tag.sh https://www.youtube.com/watch?v=dQw4w9WgXcQ
-```
-
-**Specify an output file**:
-```bash
-./exec_bin/spotify_tag.sh -o my_song.opus https://www.youtube.com/watch?v=dQw4w9WgXcQ
-```
-
-**Tag an existing file with Spotify metadata**:
-```bash
-./exec_bin/spotify_tag.sh -f existing_song.opus -t "Never Gonna Give You Up" -a "Rick Astley"
-```
-
-**Search YouTube and download with Spotify metadata**:
-```bash
-./exec_bin/spotify_tag.sh "Rick Astley Never Gonna Give You Up"
-```
-
-**Enhance multiple files in a directory**:
-```bash
-./exec_bin/enhance_files.py /path/to/music/directory
-```
-
-If Spotify credentials are not configured, the application will automatically fall back to using iTunes for album covers and will not be able to use Spotify metadata.
-
-### Tools and Libraries
-This project wouldn't be possible without the following tools:
-
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) - A youtube-dl fork with additional features and fixes
-- [FFmpeg](https://ffmpeg.org/) - A complete, cross-platform solution to record, convert and stream audio and video
-- [mutagen](https://github.com/quodlibet/mutagen) - A Python module to handle audio metadata
-- [requests](https://github.com/psf/requests) - A simple, yet elegant, HTTP library for Python
-- [Pillow](https://python-pillow.org/) - Python Imaging Library fork
-- [aria2](https://aria2.github.io/) - A lightweight multi-protocol & multi-source command-line download utility
-- [spotipy](https://spotipy.readthedocs.io/) - A lightweight Python library for the Spotify Web API
-
-## Troubleshooting
-
-### YouTube Download Issues
-
-If you encounter the error `"Sign in to confirm you're not a bot"` when downloading from YouTube, this is due to YouTube's anti-bot detection measures. Shadowbox includes several solutions:
-
-#### Quick Fix: Update yt-dlp
-
-**Using Shadowbox Interface:**
-1. Run Shadowbox
-2. Go to Settings (option 4)
-3. Select "Update yt-dlp" (option 5)
-4. Follow the prompts
-
-**Using Command Line:**
-```bash
-# Windows
-setup\update_ytdlp.bat
-
-# Linux/macOS
-./setup/update_ytdlp.sh
-
-# Python (cross-platform)
-python3 setup/update_ytdlp.py
-```
-
-#### Enhanced Download System
-
-Shadowbox v1.0.1+ includes an enhanced download system that automatically tries multiple strategies when YouTube blocks downloads:
-
-1. **Enhanced Headers**: Uses realistic browser headers and user agents
-2. **Alternative Extractor**: Uses Android client for extraction  
-3. **Web Client**: Uses web client with browser-like behavior
-4. **Original Method**: Falls back to the original aria2c method
-
-These strategies are applied automatically with delays between attempts to avoid rate limiting.
-
-#### Additional Solutions
-
-- **Try different search terms**: Use various combinations of artist and song names
-- **Use direct URLs**: Paste YouTube URLs instead of search queries
-- **Wait and retry**: YouTube's anti-bot measures are sometimes temporary
-- **Check video availability**: Some videos may be region-locked or private
-
-For detailed troubleshooting information, see [docs/YOUTUBE_DOWNLOAD_ISSUES.md](docs/YOUTUBE_DOWNLOAD_ISSUES.md).
-
-### Common Issues
-
-**FFmpeg not found:**
-- Install FFmpeg from [ffmpeg.org](https://ffmpeg.org/download.html)
-- Ensure FFmpeg is in your system PATH
-
-**Permission errors:**
-- Run setup scripts with appropriate permissions
-- On Windows, you may need to run as Administrator
-- On Linux/macOS, ensure scripts are executable: `chmod +x script_name.sh`
-
-**Spotify metadata not working:**
-- Run the Spotify setup: `./setup/setup_spotify.sh` (Linux/macOS) or `setup\setup_spotify.bat` (Windows)
-- Verify credentials are loaded: `./setup/test_spotify.sh`
-- Check that environment variables are set correctly
-
-**Virtual environment issues:**
-- Activate the virtual environment: `source .venv/bin/activate` (Linux/macOS) or `.venv\Scripts\activate` (Windows)
-- Reinstall dependencies: `pip3 install -r setup/requirements.txt`
-
+MIT — see [LICENSE](LICENSE).

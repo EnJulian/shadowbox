@@ -1,207 +1,36 @@
-name: Build and Release
+name: Release
 
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., v1.0.0)'
-        required: true
-        default: 'v0.1.0'
+      - "v*"
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-            arch: x64
-            executable_name: shadowbox
-          - os: windows-latest
-            platform: windows
-            arch: x64
-            executable_name: shadowbox.exe
-          - os: macos-13
-            platform: macos
-            arch: x64
-            executable_name: shadowbox
-          - os: macos-14
-            platform: macos
-            arch: arm64
-            executable_name: shadowbox
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install system dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg aria2
-
-    - name: Install system dependencies (macOS)
-      if: startsWith(matrix.os, 'macos')
-      run: |
-        brew install ffmpeg aria2
-
-    - name: Install system dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install ffmpeg aria2 -y
-
-    - name: Install Python dependencies
-      run: |
-        python3 -m pip install --upgrade pip
-        pip3 install -r setup/requirements.txt
-        pip3 install pyinstaller
-
-    - name: Debug Python environment
-      shell: bash
-      run: |
-        python3 --version
-        pip3 list
-        python3 -c "import sys; print('Python path:', sys.path)"
-        ls -la
-
-    - name: Verify dependencies
-      run: |
-        python3 -c "
-        import yt_dlp; print('[OK] yt_dlp')
-        import mutagen; print('[OK] mutagen') 
-        import requests; print('[OK] requests')
-        import PIL; print('[OK] PIL')
-        import spotipy; print('[OK] spotipy')
-        print('All dependencies verified successfully')
-        "
-
-    - name: Build executable (Linux/macOS)
-      if: matrix.os != 'windows-latest'
-      run: |
-        echo "Building for ${{ matrix.platform }}-${{ matrix.arch }}"
-        pyinstaller --clean --noconfirm --log-level=WARN shadowbox.spec
-        echo "Build completed, checking output:"
-        ls -la dist/
-
-    - name: Build executable (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: bash
-      run: |
-        echo "Building for ${{ matrix.platform }}-${{ matrix.arch }}"
-        pyinstaller --clean --noconfirm --log-level=WARN shadowbox.spec
-        echo "Build completed, checking output:"
-        ls -la dist/
-
-    - name: Test executable
-      shell: bash
-      run: |
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          ./dist/shadowbox.exe --help
-        else
-          ./dist/shadowbox --help
-        fi
-
-    - name: Create archive name
-      id: archive
-      shell: bash
-      run: |
-        echo "name=shadowbox-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
-
-    - name: Create release archive (Linux/macOS)
-      if: matrix.os != 'windows-latest'
-      run: |
-        cd dist
-        tar -czf ${{ steps.archive.outputs.name }}.tar.gz shadowbox
-
-    - name: Create release archive (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: bash
-      run: |
-        cd dist
-        7z a ${{ steps.archive.outputs.name }}.zip shadowbox.exe
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ steps.archive.outputs.name }}
-        path: dist/${{ steps.archive.outputs.name }}.*
-
-  release:
-    needs: build
+  goreleaser:
+    name: Release
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: artifacts
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
 
-    - name: Display structure of downloaded files
-      run: |
-        echo "Artifacts directory structure:"
-        find artifacts -type f -name "*.tar.gz" -o -name "*.zip" | sort
-        echo "Detailed listing:"
-        ls -la artifacts/*/
-
-    - name: Reorganize artifacts for release
-      run: |
-        # Create a flat structure for easier access
-        mkdir -p release_files
-        find artifacts -name "*.tar.gz" -exec cp {} release_files/ \;
-        find artifacts -name "*.zip" -exec cp {} release_files/ \;
-        echo "Release files:"
-        ls -la release_files/
-
-    - name: Get version
-      id: version
-      run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-        else
-          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ steps.version.outputs.version }}
-        name: Shadowbox ${{ steps.version.outputs.version }}
-        body: |
-          ### Downloads
-          - **Linux (x64)**: `shadowbox-linux-x64.tar.gz`
-          - **Windows (x64)**: `shadowbox-windows-x64.zip`
-          - **macOS (Intel)**: `shadowbox-macos-x64.tar.gz`
-          - **macOS (Apple Silicon)**: `shadowbox-macos-arm64.tar.gz`
-
-          ### Requirements
-          - [yt-dlp](https://github.com/yt-dlp/yt-dlp) (for audio downloading)
-          - [FFmpeg](https://ffmpeg.org/) (for audio processing)
-          - [aria2](https://aria2.github.io/) (for faster downloads) (optional)
-
-          ### Installation & Usage
-          1. Download the appropriate file for your platform
-          2. Extract the archive
-          3. Run the executable or navigate to the extracted folder in your terminal and run "./shadowbox"
-
-          ### Usage Example
-          ```bash
-          ./shadowbox
-          ./shadowbox --help
-          ```
-
-          For more information, see the [README](https://github.com/lsnen/shadowbox/blob/main/README.md).
-        files: release_files/*
-        draft: false
-        prerelease: false
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Personal access token with write access to the EnJulian/homebrew-shadowbox tap.
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}

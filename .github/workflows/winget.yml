@@ -1,0 +1,35 @@
+name: Publish to WinGet
+
+# Submits a pull request to microsoft/winget-pkgs whenever a GitHub Release is
+# published. Requires a WINGET_TOKEN secret: a classic PAT with `public_repo`
+# scope that can push to your fork of microsoft/winget-pkgs.
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v1.2.0)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve version
+        id: ver
+        run: |
+          TAG="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Submit shadowbox to WinGet
+        uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: EnJulian.shadowbox
+          version: ${{ steps.ver.outputs.version }}
+          installers-regex: 'windows-amd64\.zip$'
+          token: ${{ secrets.WINGET_TOKEN }}

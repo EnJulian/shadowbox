@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-26
+
+### Changed
+- **Complete rewrite in Go.** Shadowbox is now a single statically-linked binary
+  (`CGO_ENABLED=0`) with no Python runtime. The CLI is built on Cobra and the
+  interactive interface on Bubble Tea, preserving the menu, settings, themes, and
+  library browser of the original.
+- **Distribution overhaul.** Releases are produced by GoReleaser for Linux, macOS,
+  and Windows (amd64/arm64) and published to GitHub Releases. Installation is now
+  available through a Homebrew cask (`brew install EnJulian/shadowbox/shadowbox`)
+  and WinGet (`winget install EnJulian.shadowbox`).
+- **Pure-Go tagging.** Metadata, cover art, and lyrics are written without
+  `mutagen`: ID3v2 for MP3, native Vorbis-comment/picture writers for Opus and
+  FLAC, and iTunes-style atoms for M4A.
+
+### Removed
+- Docker support, the PyInstaller build, all Python sources, and the shell
+  wrapper scripts. External tools (`yt-dlp`, `ffmpeg`, optional `aria2`) are now
+  declared as package dependencies rather than bundled.
+
 ## [1.1.1] - 2025-06-03
 
 ### Fixed

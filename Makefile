@@ -1,38 +1,38 @@
-.PHONY: help build clean install test release
+BINARY := shadowbox
+PKG := ./cmd/shadowbox
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
+DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS := -s -w \
+	-X github.com/EnJulian/shadowbox/internal/cmd.version=$(VERSION) \
+	-X github.com/EnJulian/shadowbox/internal/cmd.commit=$(COMMIT) \
+	-X github.com/EnJulian/shadowbox/internal/cmd.date=$(DATE)
 
-help:
-	@echo "Shadowbox Build Commands:"
-	@echo "  build     - Build executable for current platform"
-	@echo "  clean     - Clean build artifacts"
-	@echo "  install   - Install dependencies"
-	@echo "  test      - Run tests"
-	@echo "  release   - Create a new release (interactive)"
-	@echo "  help      - Show this help message"
+.PHONY: build install test lint vet tidy clean snapshot run
 
-build:
-	python build.py
+build: ## Build a static binary into ./shadowbox
+	CGO_ENABLED=0 go build -trimpath -ldflags="$(LDFLAGS)" -o $(BINARY) $(PKG)
 
-clean:
-	rm -rf build/ dist/ *.spec __pycache__/ *.pyc
-	find . -name "*.pyc" -delete
-	find . -name "__pycache__" -delete
+install: ## Install the binary into GOBIN/GOPATH
+	CGO_ENABLED=0 go install -trimpath -ldflags="$(LDFLAGS)" $(PKG)
 
-install:
-	pip install -r setup/requirements.txt
-	pip install pyinstaller
+run: ## Run the interactive interface
+	go run $(PKG)
 
-test:
-	python -m pytest tests/ -v
+test: ## Run all tests with the race detector
+	go test -race ./...
 
-release:
-	python release.py
+vet: ## Run go vet
+	go vet ./...
 
-# Platform-specific builds (for development)
-build-linux:
-	pyinstaller shadowbox.spec
+lint: ## Run golangci-lint
+	golangci-lint run ./...
 
-build-windows:
-	pyinstaller shadowbox.spec
+tidy: ## Tidy go.mod/go.sum
+	go mod tidy
 
-build-macos:
-	pyinstaller shadowbox.spec
+snapshot: ## Build a local cross-platform snapshot via GoReleaser
+	goreleaser build --snapshot --clean
+
+clean: ## Remove build artifacts
+	rm -rf $(BINARY) dist/

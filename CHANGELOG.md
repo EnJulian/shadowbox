@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-26
+
+### Added
+- Live, step-by-step progress on the interactive running screen (ripping audio,
+  extracting metadata, fetching cover art and lyrics, organizing files, writing
+  tags). Playlist and batch-enhance runs report per-item progress.
+
+### Fixed
+- CI lint now uses golangci-lint v2 (action v8, binary v2.4.0) for Go 1.25
+  support.
+
+### Changed
+- Condensed the README to a minimal overview and moved details into `docs/`
+  (install-from-source and testing/releasing guides).
+
 ## [1.2.0] - 2026-06-26
 
 ### Changed

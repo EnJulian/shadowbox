@@ -79,26 +79,70 @@ Separately, when the GitHub Release is *published*,
 
 `GITHUB_TOKEN` is provided automatically by Actions for the release itself.
 
-## Cutting a release — checklist
+## Cutting a release — process flow
 
-1. Make sure `main` is green: `make test && make vet && make lint`.
-2. Update `CHANGELOG.md`: move items from `[Unreleased]` into a new
-   `[X.Y.Z] - YYYY-MM-DD` section.
-3. Commit and push to `main`.
-4. Tag and push:
-   ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
-5. Watch the release run:
-   ```bash
-   gh run watch --repo EnJulian/shadowbox
-   # or: gh run list --repo EnJulian/shadowbox
-   ```
-6. Verify:
-   ```bash
-   gh release view vX.Y.Z --repo EnJulian/shadowbox
-   ```
+The whole flow in one line:
+
+```
+edit CHANGELOG → commit → push main (CI) → tag vX.Y.Z → push tag (release) → watch → verify
+```
+
+Only **pushing a `vX.Y.Z` tag** triggers a release. Pushing `main` just runs CI.
+
+### Step 0 — Pre-flight
+
+```bash
+make test && make vet && make lint
+```
+
+The release builds from the tagged commit, so make sure it is healthy first.
+
+### Step 1 — Update the CHANGELOG
+
+Add a `## [X.Y.Z] - YYYY-MM-DD` section under `## [Unreleased]` describing the
+changes (Added / Fixed / Changed / Removed).
+
+### Step 2 — Commit the CHANGELOG
+
+```bash
+git add CHANGELOG.md
+git commit -m "docs: update changelog for vX.Y.Z"
+```
+
+### Step 3 — Push main (runs CI, not a release)
+
+```bash
+git push origin main
+```
+
+Confirm CI is green before tagging: `gh run list --repo EnJulian/shadowbox`.
+
+### Step 4 — Tag and push the tag (this triggers the release)
+
+```bash
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+### Step 5 — Watch the release run
+
+```bash
+gh run watch --repo EnJulian/shadowbox
+# or: gh run list --repo EnJulian/shadowbox
+```
+
+### Step 6 — Verify
+
+```bash
+gh release view vX.Y.Z --repo EnJulian/shadowbox
+brew update && brew upgrade shadowbox && shadowbox version
+```
+
+### If a tag is wrong
+
+Deleting or moving a pushed tag is messy and re-runs the release. The cleanest
+fix for a mistake is to bump to the next patch (e.g. `vX.Y.Z+1`) rather than
+re-pushing the same tag.
 
 ### Versioning
 
@@ -130,4 +174,3 @@ winget install EnJulian.shadowbox
 - **`goreleaser` config errors** — validate locally with `goreleaser check`.
 - **YouTube anti-bot / download failures** — update yt-dlp
   (`yt-dlp -U` or reinstall) and re-run `shadowbox doctor`.
-```

@@ -17,7 +17,7 @@ need a couple of external tools on your `PATH`.
 
 ## Features
 
-- Download from YouTube videos, YouTube playlists, and Bandcamp.
+- Download audio from YouTube videos, YouTube playlists, and Bandcamp.
 - Robust downloading with three `yt-dlp` strategies (aria2 acceleration, a
 standard pass, and a browser-simulating fallback for anti-bot situations).
 - Metadata enrichment from Spotify, with a Last.fm genre fallback.
@@ -220,6 +220,37 @@ make snapshot # cross-platform build via GoReleaser
 
 
 
+## Acknowledgments
+
+Shadowbox utilizes excellent open-source tools.
+
+**Runtime tools** (invoked as external programs):
+
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — audio/video downloading from
+  YouTube, Bandcamp, and more.
+- [FFmpeg](https://ffmpeg.org) — audio extraction and conversion.
+- [aria2](https://aria2.github.io) — optional multi-connection download
+  acceleration.
+
+**Go libraries:**
+
+- [Cobra](https://github.com/spf13/cobra) — CLI framework.
+- [Viper](https://github.com/spf13/viper) — configuration.
+- [Bubble Tea](https://github.com/charmbracelet/bubbletea) and
+  [Lip Gloss](https://github.com/charmbracelet/lipgloss) — interactive TUI and
+  styling.
+- [id3v2](https://github.com/bogem/id3v2) — MP3 tagging.
+- [go-flac](https://github.com/go-flac/go-flac) — FLAC tagging.
+- [go-mp4tag](https://github.com/Sorrow446/go-mp4tag) — M4A/MP4 tagging.
+
+**Metadata & data sources:** the [Spotify](https://developer.spotify.com),
+[iTunes Search](https://performance-partners.apple.com/search-api),
+[Last.fm](https://www.last.fm/api), and [Genius](https://genius.com/api-clients)
+APIs.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+Shadowbox invokes yt-dlp, FFmpeg, and aria2 as separate executables and does not
+bundle or redistribute them; each remains under its own license.

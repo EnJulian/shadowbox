@@ -42,6 +42,19 @@ type Options struct {
 	Output     string // optional output base filename (no extension)
 	Format     string // audio format; defaults to config
 	UseSpotify bool   // force Spotify metadata enrichment
+
+	// Progress, when set, receives short human-readable descriptions of each
+	// pipeline stage as it begins (e.g. "ripping audio", "writing tags"). It is
+	// called from the worker goroutine, so callers must keep the handler
+	// non-blocking and concurrency-safe. Optional.
+	Progress func(stage string)
+}
+
+// step reports a pipeline stage to the Progress handler when one is configured.
+func (o Options) step(stage string) {
+	if o.Progress != nil {
+		o.Progress(stage)
+	}
 }
 
 func (a *App) format(opts Options) string {

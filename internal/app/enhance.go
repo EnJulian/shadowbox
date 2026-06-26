@@ -14,7 +14,7 @@ import (
 // EnhanceDir tags every matching audio file under dir. When recursive is false,
 // only the top level is scanned. When dryRun is true, matching files are listed
 // but not modified.
-func (a *App) EnhanceDir(ctx context.Context, dir string, recursive bool, exts []string, dryRun bool) error {
+func (a *App) EnhanceDir(ctx context.Context, dir string, recursive bool, exts []string, dryRun bool, opts Options) error {
 	info, err := os.Stat(dir)
 	if err != nil {
 		return err
@@ -57,7 +57,7 @@ func (a *App) EnhanceDir(ctx context.Context, dir string, recursive bool, exts [
 	}
 
 	var ok int
-	for _, f := range files {
+	for i, f := range files {
 		if dryRun {
 			fmt.Printf("would enhance: %s\n", f)
 			ok++
@@ -66,7 +66,8 @@ func (a *App) EnhanceDir(ctx context.Context, dir string, recursive bool, exts [
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if err := a.Enhance(ctx, f, "", ""); err != nil {
+		opts.step(fmt.Sprintf("enhancing %d of %d: %s", i+1, len(files), filepath.Base(f)))
+		if err := a.enhanceFile(ctx, f, "", "", opts); err != nil {
 			applog.Error("Failed to enhance %s: %v", filepath.Base(f), err)
 			continue
 		}

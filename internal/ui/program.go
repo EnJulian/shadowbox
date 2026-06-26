@@ -31,6 +31,9 @@ type taskDoneMsg struct {
 	err     error
 }
 
+// progressMsg carries a human-readable pipeline stage to the running screen.
+type progressMsg string
+
 type model struct {
 	cfg   *config.Config
 	app   *app.App
@@ -58,6 +61,10 @@ type model struct {
 
 	// library navigation
 	lib libState
+
+	// running progress
+	progress   string
+	progressCh chan string
 
 	// result
 	result    string
@@ -118,10 +125,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 
+	case progressMsg:
+		m.progress = string(msg)
+		return m, waitForProgress(m.progressCh)
+
 	case taskDoneMsg:
 		m.screen = screenResult
 		m.result = msg.summary
 		m.resultErr = msg.err
+		m.progress = ""
 		return m, nil
 
 	case tea.KeyMsg:
@@ -166,17 +178,46 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // startTask transitions to the running screen and runs fn in the background.
-func (m *model) startTask(label string, fn func(ctx context.Context) error) tea.Cmd {
+// fn receives a report callback it can use to surface live stage descriptions
+// on the running screen.
+func (m *model) startTask(label string, fn func(ctx context.Context, report func(string)) error) tea.Cmd {
 	m.screen = screenRunning
 	m.result = label
-	return tea.Batch(m.spinner.Tick, func() tea.Msg {
-		err := fn(context.Background())
+	m.progress = ""
+
+	ch := make(chan string, 32)
+	m.progressCh = ch
+	report := func(s string) {
+		// Non-blocking: never let progress reporting stall the pipeline.
+		select {
+		case ch <- s:
+		default:
+		}
+	}
+
+	run := func() tea.Msg {
+		err := fn(context.Background(), report)
+		close(ch)
 		summary := label + " complete"
 		if err != nil {
 			summary = label + " failed"
 		}
 		return taskDoneMsg{summary: summary, err: err}
-	})
+	}
+
+	return tea.Batch(m.spinner.Tick, run, waitForProgress(ch))
+}
+
+// waitForProgress blocks on the next stage description from the channel and
+// re-subscribes after each one. It stops (returns nil) when the channel closes.
+func waitForProgress(ch chan string) tea.Cmd {
+	return func() tea.Msg {
+		s, ok := <-ch
+		if !ok {
+			return nil
+		}
+		return progressMsg(s)
+	}
 }
 
 func (m model) View() string {

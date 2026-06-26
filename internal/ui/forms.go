@@ -43,23 +43,27 @@ func (m model) submitInput(value string) (tea.Model, tea.Cmd) {
 
 	switch m.inputContext {
 	case "search":
-		cmd := m.startTask("Download", func(ctx context.Context) error {
+		cmd := m.startTask("Downloading", func(ctx context.Context, report func(string)) error {
+			opts.Progress = report
 			return a.Run(ctx, value, opts)
 		})
 		return m, cmd
 	case "url":
-		cmd := m.startTask("Download", func(ctx context.Context) error {
+		cmd := m.startTask("Downloading", func(ctx context.Context, report func(string)) error {
+			opts.Progress = report
 			return a.Run(ctx, value, opts)
 		})
 		return m, cmd
 	case "playlist":
-		cmd := m.startTask("Playlist download", func(ctx context.Context) error {
+		cmd := m.startTask("Downloading playlist", func(ctx context.Context, report func(string)) error {
+			opts.Progress = report
 			return a.RunPlaylist(ctx, value, opts)
 		})
 		return m, cmd
 	case "enhance":
-		cmd := m.startTask("Enhance", func(ctx context.Context) error {
-			return a.EnhanceDir(ctx, value, true, []string{"opus", "mp3", "m4a", "flac"}, false)
+		cmd := m.startTask("Enhancing audio files", func(ctx context.Context, report func(string)) error {
+			opts.Progress = report
+			return a.EnhanceDir(ctx, value, true, []string{"opus", "mp3", "m4a", "flac"}, false, opts)
 		})
 		return m, cmd
 	}
@@ -81,8 +85,14 @@ func (m model) viewRunning() string {
 	var b strings.Builder
 	b.WriteString(m.st.title.Render(banner))
 	b.WriteString("\n\n")
-	b.WriteString("  " + m.spinner.View() + " " + m.st.accent.Render(m.result+"...") + "\n\n")
-	b.WriteString(m.st.help.Render("  working - this can take a while for downloads"))
+	b.WriteString("  " + m.spinner.View() + " " + m.st.accent.Render(m.result) + "\n\n")
+
+	step := m.progress
+	if step == "" {
+		step = "starting up"
+	}
+	b.WriteString("  " + m.st.selected.Render("» "+step) + "\n\n")
+	b.WriteString(m.st.help.Render("please hold"))
 	return b.String()
 }
 

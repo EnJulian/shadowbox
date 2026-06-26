@@ -20,7 +20,7 @@ func newEnhanceCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			a := app.New(cfg)
 			exts := strings.Split(extensions, ",")
-			return a.EnhanceDir(cmd.Context(), args[0], recursive, exts, dryRun)
+			return a.EnhanceDir(cmd.Context(), args[0], recursive, exts, dryRun, app.Options{})
 		},
 	}
 	c.Flags().BoolVarP(&recursive, "recursive", "r", false, "recurse into subdirectories")

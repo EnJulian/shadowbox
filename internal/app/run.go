@@ -32,6 +32,7 @@ func (a *App) Run(ctx context.Context, query string, opts Options) error {
 	defer os.RemoveAll(tmpDir)
 
 	var file string
+	opts.step("ripping audio")
 	if download.IsURL(query) && download.IsBandcamp(query) {
 		applog.Step("DOWNLOAD", "Fetching from Bandcamp")
 		file, err = dl.DownloadFromBandcamp(ctx, query, tmpDir)
@@ -43,8 +44,8 @@ func (a *App) Run(ctx context.Context, query string, opts Options) error {
 		return err
 	}
 
-	meta := a.buildMetadata(ctx, file, query, opts.UseSpotify)
-	final, err := a.finalize(ctx, file, meta, musicDir, opts.Output)
+	meta := a.buildMetadata(ctx, file, query, opts)
+	final, err := a.finalize(ctx, file, meta, musicDir, opts)
 	if err != nil {
 		return err
 	}
@@ -63,16 +64,21 @@ func (a *App) RunPlaylist(ctx context.Context, url string, opts Options) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
+	opts.step("ripping playlist audio")
 	applog.Step("PLAYLIST", "Downloading playlist (this may take a while)")
 	files, err := dl.DownloadPlaylist(ctx, url, tmpDir)
 	if err != nil {
 		return err
 	}
 
+	trackOpts := opts
+	trackOpts.Output = ""
+
 	var ok int
-	for _, f := range files {
-		meta := a.buildMetadata(ctx, f, "", opts.UseSpotify)
-		if _, err := a.finalize(ctx, f, meta, musicDir, ""); err != nil {
+	for i, f := range files {
+		opts.step(fmt.Sprintf("processing track %d of %d", i+1, len(files)))
+		meta := a.buildMetadata(ctx, f, "", trackOpts)
+		if _, err := a.finalize(ctx, f, meta, musicDir, trackOpts); err != nil {
 			applog.Error("Failed to process %s: %v", filepath.Base(f), err)
 			continue
 		}
@@ -87,6 +93,12 @@ func (a *App) RunPlaylist(ctx context.Context, url string, opts Options) error {
 
 // Enhance tags an existing file in place, optionally with title/artist overrides.
 func (a *App) Enhance(ctx context.Context, path, title, artist string) error {
+	return a.enhanceFile(ctx, path, title, artist, Options{})
+}
+
+// enhanceFile is the progress-aware implementation behind Enhance.
+func (a *App) enhanceFile(ctx context.Context, path, title, artist string, opts Options) error {
+	opts.step("reading existing tags")
 	existing, _ := tag.Read(path)
 	if existing == nil {
 		existing = &tag.Metadata{}
@@ -107,9 +119,10 @@ func (a *App) Enhance(ctx context.Context, path, title, artist string) error {
 		Album:  existing.Album,
 		Genre:  existing.Genre,
 		Date:   existing.Date,
-	}, true)
+	}, true, opts)
 
-	a.attachCoverAndLyrics(ctx, meta)
+	a.attachCoverAndLyrics(ctx, meta, opts)
+	opts.step("writing tags")
 	if err := tag.Write(path, meta); err != nil {
 		return err
 	}
@@ -119,7 +132,8 @@ func (a *App) Enhance(ctx context.Context, path, title, artist string) error {
 
 // buildMetadata reads any existing tags, derives title/artist, and enriches with
 // online sources.
-func (a *App) buildMetadata(ctx context.Context, file, query string, forceSpotify bool) *tag.Metadata {
+func (a *App) buildMetadata(ctx context.Context, file, query string, opts Options) *tag.Metadata {
+	opts.step("extracting metadata")
 	existing, _ := tag.Read(file)
 	if existing == nil {
 		existing = &tag.Metadata{}
@@ -140,13 +154,14 @@ func (a *App) buildMetadata(ctx context.Context, file, query string, forceSpotif
 		Album:  existing.Album,
 		Genre:  existing.Genre,
 		Date:   existing.Date,
-	}, forceSpotify)
+	}, opts.UseSpotify, opts)
 }
 
 // enrich augments metadata with Spotify (when configured) and a Last.fm genre
 // fallback.
-func (a *App) enrich(ctx context.Context, m *tag.Metadata, forceSpotify bool) *tag.Metadata {
+func (a *App) enrich(ctx context.Context, m *tag.Metadata, forceSpotify bool, opts Options) *tag.Metadata {
 	if a.spotify.Configured() {
+		opts.step("matching on Spotify")
 		applog.Systemf("SPOTIFY", "Searching metadata: %s by %s", m.Title, m.Artist)
 		if sp, err := a.spotify.Search(ctx, m.Title, m.Artist); err == nil && sp != nil {
 			m.Title = sp.Title
@@ -168,6 +183,7 @@ func (a *App) enrich(ctx context.Context, m *tag.Metadata, forceSpotify bool) *t
 	}
 
 	if m.Genre == "" {
+		opts.step("finding genre")
 		if g, err := a.lastfm.Genre(ctx, m.Title, m.Artist); err == nil && g != "" {
 			m.Genre = g
 			applog.Systemf("LASTFM", "Genre: %s", g)
@@ -178,7 +194,10 @@ func (a *App) enrich(ctx context.Context, m *tag.Metadata, forceSpotify bool) *t
 
 // finalize organises the file into Artist/Album, embeds cover and lyrics, writes
 // tags, and returns the final path.
-func (a *App) finalize(ctx context.Context, srcFile string, meta *tag.Metadata, musicDir, output string) (string, error) {
+func (a *App) finalize(ctx context.Context, srcFile string, meta *tag.Metadata, musicDir string, opts Options) (string, error) {
+	a.attachCoverAndLyrics(ctx, meta, opts)
+
+	opts.step("organizing files")
 	artistDir, err := organize.ArtistDir(musicDir, meta.Artist)
 	if err != nil {
 		return "", err
@@ -188,7 +207,7 @@ func (a *App) finalize(ctx context.Context, srcFile string, meta *tag.Metadata, 
 		return "", err
 	}
 
-	base := output
+	base := opts.Output
 	if base == "" {
 		base = organize.SanitizeFilename(meta.Title)
 	}
@@ -199,7 +218,7 @@ func (a *App) finalize(ctx context.Context, srcFile string, meta *tag.Metadata, 
 		return "", err
 	}
 
-	a.attachCoverAndLyrics(ctx, meta)
+	opts.step("writing tags")
 	if err := tag.Write(finalPath, meta); err != nil {
 		return "", fmt.Errorf("writing tags: %w", err)
 	}
@@ -207,7 +226,8 @@ func (a *App) finalize(ctx context.Context, srcFile string, meta *tag.Metadata, 
 }
 
 // attachCoverAndLyrics fills in cover image bytes and lyrics on the metadata.
-func (a *App) attachCoverAndLyrics(ctx context.Context, meta *tag.Metadata) {
+func (a *App) attachCoverAndLyrics(ctx context.Context, meta *tag.Metadata, opts Options) {
+	opts.step("fetching cover art")
 	if url := a.cover.URL(ctx, meta.Title, meta.Artist); url != "" {
 		if data, mime, err := a.cover.Download(ctx, url); err == nil && len(data) > 0 {
 			meta.Cover = data
@@ -217,6 +237,7 @@ func (a *App) attachCoverAndLyrics(ctx context.Context, meta *tag.Metadata) {
 	}
 
 	if a.cfg.UseGenius && a.genius.Configured() {
+		opts.step("fetching lyrics")
 		applog.Systemf("LYRICS", "Searching: %s by %s", meta.Title, meta.Artist)
 		if lyrics, err := a.genius.Lyrics(ctx, meta.Title, meta.Artist); err == nil && lyrics != "" {
 			meta.Lyrics = lyrics

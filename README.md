@@ -55,8 +55,28 @@ override it. Optional — Shadowbox falls back to iTunes and Last.fm without the
 
 - [Install from source](docs/INSTALL_FROM_SOURCE.md)
 - [Testing & releasing](docs/RELEASING.md)
+- [Security overview (beginner's guide)](docs/SECURITY_OVERVIEW.md)
+- [Security policy](SECURITY.md)
 
+## Verifying downloads
 
+Release checksums are signed with Sigstore cosign (keyless) and build provenance
+is published as GitHub attestations. After downloading `checksums.txt` from a
+[GitHub Release](https://github.com/EnJulian/shadowbox/releases):
+
+```bash
+# Verify the checksum signature (requires cosign: https://docs.sigstore.dev)
+cosign verify-blob checksums.txt \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp 'https://github.com/EnJulian/shadowbox/.github/workflows/release.yml@refs/tags/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+# Verify a release archive attestation (requires gh CLI)
+gh attestation verify shadowbox-linux-amd64.tar.gz \
+  --owner EnJulian --repo shadowbox
+```
+
+See [docs/RELEASING.md](docs/RELEASING.md#verifying-downloads) for full details.
 
 ## License
 

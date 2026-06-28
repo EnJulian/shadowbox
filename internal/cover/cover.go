@@ -4,14 +4,18 @@ package cover
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/EnJulian/shadowbox/internal/apis/itunes"
 	"github.com/EnJulian/shadowbox/internal/apis/spotify"
 )
+
+const maxCoverBytes = 10 << 20 // 10 MiB
 
 // Resolver finds cover art URLs across providers.
 type Resolver struct {
@@ -90,8 +94,16 @@ func (r *Resolver) itunesCover(ctx context.Context, query string) string {
 }
 
 // Download fetches the image at url, returning its bytes and MIME type.
-func (r *Resolver) Download(ctx context.Context, url string) ([]byte, string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func (r *Resolver) Download(ctx context.Context, rawURL string) ([]byte, string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid cover URL: %w", err)
+	}
+	if strings.ToLower(u.Scheme) != "https" {
+		return nil, "", fmt.Errorf("cover URL must use HTTPS")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, "", err
 	}
@@ -101,22 +113,23 @@ func (r *Resolver) Download(ctx context.Context, url string) ([]byte, string, er
 		return nil, "", err
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("cover download failed: %s", resp.Status)
+	}
+
+	mime := resp.Header.Get("Content-Type")
+	if mime == "" || !strings.HasPrefix(strings.ToLower(mime), "image/") {
+		return nil, "", fmt.Errorf("cover response is not an image (content-type: %q)", mime)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxCoverBytes+1))
 	if err != nil {
 		return nil, "", err
 	}
-	mime := resp.Header.Get("Content-Type")
-	if mime == "" || !strings.HasPrefix(mime, "image/") {
-		mime = guessMIME(url)
+	if len(data) > maxCoverBytes {
+		return nil, "", fmt.Errorf("cover image exceeds %d byte limit", maxCoverBytes)
 	}
 	return data, mime, nil
-}
-
-func guessMIME(url string) string {
-	if strings.Contains(strings.ToLower(url), ".png") {
-		return "image/png"
-	}
-	return "image/jpeg"
 }
 
 func firstArtist(artist string) string {

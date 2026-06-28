@@ -143,7 +143,7 @@ func Save(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
 	}
 
@@ -167,6 +167,9 @@ func Save(cfg *Config) error {
 	}
 	if err := v.WriteConfigAs(path); err != nil {
 		return fmt.Errorf("writing config: %w", err)
+	}
+	if err := os.Chmod(path, 0o600); err != nil {
+		return fmt.Errorf("securing config file: %w", err)
 	}
 	return nil
 }

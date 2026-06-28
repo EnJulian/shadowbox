@@ -2,8 +2,11 @@ package cover
 
 import (
 	"context"
+	"crypto/tls"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/EnJulian/shadowbox/internal/apis/itunes"
@@ -53,18 +56,76 @@ func TestURLFallsBackToITunes(t *testing.T) {
 }
 
 func TestDownloadDetectsMIME(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
 		w.Write([]byte("PNGDATA"))
 	}))
 	defer srv.Close()
 
 	r := New(nil, nil)
+	r.HTTP = srv.Client()
 	data, mime, err := r.Download(context.Background(), srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(data) != "PNGDATA" || mime != "image/png" {
 		t.Errorf("got data=%q mime=%q", data, mime)
+	}
+}
+
+func TestDownloadRejectsHTTP(t *testing.T) {
+	r := New(nil, nil)
+	_, _, err := r.Download(context.Background(), "http://example.com/cover.jpg")
+	if err == nil || !strings.Contains(err.Error(), "HTTPS") {
+		t.Fatalf("Download(http) = %v, want HTTPS error", err)
+	}
+}
+
+func TestDownloadRejectsNonOKStatus(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	r := New(nil, nil)
+	r.HTTP = srv.Client()
+	_, _, err := r.Download(context.Background(), srv.URL)
+	if err == nil || !strings.Contains(err.Error(), "404") {
+		t.Fatalf("Download(404) = %v, want status error", err)
+	}
+}
+
+func TestDownloadRejectsNonImageContentType(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<html></html>"))
+	}))
+	defer srv.Close()
+
+	r := New(nil, nil)
+	r.HTTP = srv.Client()
+	_, _, err := r.Download(context.Background(), srv.URL)
+	if err == nil || !strings.Contains(err.Error(), "not an image") {
+		t.Fatalf("Download(html) = %v, want content-type error", err)
+	}
+}
+
+func TestDownloadRejectsOversizedImage(t *testing.T) {
+	payload := strings.Repeat("x", maxCoverBytes+1)
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		_, _ = io.WriteString(w, payload)
+	}))
+	defer srv.Close()
+
+	r := New(nil, nil)
+	r.HTTP = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	_, _, err := r.Download(context.Background(), srv.URL)
+	if err == nil || !strings.Contains(err.Error(), "byte limit") {
+		t.Fatalf("Download(oversized) = %v, want size limit error", err)
 	}
 }

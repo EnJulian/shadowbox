@@ -36,7 +36,7 @@ func New(format string) *Downloader {
 // strategy is a single yt-dlp invocation attempt.
 type strategy struct {
 	name string
-	args func(format, output, target string) []string
+	args func(format, output string) []string
 }
 
 // strategies returns the ordered download strategies, mirroring the Python
@@ -47,7 +47,7 @@ func (d *Downloader) strategies() []strategy {
 	if d.UseAria2 {
 		out = append(out, strategy{
 			name: "aria2c Accelerated",
-			args: func(format, output, target string) []string {
+			args: func(format, output string) []string {
 				return []string{
 					"--downloader", "aria2c",
 					"--downloader-args", "aria2c:-x 16 -s 16 -j 16 --max-connection-per-server=16",
@@ -58,7 +58,6 @@ func (d *Downloader) strategies() []strategy {
 					"--retry-sleep", "1",
 					"--retries", "3",
 					"-o", output,
-					target,
 				}
 			},
 		})
@@ -66,24 +65,22 @@ func (d *Downloader) strategies() []strategy {
 	out = append(out,
 		strategy{
 			name: "Standard Download",
-			args: func(format, output, target string) []string {
+			args: func(format, output string) []string {
 				return []string{
 					"-x",
 					"-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
 					"--embed-metadata",
 					"--audio-format", format,
-					"--no-check-certificates",
 					"--retry-sleep", "2",
 					"--retries", "5",
 					"--socket-timeout", "30",
 					"-o", output,
-					target,
 				}
 			},
 		},
 		strategy{
 			name: "Browser Simulation",
-			args: func(format, output, target string) []string {
+			args: func(format, output string) []string {
 				return []string{
 					"--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 					"--referer", "https://www.youtube.com/",
@@ -91,13 +88,11 @@ func (d *Downloader) strategies() []strategy {
 					"-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
 					"--embed-metadata",
 					"--audio-format", format,
-					"--no-check-certificates",
 					"--no-warnings",
 					"--retry-sleep", "3",
 					"--retries", "3",
 					"--socket-timeout", "45",
 					"-o", output,
-					target,
 				}
 			},
 		},
@@ -114,6 +109,9 @@ var fatalErrorPhrases = []string{
 // Download fetches a single track for the given query or URL, writing the result
 // into dir, and returns the path to the downloaded file.
 func (d *Downloader) Download(ctx context.Context, query, dir string) (string, error) {
+	if err := ValidateInput(query); err != nil {
+		return "", err
+	}
 	if dir == "" {
 		dir = "."
 	}
@@ -153,7 +151,7 @@ func (d *Downloader) runStrategies(ctx context.Context, target, output, dir stri
 		}
 		applog.Warningf("STRATEGY", "Attempt %d/%d: %s", i+1, len(strategies), s.name)
 
-		args := s.args(d.Format, output, target)
+		args := appendTarget(s.args(d.Format, output), target)
 		applog.Systemf("GET", "yt-dlp %s", strings.Join(args, " "))
 
 		cmd := exec.CommandContext(ctx, "yt-dlp", args...)

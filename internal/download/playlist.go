@@ -16,6 +16,9 @@ import (
 // DownloadPlaylist downloads every track of a YouTube playlist into dir and
 // returns the downloaded file paths, ordered by playlist index.
 func (d *Downloader) DownloadPlaylist(ctx context.Context, url, dir string) ([]string, error) {
+	if err := ValidateInput(url); err != nil {
+		return nil, err
+	}
 	if dir == "" {
 		dir = "."
 	}
@@ -35,8 +38,8 @@ func (d *Downloader) DownloadPlaylist(ctx context.Context, url, dir string) ([]s
 		"--metadata-from-title", "%(artist)s - %(title)s",
 		"--parse-metadata", "%(playlist)s:%(album)s",
 		"-o", output,
-		url,
 	}
+	args = appendTarget(args, url)
 	applog.Systemf("GET", "yt-dlp %s", strings.Join(args, " "))
 
 	cmd := exec.CommandContext(ctx, "yt-dlp", args...)
@@ -56,6 +59,9 @@ func (d *Downloader) DownloadPlaylist(ctx context.Context, url, dir string) ([]s
 // DownloadFromBandcamp downloads a Bandcamp track/album into dir and returns the
 // path to the (first) downloaded file.
 func (d *Downloader) DownloadFromBandcamp(ctx context.Context, url, dir string) (string, error) {
+	if err := ValidateInput(url); err != nil {
+		return "", err
+	}
 	if dir == "" {
 		dir = "."
 	}
@@ -72,11 +78,11 @@ func (d *Downloader) DownloadFromBandcamp(ctx context.Context, url, dir string) 
 		"--embed-metadata",
 		"--embed-thumbnail",
 		"-o", output,
-		url,
 	}
 	if d.UseAria2 {
 		args = append([]string{"--downloader", "aria2c"}, args...)
 	}
+	args = appendTarget(args, url)
 	applog.Systemf("GET", "yt-dlp %s", strings.Join(args, " "))
 
 	cmd := exec.CommandContext(ctx, "yt-dlp", args...)

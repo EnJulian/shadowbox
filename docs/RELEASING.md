@@ -73,7 +73,7 @@ signed `v*` tag triggers `.github/workflows/release.yml`, which:
 4. Pushes an updated Homebrew **cask** to `EnJulian/homebrew-shadowbox`
   (using the `HOMEBREW_TAP_GITHUB_TOKEN` secret).
 5. Pushes an updated Scoop **manifest** to `EnJulian/scoop-shadowbox`
-  (using the `SCOOP_BUCKET_TOKEN` secret).
+  (using the same `HOMEBREW_TAP_GITHUB_TOKEN` secret).
 
 Separately, when the GitHub Release is *published*,
 `.github/workflows/winget.yml` opens a pull request against
@@ -86,8 +86,7 @@ installs — Scoop is the supported path for now.
 
 | Secret                      | Used by              | Token type                                                              |
 | --------------------------- | -------------------- | ----------------------------------------------------------------------- |
-| `HOMEBREW_TAP_GITHUB_TOKEN` | GoReleaser cask push | Fine-grained PAT, Contents: read/write on `EnJulian/homebrew-shadowbox` |
-| `SCOOP_BUCKET_TOKEN`        | GoReleaser Scoop push | Fine-grained PAT, Contents: read/write on `EnJulian/scoop-shadowbox`   |
+| `HOMEBREW_TAP_GITHUB_TOKEN` | GoReleaser Homebrew + Scoop push | Fine-grained PAT, Contents: read/write on `EnJulian/homebrew-shadowbox` **and** `EnJulian/scoop-shadowbox` |
 | `WINGET_TOKEN`              | WinGet PR workflow   | Classic PAT with `public_repo` scope (optional)                        |
 
 
@@ -326,8 +325,10 @@ scoop install shadowbox
 - **Release workflow fails on the Homebrew step** — confirm
 `HOMEBREW_TAP_GITHUB_TOKEN` is set and can write to
 `EnJulian/homebrew-shadowbox`.
-- **Release workflow fails on the Scoop step** — confirm
-`SCOOP_BUCKET_TOKEN` is set and can write to `EnJulian/scoop-shadowbox`.
+- **Release workflow fails on the Scoop step** — the fine-grained PAT behind
+`HOMEBREW_TAP_GITHUB_TOKEN` must include **both** `EnJulian/homebrew-shadowbox`
+and `EnJulian/scoop-shadowbox` with Contents: read/write. A separate
+`SCOOP_BUCKET_TOKEN` is not used.
 - **No WinGet PR appears** — the workflow runs on `release: published` (not
 draft/prerelease). Confirm `WINGET_TOKEN` is set and the
 `EnJulian/winget-pkgs` fork exists. You can also run it manually from the

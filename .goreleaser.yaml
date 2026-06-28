@@ -103,7 +103,7 @@ scoops:
     repository:
       owner: EnJulian
       name: scoop-shadowbox
-      token: "{{ .Env.SCOOP_BUCKET_TOKEN }}"
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/EnJulian/shadowbox"
     description: "Music acquisition CLI for YouTube and Bandcamp"
     license: MIT

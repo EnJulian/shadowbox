@@ -10,6 +10,7 @@ import (
 	"github.com/EnJulian/shadowbox/internal/config"
 	"github.com/EnJulian/shadowbox/internal/cover"
 	"github.com/EnJulian/shadowbox/internal/download"
+	"github.com/EnJulian/shadowbox/internal/progress"
 )
 
 // App holds the configured clients used across the pipeline.
@@ -43,17 +44,25 @@ type Options struct {
 	Format     string // audio format; defaults to config
 	UseSpotify bool   // force Spotify metadata enrichment
 
-	// Progress, when set, receives short human-readable descriptions of each
-	// pipeline stage as it begins (e.g. "ripping audio", "writing tags"). It is
+	// Progress, when set, receives pipeline stage updates for the UI. It is
 	// called from the worker goroutine, so callers must keep the handler
 	// non-blocking and concurrency-safe. Optional.
-	Progress func(stage string)
+	Progress func(progress.Update)
 }
 
-// step reports a pipeline stage to the Progress handler when one is configured.
+// step reports a pipeline stage without numeric position.
 func (o Options) step(stage string) {
+	o.report(progress.Update{Stage: stage})
+}
+
+// stepN reports a numbered pipeline stage (1-based current).
+func (o Options) stepN(stage string, current, total int) {
+	o.report(progress.Update{Stage: stage, Current: current, Total: total})
+}
+
+func (o Options) report(u progress.Update) {
 	if o.Progress != nil {
-		o.Progress(stage)
+		o.Progress(u)
 	}
 }
 
@@ -73,5 +82,9 @@ func (a *App) musicDir(opts Options) string {
 
 // newDownloader builds a downloader for the effective format.
 func (a *App) newDownloader(opts Options) *download.Downloader {
-	return download.New(a.format(opts))
+	dl := download.New(a.format(opts))
+	if opts.Progress != nil {
+		dl.Progress = opts.Progress
+	}
+	return dl
 }

@@ -17,7 +17,7 @@ type Dependency struct {
 // current PATH.
 func Dependencies() []Dependency {
 	specs := []Dependency{
-		{Name: "yt-dlp", Purpose: "downloading audio from YouTube/Bandcamp", Required: true},
+		{Name: "yt-dlp", Purpose: "downloading audio from YouTube/Bandcamp/KHInsider", Required: true},
 		{Name: "ffmpeg", Purpose: "audio extraction and conversion", Required: true},
 		{Name: "aria2c", Purpose: "accelerated multi-connection downloads", Required: false},
 	}

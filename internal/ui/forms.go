@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/EnJulian/shadowbox/internal/app"
+	"github.com/EnJulian/shadowbox/internal/progress"
 )
 
 // openInput switches to the text-input screen for the given context.
@@ -43,25 +44,25 @@ func (m model) submitInput(value string) (tea.Model, tea.Cmd) {
 
 	switch m.inputContext {
 	case "search":
-		cmd := m.startTask("Downloading", func(ctx context.Context, report func(string)) error {
+		cmd := m.startTask("Downloading", func(ctx context.Context, report func(progress.Update)) error {
 			opts.Progress = report
 			return a.Run(ctx, value, opts)
 		})
 		return m, cmd
 	case "url":
-		cmd := m.startTask("Downloading", func(ctx context.Context, report func(string)) error {
+		cmd := m.startTask("Downloading", func(ctx context.Context, report func(progress.Update)) error {
 			opts.Progress = report
 			return a.Run(ctx, value, opts)
 		})
 		return m, cmd
 	case "playlist":
-		cmd := m.startTask("Downloading playlist", func(ctx context.Context, report func(string)) error {
+		cmd := m.startTask("Downloading playlist", func(ctx context.Context, report func(progress.Update)) error {
 			opts.Progress = report
 			return a.RunPlaylist(ctx, value, opts)
 		})
 		return m, cmd
 	case "enhance":
-		cmd := m.startTask("Enhancing audio files", func(ctx context.Context, report func(string)) error {
+		cmd := m.startTask("Enhancing audio files", func(ctx context.Context, report func(progress.Update)) error {
 			opts.Progress = report
 			return a.EnhanceDir(ctx, value, true, []string{"opus", "mp3", "m4a", "flac"}, false, opts)
 		})
@@ -87,7 +88,9 @@ func (m model) viewRunning() string {
 	b.WriteString("\n\n")
 	b.WriteString("  " + m.spinner.View() + " " + m.st.accent.Render(m.result) + "\n\n")
 
-	step := m.progress
+	b.WriteString("  " + renderProgressBar(m.progress, m.theme.Accent, m.theme.Muted) + "\n\n")
+
+	step := m.progress.Stage
 	if step == "" {
 		step = "starting up"
 	}

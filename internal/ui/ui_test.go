@@ -48,8 +48,8 @@ func TestMenuRendersAllScreens(t *testing.T) {
 		t.Error("menu missing first item")
 	}
 
-	// Navigate to Settings (index 5) and open it.
-	for i := 0; i < 5; i++ {
+	// Navigate to Settings (index 6) and open it.
+	for i := 0; i < 6; i++ {
 		next, _ := m.updateMenu(key("down"))
 		m = next.(model)
 	}
@@ -100,5 +100,14 @@ func TestInputAndLibraryViews(t *testing.T) {
 	}
 	if v := m.viewLibrary(); !strings.Contains(v, "Artists") {
 		t.Errorf("library view missing breadcrumb: %q", v)
+	}
+
+	next, _ = m.openDownloadLog()
+	m = next.(model)
+	if m.screen != screenDownloadLog {
+		t.Fatalf("expected download log screen, got %v", m.screen)
+	}
+	if !strings.Contains(m.viewDownloadLog(), "Download log") {
+		t.Error("download log view missing title")
 	}
 }

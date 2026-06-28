@@ -12,6 +12,7 @@ import (
 	"time"
 
 	applog "github.com/EnJulian/shadowbox/internal/log"
+	"github.com/EnJulian/shadowbox/internal/progress"
 )
 
 // audioExtensions are the output extensions yt-dlp may produce, in preference order.
@@ -23,6 +24,8 @@ type Downloader struct {
 	Format string
 	// UseAria2 enables the aria2c-accelerated strategy when aria2c is present.
 	UseAria2 bool
+	// Progress receives live download updates for the UI. Optional.
+	Progress func(progress.Update)
 }
 
 // New returns a Downloader for the given format, auto-detecting aria2c.
@@ -100,6 +103,62 @@ func (d *Downloader) strategies() []strategy {
 	return out
 }
 
+// directMediaStrategies returns yt-dlp strategies for already-resolved direct media
+// URLs (e.g. KHInsider mirror links).
+func (d *Downloader) directMediaStrategies() []strategy {
+	var out []strategy
+	if d.UseAria2 {
+		out = append(out, strategy{
+			name: "Direct aria2c",
+			args: func(format, output string) []string {
+				return []string{
+					"--downloader", "aria2c",
+					"--downloader-args", "aria2c:-x 16 -s 16 -j 16 --max-connection-per-server=16",
+					"-x",
+					"--embed-metadata",
+					"--audio-format", format,
+					"--retry-sleep", "1",
+					"--retries", "3",
+					"-o", output,
+				}
+			},
+		})
+	}
+	out = append(out,
+		strategy{
+			name: "Direct Standard",
+			args: func(format, output string) []string {
+				return []string{
+					"-x",
+					"--embed-metadata",
+					"--audio-format", format,
+					"--retry-sleep", "2",
+					"--retries", "5",
+					"--socket-timeout", "30",
+					"-o", output,
+				}
+			},
+		},
+		strategy{
+			name: "Direct Browser Simulation",
+			args: func(format, output string) []string {
+				return []string{
+					"--user-agent", khUserAgent,
+					"-x",
+					"--embed-metadata",
+					"--audio-format", format,
+					"--no-warnings",
+					"--retry-sleep", "3",
+					"--retries", "3",
+					"--socket-timeout", "45",
+					"-o", output,
+				}
+			},
+		},
+	)
+	return out
+}
+
 // fatalErrorPhrases indicate a video that no strategy can recover.
 var fatalErrorPhrases = []string{
 	"Video unavailable", "Private video", "This video is not available",
@@ -121,9 +180,20 @@ func (d *Downloader) Download(ctx context.Context, query, dir string) (string, e
 
 	target := query
 	switch {
+	case IsURL(query) && IsKHInsiderTrack(query):
+		applog.Infof("AUDIO", "Detected KHInsider URL")
+		directURL, _, err := resolveKHInsiderTrack(ctx, query, d.Format)
+		if err != nil {
+			return "", err
+		}
+		target = directURL
+		output := filepath.Join(dir, "shadowbox_download.%(ext)s")
+		return d.runDirectStrategies(ctx, target, output, dir)
 	case IsURL(query):
 		if IsBandcamp(query) {
 			applog.Infof("AUDIO", "Detected Bandcamp URL")
+		} else if IsKHInsider(query) {
+			applog.Infof("AUDIO", "Detected KHInsider URL")
 		} else {
 			applog.Infof("AUDIO", "Detected YouTube URL")
 		}
@@ -136,9 +206,17 @@ func (d *Downloader) Download(ctx context.Context, query, dir string) (string, e
 	return d.runStrategies(ctx, target, output, dir)
 }
 
+// runDirectStrategies attempts each direct-media strategy until one succeeds.
+func (d *Downloader) runDirectStrategies(ctx context.Context, target, output, dir string) (string, error) {
+	return d.runStrategySet(ctx, target, output, dir, d.directMediaStrategies())
+}
+
 // runStrategies attempts each strategy in order until one yields a valid file.
 func (d *Downloader) runStrategies(ctx context.Context, target, output, dir string) (string, error) {
-	strategies := d.strategies()
+	return d.runStrategySet(ctx, target, output, dir, d.strategies())
+}
+
+func (d *Downloader) runStrategySet(ctx context.Context, target, output, dir string, strategies []strategy) (string, error) {
 	for i, s := range strategies {
 		if i > 0 {
 			delay := time.Duration(2000+rand.Intn(3000)) * time.Millisecond

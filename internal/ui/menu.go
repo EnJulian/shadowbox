@@ -35,10 +35,12 @@ func (m model) selectMenu() (tea.Model, tea.Cmd) {
 	case 4:
 		return m.openLibrary()
 	case 5:
+		return m.openDownloadLog()
+	case 6:
 		m.screen = screenSettings
 		m.settingsCursor = 0
 		return m, nil
-	case 6:
+	case 7:
 		return m, tea.Quit
 	}
 	return m, nil

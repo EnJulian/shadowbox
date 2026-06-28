@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Windows installation via Scoop bucket (`EnJulian/scoop-shadowbox`) and a
+  PowerShell install script (`scripts/install.ps1`); GoReleaser publishes the
+  Scoop manifest on each release alongside the Homebrew cask.
 - KHInsider support: download single tracks and full albums from
   `downloads.khinsider.com` by resolving mirror links and converting via yt-dlp
   (opus, flac, mp3, and other formats). Uses KHInsider album metadata and cover

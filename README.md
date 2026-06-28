@@ -18,12 +18,20 @@ Needs `yt-dlp` and `ffmpeg` on your `PATH` (`aria2` optional). Run
 # macOS / Linux
 brew tap EnJulian/shadowbox && brew install shadowbox
 
-# Windows
-winget install EnJulian.shadowbox
-
 # From source
 go install github.com/EnJulian/shadowbox/cmd/shadowbox@latest
 ```
+
+```powershell
+# Windows (Scoop — includes ffmpeg and yt-dlp)
+scoop bucket add shadowbox https://github.com/EnJulian/scoop-shadowbox
+scoop install shadowbox
+
+# Windows (PowerShell — no Scoop)
+irm https://raw.githubusercontent.com/EnJulian/shadowbox/main/scripts/install.ps1 | iex
+```
+
+See [docs/INSTALL_WINDOWS.md](docs/INSTALL_WINDOWS.md) for version pinning and manual install.
 
 
 
@@ -53,6 +61,7 @@ override it. Optional — Shadowbox falls back to iTunes and Last.fm without the
 
 ## Docs
 
+- [Install on Windows](docs/INSTALL_WINDOWS.md)
 - [Install from source](docs/INSTALL_FROM_SOURCE.md)
 - [Testing & releasing](docs/RELEASING.md)
 - [Security overview (beginner's guide)](docs/SECURITY_OVERVIEW.md)

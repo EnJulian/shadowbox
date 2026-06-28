@@ -274,25 +274,6 @@ func htmlUnescape(s string) string {
 	return htmlpkg.UnescapeString(s)
 }
 
-func firstH2Text(doc *html.Node) string {
-	var found string
-	var walk func(*html.Node)
-	walk = func(n *html.Node) {
-		if found != "" {
-			return
-		}
-		if n.Type == html.ElementNode && n.Data == "h2" {
-			found = strings.TrimSpace(textContent(n))
-			return
-		}
-		for child := n.FirstChild; child != nil; child = child.NextSibling {
-			walk(child)
-		}
-	}
-	walk(doc)
-	return found
-}
-
 func findAlbumCoverURL(doc *html.Node) string {
 	var fullLinks []string
 	var walk func(*html.Node)

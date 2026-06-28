@@ -125,7 +125,7 @@ func LoadDownloadLog() error {
 		}
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var tail []string
 	sc := bufio.NewScanner(f)

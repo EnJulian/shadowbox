@@ -53,7 +53,7 @@ func (a *App) Run(ctx context.Context, query string, opts Options) error {
 	} else {
 		meta = a.buildMetadata(ctx, file, query, opts)
 	}
-	useExternal := !(download.IsURL(query) && download.IsKHInsider(query))
+	useExternal := !download.IsURL(query) || !download.IsKHInsider(query)
 	final, err := a.finalize(ctx, file, meta, musicDir, opts, useExternal)
 	if err != nil {
 		return err

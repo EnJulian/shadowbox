@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-06-28
+
+### Fixed
+- Release workflow failing when the tagged version has no matching section in
+  `CHANGELOG.md` (now fails with a clear error before GoReleaser runs).
+- Release notes file written outside the git checkout so GoReleaser's clean-tree
+  check passes.
+- GitHub Releases now publish the curated `CHANGELOG.md` section for the tag
+  instead of a raw commit list.
+
 ## [1.4.1] - 2026-06-28
 
 ### Fixed

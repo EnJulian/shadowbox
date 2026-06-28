@@ -197,7 +197,16 @@ The release builds from the tagged commit, so make sure it is healthy first.
 Add a `## [X.Y.Z] - YYYY-MM-DD` section at the top of `CHANGELOG.md` (below
 `## [Unreleased]`) describing the changes (Added / Fixed / Changed / Removed).
 GoReleaser publishes that section to the GitHub Release page — not the raw git
-commit list.
+commit list. The tag **must match the heading exactly** (tag `v1.4.2` requires
+`## [1.4.2] - …` in the file).
+
+Validate locally before tagging:
+
+```bash
+bash scripts/extract-release-notes.sh vX.Y.Z
+```
+
+If that command errors, the release workflow will fail too.
 
 ### Step 2 — Commit the CHANGELOG
 

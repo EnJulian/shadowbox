@@ -34,12 +34,11 @@ jobs:
 
       - name: Extract release notes from CHANGELOG
         id: notes
+        env:
+          RELEASE_NOTES: ${{ runner.temp }}/release-notes.md
         run: |
-          chmod +x scripts/extract-release-notes.sh
-          notes="${RUNNER_TEMP}/release-notes.md"
-          scripts/extract-release-notes.sh "${GITHUB_REF_NAME}" > "$notes"
-          test -s "$notes"
-          echo "path=$notes" >> "$GITHUB_OUTPUT"
+          bash scripts/extract-release-notes.sh "${GITHUB_REF_NAME}" CHANGELOG.md "$RELEASE_NOTES"
+          echo "path=$RELEASE_NOTES" >> "$GITHUB_OUTPUT"
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2

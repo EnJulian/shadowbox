@@ -1,6 +1,10 @@
 package download
 
-import "testing"
+import (
+	"errors"
+	"strings"
+	"testing"
+)
 
 func TestURLClassifiers(t *testing.T) {
 	cases := []struct {
@@ -47,5 +51,59 @@ func TestNewestAudioFilePrefersFormat(t *testing.T) {
 	}
 	if filepathBase(got) != "b.opus" {
 		t.Errorf("got %q, want b.opus (preferred format)", got)
+	}
+}
+
+func TestValidateInput(t *testing.T) {
+	cases := []struct {
+		input string
+		ok    bool
+	}{
+		{"Imagine Dragons Believer", true},
+		{"https://www.youtube.com/watch?v=dQw4w9WgXcQ", true},
+		{"https://artist.bandcamp.com/album/foo", true},
+		{"http://www.youtube.com/watch?v=dQw4w9WgXcQ", true},
+		{"https://evil.example/video", false},
+		{"ftp://www.youtube.com/watch?v=x", false},
+		{"", false},
+		{"track\x00name", false},
+	}
+	for _, c := range cases {
+		err := ValidateInput(c.input)
+		if c.ok && err != nil {
+			t.Errorf("ValidateInput(%q) = %v, want nil", c.input, err)
+		}
+		if !c.ok && err == nil {
+			t.Errorf("ValidateInput(%q) = nil, want error", c.input)
+		}
+	}
+}
+
+func TestValidateInputDisallowedHost(t *testing.T) {
+	err := ValidateInput("https://evil.example/video")
+	if !errors.Is(err, ErrDisallowedHost) {
+		t.Fatalf("ValidateInput() = %v, want ErrDisallowedHost", err)
+	}
+}
+
+func TestStrategyArgsUseOptionTerminator(t *testing.T) {
+	d := New("opus")
+	target := "ytsearch1:test query"
+	for _, s := range d.strategies() {
+		args := appendTarget(s.args(d.Format, "out.%(ext)s"), target)
+		if len(args) < 2 || args[len(args)-2] != "--" || args[len(args)-1] != target {
+			t.Errorf("strategy %q args missing -- terminator: %v", s.name, args)
+		}
+		if strings.Contains(strings.Join(args[:len(args)-2], " "), target) {
+			t.Errorf("strategy %q embeds target before terminator", s.name)
+		}
+	}
+}
+
+func TestPlaylistArgsUseOptionTerminator(t *testing.T) {
+	args := []string{"-f", "bestaudio", "-o", "out.%(ext)s"}
+	args = appendTarget(args, "https://www.youtube.com/playlist?list=PL123")
+	if args[len(args)-2] != "--" {
+		t.Fatalf("playlist args missing -- terminator: %v", args)
 	}
 }

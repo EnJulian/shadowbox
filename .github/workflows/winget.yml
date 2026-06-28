@@ -27,7 +27,7 @@ jobs:
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Submit shadowbox to WinGet
-        uses: vedantmgoyal9/winget-releaser@main
+        uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
           identifier: EnJulian.shadowbox
           version: ${{ steps.ver.outputs.version }}

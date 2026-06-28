@@ -1,7 +1,7 @@
 # Installing Shadowbox from source
 
 This guide covers building and running Shadowbox locally — useful for testing
-before (or instead of) installing through Homebrew or WinGet.
+before (or instead of) installing through Homebrew or Scoop.
 
 For releasing, see [RELEASING.md](RELEASING.md).
 

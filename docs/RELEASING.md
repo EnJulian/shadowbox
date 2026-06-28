@@ -72,11 +72,14 @@ signed `v*` tag triggers `.github/workflows/release.yml`, which:
 3. Publishes GitHub build provenance attestations for release artifacts.
 4. Pushes an updated Homebrew **cask** to `EnJulian/homebrew-shadowbox`
   (using the `HOMEBREW_TAP_GITHUB_TOKEN` secret).
+5. Pushes an updated Scoop **manifest** to `EnJulian/scoop-shadowbox`
+  (using the `SCOOP_BUCKET_TOKEN` secret).
 
 Separately, when the GitHub Release is *published*,
 `.github/workflows/winget.yml` opens a pull request against
 `microsoft/winget-pkgs` (using the `WINGET_TOKEN` secret and your
-`EnJulian/winget-pkgs` fork).
+`EnJulian/winget-pkgs` fork). WinGet is optional and not required for Windows
+installs — Scoop is the supported path for now.
 
 ### Required repository secrets
 
@@ -84,7 +87,8 @@ Separately, when the GitHub Release is *published*,
 | Secret                      | Used by              | Token type                                                              |
 | --------------------------- | -------------------- | ----------------------------------------------------------------------- |
 | `HOMEBREW_TAP_GITHUB_TOKEN` | GoReleaser cask push | Fine-grained PAT, Contents: read/write on `EnJulian/homebrew-shadowbox` |
-| `WINGET_TOKEN`              | WinGet PR workflow   | Classic PAT with `public_repo` scope                                    |
+| `SCOOP_BUCKET_TOKEN`        | GoReleaser Scoop push | Fine-grained PAT, Contents: read/write on `EnJulian/scoop-shadowbox`   |
+| `WINGET_TOKEN`              | WinGet PR workflow   | Classic PAT with `public_repo` scope (optional)                        |
 
 
 `GITHUB_TOKEN` is provided automatically by Actions for the release itself.
@@ -307,8 +311,12 @@ brew tap EnJulian/shadowbox
 brew install shadowbox
 shadowbox version
 
-# WinGet (after the winget-pkgs PR merges)
+# WinGet (after the winget-pkgs PR merges; optional)
 winget install EnJulian.shadowbox
+
+# Scoop (Windows — supported)
+scoop bucket add shadowbox https://github.com/EnJulian/scoop-shadowbox
+scoop install shadowbox
 ```
 
 
@@ -318,6 +326,8 @@ winget install EnJulian.shadowbox
 - **Release workflow fails on the Homebrew step** — confirm
 `HOMEBREW_TAP_GITHUB_TOKEN` is set and can write to
 `EnJulian/homebrew-shadowbox`.
+- **Release workflow fails on the Scoop step** — confirm
+`SCOOP_BUCKET_TOKEN` is set and can write to `EnJulian/scoop-shadowbox`.
 - **No WinGet PR appears** — the workflow runs on `release: published` (not
 draft/prerelease). Confirm `WINGET_TOKEN` is set and the
 `EnJulian/winget-pkgs` fork exists. You can also run it manually from the

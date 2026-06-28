@@ -98,6 +98,22 @@ homebrew_casks:
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/shadowbox"]
           end
 
+scoops:
+  - name: shadowbox
+    repository:
+      owner: EnJulian
+      name: scoop-shadowbox
+      token: "{{ .Env.SCOOP_BUCKET_TOKEN }}"
+    homepage: "https://github.com/EnJulian/shadowbox"
+    description: "Music acquisition CLI for YouTube and Bandcamp"
+    license: MIT
+    commit_author:
+      name: goreleaser-bot
+      email: goreleaser-bot@users.noreply.github.com
+    depends:
+      - ffmpeg
+      - yt-dlp
+
 release:
   github:
     owner: EnJulian
@@ -114,9 +130,15 @@ release:
     brew install EnJulian/shadowbox
     ```
 
-    ### WinGet (Windows)
+    ### Scoop (Windows)
     ```
-    winget install EnJulian.shadowbox
+    scoop bucket add shadowbox https://github.com/EnJulian/scoop-shadowbox
+    scoop install shadowbox
+    ```
+
+    ### PowerShell (Windows, no Scoop)
+    ```
+    irm https://raw.githubusercontent.com/EnJulian/shadowbox/main/scripts/install.ps1 | iex
     ```
 
     ### Manual

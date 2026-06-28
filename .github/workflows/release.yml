@@ -32,12 +32,18 @@ jobs:
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
+      - name: Extract release notes from CHANGELOG
+        run: |
+          chmod +x scripts/extract-release-notes.sh
+          scripts/extract-release-notes.sh "${GITHUB_REF_NAME}" > release-notes.md
+          test -s release-notes.md
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean
+          args: release --clean --release-notes=release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # PAT with Contents: write on EnJulian/homebrew-shadowbox and EnJulian/scoop-shadowbox.

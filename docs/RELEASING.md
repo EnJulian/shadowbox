@@ -194,8 +194,10 @@ The release builds from the tagged commit, so make sure it is healthy first.
 
 ### Step 1 — Update the CHANGELOG
 
-Add a `## [X.Y.Z] - YYYY-MM-DD` section under `## [Unreleased]` describing the
-changes (Added / Fixed / Changed / Removed).
+Add a `## [X.Y.Z] - YYYY-MM-DD` section at the top of `CHANGELOG.md` (below
+`## [Unreleased]`) describing the changes (Added / Fixed / Changed / Removed).
+GoReleaser publishes that section to the GitHub Release page — not the raw git
+commit list.
 
 ### Step 2 — Commit the CHANGELOG
 

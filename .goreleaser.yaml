@@ -63,14 +63,7 @@ snapshot:
   version_template: "{{ incpatch .Version }}-next"
 
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
-      - Merge pull request
-      - Merge branch
+  disable: true
 
 homebrew_casks:
   - name: shadowbox

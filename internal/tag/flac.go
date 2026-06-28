@@ -97,6 +97,15 @@ func readFLAC(path string) (*Metadata, error) {
 		m.Date = get(flacvorbis.FIELD_DATE)
 		m.Genre = get(flacvorbis.FIELD_GENRE)
 		m.TrackNumber = get(flacvorbis.FIELD_TRACKNUMBER)
+		if m.TrackNumber == "" {
+			m.TrackNumber = get("TRACK")
+		}
+		m.TotalTracks = get("TRACKTOTAL")
+		m.DiscNumber = get("DISCNUMBER")
+		if m.DiscNumber == "" {
+			m.DiscNumber = get("DISC")
+		}
+		m.TotalDiscs = get("DISCTOTAL")
 	}
 	return m, nil
 }

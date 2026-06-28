@@ -10,6 +10,7 @@ import (
 	"github.com/EnJulian/shadowbox/internal/app"
 	"github.com/EnJulian/shadowbox/internal/config"
 	applog "github.com/EnJulian/shadowbox/internal/log"
+	"github.com/EnJulian/shadowbox/internal/progress"
 )
 
 type screen int
@@ -21,6 +22,7 @@ const (
 	screenSettingEdit
 	screenThemePicker
 	screenLibrary
+	screenDownloadLog
 	screenRunning
 	screenResult
 )
@@ -31,8 +33,8 @@ type taskDoneMsg struct {
 	err     error
 }
 
-// progressMsg carries a human-readable pipeline stage to the running screen.
-type progressMsg string
+// progressMsg carries a pipeline stage update to the running screen.
+type progressMsg progress.Update
 
 type model struct {
 	cfg   *config.Config
@@ -63,12 +65,16 @@ type model struct {
 	lib libState
 
 	// running progress
-	progress   string
-	progressCh chan string
+	progress   progress.Update
+	progressCh chan progress.Update
 
 	// result
 	result    string
 	resultErr error
+
+	// download log viewer
+	logLines  []string
+	logScroll int
 }
 
 var mainMenu = []string{
@@ -77,14 +83,17 @@ var mainMenu = []string{
 	"Download Playlist",
 	"Enhance Existing Files",
 	"Library",
+	"Download Log",
 	"Settings",
 	"Exit",
 }
 
 // runProgram builds and runs the Bubble Tea program.
 func runProgram(cfg *config.Config) error {
-	// Bubble Tea owns the screen; silence direct log writes for the session.
-	applog.SetWriters(io.Discard, io.Discard)
+	capture := applog.DownloadLogWriter()
+	_ = applog.LoadDownloadLog()
+	applog.SetWriters(io.MultiWriter(io.Discard, capture), io.MultiWriter(io.Discard, capture))
+	applog.SetVerbose(true)
 	defer applog.Reset()
 
 	theme := themeByName(cfg.Theme)
@@ -126,14 +135,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case progressMsg:
-		m.progress = string(msg)
+		m.progress = progress.Update(msg)
 		return m, waitForProgress(m.progressCh)
 
 	case taskDoneMsg:
 		m.screen = screenResult
 		m.result = msg.summary
 		m.resultErr = msg.err
-		m.progress = ""
+		m.progress = progress.Update{}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -167,6 +176,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateThemePicker(msg)
 	case screenLibrary:
 		return m.updateLibrary(msg)
+	case screenDownloadLog:
+		return m.updateDownloadLog(msg)
 	case screenResult:
 		// Any key returns to the menu.
 		m.screen = screenMenu
@@ -180,17 +191,18 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // startTask transitions to the running screen and runs fn in the background.
 // fn receives a report callback it can use to surface live stage descriptions
 // on the running screen.
-func (m *model) startTask(label string, fn func(ctx context.Context, report func(string)) error) tea.Cmd {
+func (m *model) startTask(label string, fn func(ctx context.Context, report func(progress.Update)) error) tea.Cmd {
 	m.screen = screenRunning
 	m.result = label
-	m.progress = ""
+	m.progress = progress.Update{}
+	applog.BeginDownloadSession(label)
 
-	ch := make(chan string, 32)
+	ch := make(chan progress.Update, 32)
 	m.progressCh = ch
-	report := func(s string) {
+	report := func(u progress.Update) {
 		// Non-blocking: never let progress reporting stall the pipeline.
 		select {
-		case ch <- s:
+		case ch <- u:
 		default:
 		}
 	}
@@ -210,13 +222,13 @@ func (m *model) startTask(label string, fn func(ctx context.Context, report func
 
 // waitForProgress blocks on the next stage description from the channel and
 // re-subscribes after each one. It stops (returns nil) when the channel closes.
-func waitForProgress(ch chan string) tea.Cmd {
+func waitForProgress(ch chan progress.Update) tea.Cmd {
 	return func() tea.Msg {
-		s, ok := <-ch
+		u, ok := <-ch
 		if !ok {
 			return nil
 		}
-		return progressMsg(s)
+		return progressMsg(u)
 	}
 }
 
@@ -234,6 +246,8 @@ func (m model) View() string {
 		return m.viewThemePicker()
 	case screenLibrary:
 		return m.viewLibrary()
+	case screenDownloadLog:
+		return m.viewDownloadLog()
 	case screenRunning:
 		return m.viewRunning()
 	case screenResult:

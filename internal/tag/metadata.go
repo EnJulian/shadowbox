@@ -78,6 +78,15 @@ func Read(path string) (*Metadata, error) {
 	}
 }
 
+// splitSlashPair splits ID3/Vorbis "n/total" values into separate parts.
+func splitSlashPair(raw string) (n, total string) {
+	raw = strings.TrimSpace(raw)
+	if i := strings.IndexByte(raw, '/'); i >= 0 {
+		return strings.TrimSpace(raw[:i]), strings.TrimSpace(raw[i+1:])
+	}
+	return raw, ""
+}
+
 func ext(path string) string {
 	return strings.ToLower(filepath.Ext(path))
 }

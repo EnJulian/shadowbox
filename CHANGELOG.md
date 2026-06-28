@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- KHInsider support: download single tracks and full albums from
+  `downloads.khinsider.com` by resolving mirror links and converting via yt-dlp
+  (opus, flac, mp3, and other formats). Uses KHInsider album metadata and cover
+  art instead of Spotify/Last.fm lookups.
+- Download Log menu in the interactive console: view recent acquisition output,
+  persisted to `~/.config/shadowbox/download.log`.
+
+### Fixed
+- KHInsider tagging now reads artist, album, track, and disc metadata from tags
+  already embedded in mirror downloads (preserved by yt-dlp), instead of
+  scraping the album page. Cover art is still fetched from the KHInsider album
+  page when the audio file has none.
+
 ## [1.3.0] - 2026-06-26
 
 ### Added

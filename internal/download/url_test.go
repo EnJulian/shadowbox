@@ -8,19 +8,31 @@ import (
 
 func TestURLClassifiers(t *testing.T) {
 	cases := []struct {
-		url        string
-		isURL      bool
-		isYT       bool
-		isPlaylist bool
-		isBandcamp bool
+		url             string
+		isURL           bool
+		isYT            bool
+		isPlaylist      bool
+		isBandcamp      bool
+		isKHInsider     bool
+		isKHPlaylist    bool
+		isKHTrack       bool
 	}{
-		{"https://www.youtube.com/watch?v=dQw4w9WgXcQ", true, true, false, false},
-		{"https://youtu.be/dQw4w9WgXcQ", true, true, false, false},
-		{"https://www.youtube.com/playlist?list=PL123", true, true, true, false},
-		{"https://music.youtube.com/watch?v=x&list=RDABC", true, true, true, false},
-		{"https://artist.bandcamp.com/album/foo", true, false, false, true},
-		{"Imagine Dragons Believer", false, false, false, false},
-		{"  https://youtu.be/abc  ", true, true, false, false},
+		{"https://www.youtube.com/watch?v=dQw4w9WgXcQ", true, true, false, false, false, false, false},
+		{"https://youtu.be/dQw4w9WgXcQ", true, true, false, false, false, false, false},
+		{"https://www.youtube.com/playlist?list=PL123", true, true, true, false, false, false, false},
+		{"https://music.youtube.com/watch?v=x&list=RDABC", true, true, true, false, false, false, false},
+		{"https://artist.bandcamp.com/album/foo", true, false, false, true, false, false, false},
+		{"Imagine Dragons Believer", false, false, false, false, false, false, false},
+		{"  https://youtu.be/abc  ", true, true, false, false, false, false, false},
+		{
+			"https://downloads.khinsider.com/game-soundtracks/album/kirby-and-the-forgotten-land-the-complete-soundtrack-2024",
+			true, false, false, false, true, true, false,
+		},
+		{
+			"https://downloads.khinsider.com/game-soundtracks/album/kirby-and-the-forgotten-land-the-complete-soundtrack-2024/01.%20Welcome.mp3",
+			true, false, false, false, true, false, true,
+		},
+		{"https://www.khinsider.com/game-soundtracks/album/test-album", true, false, false, false, true, true, false},
 	}
 	for _, c := range cases {
 		if got := IsURL(c.url); got != c.isURL {
@@ -34,6 +46,15 @@ func TestURLClassifiers(t *testing.T) {
 		}
 		if got := IsBandcamp(c.url); got != c.isBandcamp {
 			t.Errorf("IsBandcamp(%q) = %v, want %v", c.url, got, c.isBandcamp)
+		}
+		if got := IsKHInsider(c.url); got != c.isKHInsider {
+			t.Errorf("IsKHInsider(%q) = %v, want %v", c.url, got, c.isKHInsider)
+		}
+		if got := IsKHInsiderPlaylist(c.url); got != c.isKHPlaylist {
+			t.Errorf("IsKHInsiderPlaylist(%q) = %v, want %v", c.url, got, c.isKHPlaylist)
+		}
+		if got := IsKHInsiderTrack(c.url); got != c.isKHTrack {
+			t.Errorf("IsKHInsiderTrack(%q) = %v, want %v", c.url, got, c.isKHTrack)
 		}
 	}
 }
@@ -63,6 +84,8 @@ func TestValidateInput(t *testing.T) {
 		{"https://www.youtube.com/watch?v=dQw4w9WgXcQ", true},
 		{"https://artist.bandcamp.com/album/foo", true},
 		{"http://www.youtube.com/watch?v=dQw4w9WgXcQ", true},
+		{"https://downloads.khinsider.com/game-soundtracks/album/test-album", true},
+		{"https://downloads.khinsider.com/game-soundtracks/album/test-album/01.%20Track.mp3", true},
 		{"https://evil.example/video", false},
 		{"ftp://www.youtube.com/watch?v=x", false},
 		{"", false},
@@ -96,6 +119,17 @@ func TestStrategyArgsUseOptionTerminator(t *testing.T) {
 		}
 		if strings.Contains(strings.Join(args[:len(args)-2], " "), target) {
 			t.Errorf("strategy %q embeds target before terminator", s.name)
+		}
+	}
+}
+
+func TestDirectStrategyArgsUseOptionTerminator(t *testing.T) {
+	d := New("opus")
+	target := "https://nu.vgmtreasurechest.com/soundtracks/example/track.mp3"
+	for _, s := range d.directMediaStrategies() {
+		args := appendTarget(s.args(d.Format, "out.%(ext)s"), target)
+		if len(args) < 2 || args[len(args)-2] != "--" || args[len(args)-1] != target {
+			t.Errorf("strategy %q args missing -- terminator: %v", s.name, args)
 		}
 	}
 }

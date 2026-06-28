@@ -66,7 +66,7 @@ func (a *App) EnhanceDir(ctx context.Context, dir string, recursive bool, exts [
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		opts.step(fmt.Sprintf("enhancing %d of %d: %s", i+1, len(files), filepath.Base(f)))
+		opts.stepN("enhancing", i+1, len(files))
 		if err := a.enhanceFile(ctx, f, "", "", opts); err != nil {
 			applog.Error("Failed to enhance %s: %v", filepath.Base(f), err)
 			continue

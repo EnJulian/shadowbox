@@ -2,6 +2,7 @@ package tag
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/bogem/id3v2/v2"
 )
@@ -90,6 +91,36 @@ func readMP3(path string) (*Metadata, error) {
 	if frames := t.GetFrames(t.CommonID("Band/Orchestra/Accompaniment")); len(frames) > 0 {
 		if tf, ok := frames[0].(id3v2.TextFrame); ok {
 			m.AlbumArtist = tf.Text
+		}
+	}
+	if frames := t.GetFrames(t.CommonID("Track number/Position in set")); len(frames) > 0 {
+		if tf, ok := frames[0].(id3v2.TextFrame); ok {
+			m.TrackNumber, m.TotalTracks = splitSlashPair(tf.Text)
+		}
+	}
+	if frames := t.GetFrames(t.CommonID("Part of a set")); len(frames) > 0 {
+		if tf, ok := frames[0].(id3v2.TextFrame); ok {
+			m.DiscNumber, m.TotalDiscs = splitSlashPair(tf.Text)
+		}
+	}
+	for _, frame := range t.GetFrames("TXXX") {
+		uf, ok := frame.(id3v2.UserDefinedTextFrame)
+		if !ok {
+			continue
+		}
+		switch strings.ToUpper(uf.Description) {
+		case "TRACKTOTAL":
+			if m.TotalTracks == "" {
+				m.TotalTracks = uf.Value
+			}
+		case "DISCTOTAL":
+			if m.TotalDiscs == "" {
+				m.TotalDiscs = uf.Value
+			}
+		case "DISCNUMBER":
+			if m.DiscNumber == "" {
+				m.DiscNumber = uf.Value
+			}
 		}
 	}
 	return m, nil

@@ -27,3 +27,8 @@ cover.jpg
 *.swo
 .idea/
 .vscode/
+
+# Local task notes
+/task.md
+/TASK.md
+

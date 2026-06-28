@@ -38,6 +38,49 @@ func IsYouTubePlaylist(rawURL string) bool {
 	return IsYouTube(rawURL) && (strings.Contains(u, "playlist") || strings.Contains(u, "list="))
 }
 
+// IsKHInsider reports whether the URL points to KHInsider.
+func IsKHInsider(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	return host == "khinsider.com" ||
+		host == "www.khinsider.com" ||
+		host == "downloads.khinsider.com"
+}
+
+// IsKHInsiderPlaylist reports whether the URL is a KHInsider album page.
+func IsKHInsiderPlaylist(rawURL string) bool {
+	if !IsKHInsider(rawURL) {
+		return false
+	}
+	segs := khPathSegments(rawURL)
+	return len(segs) == 3 &&
+		segs[0] == "game-soundtracks" &&
+		segs[1] == "album"
+}
+
+// IsKHInsiderTrack reports whether the URL is a KHInsider track page.
+func IsKHInsiderTrack(rawURL string) bool {
+	if !IsKHInsider(rawURL) {
+		return false
+	}
+	return len(khPathSegments(rawURL)) > 3
+}
+
+func khPathSegments(rawURL string) []string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return nil
+	}
+	path := strings.Trim(u.Path, "/")
+	if path == "" {
+		return nil
+	}
+	return strings.Split(path, "/")
+}
+
 // ValidateInput checks query/URL inputs before passing them to yt-dlp.
 func ValidateInput(input string) error {
 	input = strings.TrimSpace(input)
@@ -90,6 +133,11 @@ func isAllowedHost(host string) bool {
 		return true
 	}
 	if host == "bandcamp.com" || strings.HasSuffix(host, ".bandcamp.com") {
+		return true
+	}
+	if host == "khinsider.com" ||
+		host == "www.khinsider.com" ||
+		host == "downloads.khinsider.com" {
 		return true
 	}
 	return false

@@ -188,11 +188,11 @@ func applyVorbisComment(m *Metadata, comment string) {
 		m.Date = val
 	case "GENRE":
 		m.Genre = val
-	case "TRACKNUMBER":
+	case "TRACKNUMBER", "TRACK":
 		m.TrackNumber = val
 	case "TRACKTOTAL":
 		m.TotalTracks = val
-	case "DISCNUMBER":
+	case "DISCNUMBER", "DISC":
 		m.DiscNumber = val
 	case "DISCTOTAL":
 		m.TotalDiscs = val

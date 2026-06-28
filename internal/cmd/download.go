@@ -21,7 +21,7 @@ func newDownloadCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "download",
 		Short: "Download a track or playlist and tag it",
-		Long: "Download audio from a YouTube/Bandcamp URL or a search query, then\n" +
+		Long: "Download audio from a YouTube/Bandcamp/KHInsider URL or a search query, then\n" +
 			"organise and tag it with metadata, cover art, and lyrics.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if query == "" && len(args) > 0 {

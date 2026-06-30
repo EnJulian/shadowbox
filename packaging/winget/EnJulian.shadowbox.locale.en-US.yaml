@@ -11,7 +11,7 @@ LicenseUrl: https://github.com/EnJulian/shadowbox/blob/main/LICENSE
 ShortDescription: Music acquisition CLI for YouTube and Bandcamp.
 Description: >-
   Shadowbox downloads audio from YouTube and Bandcamp, converts it with ffmpeg,
-  and injects rich metadata, cover art, and lyrics from Spotify, iTunes,
+  and injects rich metadata, cover art, and lyrics from MusicBrainz, iTunes,
   Last.fm, and Genius.
 Tags:
   - audio

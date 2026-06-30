@@ -123,7 +123,7 @@ func (d *Downloader) downloadKHInsiderAlbum(ctx context.Context, albumURL, dir s
 		safeTitle := sanitizeKHOutputTitle(title)
 		output := filepath.Join(dir, fmt.Sprintf("%02d - %s.%%(ext)s", track.Index, safeTitle))
 		applog.Infof("PLAYLIST", "Downloading track %d/%d: %s", track.Index, len(tracks), safeTitle)
-		d.reportProgress("downloading track", track.Index, len(tracks))
+		d.reportProgress(track.Index, len(tracks))
 		if _, err := d.runDirectStrategies(ctx, directURL, output, dir); err != nil {
 			return nil, fmt.Errorf("track %d (%s): %w", track.Index, safeTitle, err)
 		}
@@ -229,9 +229,13 @@ func (l *lockedWriter) Write(p []byte) (int, error) {
 	return l.w.Write(p)
 }
 
-func (d *Downloader) reportProgress(stage string, current, total int) {
+func (d *Downloader) reportProgress(current, total int) {
 	if d.Progress != nil {
-		d.Progress(progress.Update{Stage: stage, Current: current, Total: total})
+		heading := "Downloading playlist"
+		if total > 0 && current > 0 {
+			heading = fmt.Sprintf("Downloading playlist track %d/%d", current, total)
+		}
+		d.Progress(progress.Update{Heading: heading, Current: current, Total: total})
 	}
 }
 
@@ -243,7 +247,7 @@ func (d *Downloader) scanYTDLPProgress(r io.Reader) {
 			current, _ := strconv.Atoi(m[1])
 			total, _ := strconv.Atoi(m[2])
 			if current > 0 && total > 0 {
-				d.reportProgress("downloading track", current, total)
+				d.reportProgress(current, total)
 			}
 		}
 	}

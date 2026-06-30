@@ -1,5 +1,5 @@
-// Package cover resolves and downloads album cover art, trying Spotify first and
-// falling back to the iTunes Search API, mirroring the original cascade.
+// Package cover resolves and downloads album cover art, trying the iTunes Search
+// API first and falling back to MusicBrainz/Cover Art Archive.
 package cover
 
 import (
@@ -12,24 +12,24 @@ import (
 	"time"
 
 	"github.com/EnJulian/shadowbox/internal/apis/itunes"
-	"github.com/EnJulian/shadowbox/internal/apis/spotify"
+	"github.com/EnJulian/shadowbox/internal/apis/musicbrainz"
 )
 
 const maxCoverBytes = 10 << 20 // 10 MiB
 
 // Resolver finds cover art URLs across providers.
 type Resolver struct {
-	Spotify *spotify.Client
-	ITunes  *itunes.Client
-	HTTP    *http.Client
+	MusicBrainz *musicbrainz.Client
+	ITunes      *itunes.Client
+	HTTP        *http.Client
 }
 
 // New builds a Resolver from the given clients.
-func New(sp *spotify.Client, it *itunes.Client) *Resolver {
+func New(mb *musicbrainz.Client, it *itunes.Client) *Resolver {
 	return &Resolver{
-		Spotify: sp,
-		ITunes:  it,
-		HTTP:    &http.Client{Timeout: 15 * time.Second},
+		MusicBrainz: mb,
+		ITunes:      it,
+		HTTP:        &http.Client{Timeout: 15 * time.Second},
 	}
 }
 
@@ -37,45 +37,36 @@ func New(sp *spotify.Client, it *itunes.Client) *Resolver {
 func (r *Resolver) URL(ctx context.Context, title, artist string) string {
 	first := firstArtist(artist)
 
-	if r.Spotify != nil && r.Spotify.Configured() {
-		if u := r.spotifyCover(ctx, title, artist); u != "" {
+	if u := r.itunesCover(ctx, title+" "+artist); u != "" {
+		return u
+	}
+	if first != artist {
+		if u := r.itunesCover(ctx, title+" "+first); u != "" {
 			return u
-		}
-		if first != artist {
-			if u := r.spotifyCover(ctx, title, first); u != "" {
-				return u
-			}
-		}
-		if u := r.itunesCover(ctx, title+" "+artist); u != "" {
-			return u
-		}
-		if first != artist {
-			if u := r.itunesCover(ctx, title+" "+first); u != "" {
-				return u
-			}
-		}
-		if u := r.spotifyCover(ctx, title, ""); u != "" {
-			return u
-		}
-	} else {
-		if u := r.itunesCover(ctx, title+" "+artist); u != "" {
-			return u
-		}
-		if first != artist {
-			if u := r.itunesCover(ctx, title+" "+first); u != "" {
-				return u
-			}
 		}
 	}
-
 	if u := r.itunesCover(ctx, title); u != "" {
 		return u
 	}
-	return r.itunesCover(ctx, artist)
+	if u := r.itunesCover(ctx, artist); u != "" {
+		return u
+	}
+
+	if r.MusicBrainz != nil {
+		if u := r.musicBrainzCover(ctx, title, artist); u != "" {
+			return u
+		}
+		if first != artist {
+			if u := r.musicBrainzCover(ctx, title, first); u != "" {
+				return u
+			}
+		}
+	}
+	return ""
 }
 
-func (r *Resolver) spotifyCover(ctx context.Context, title, artist string) string {
-	m, err := r.Spotify.Search(ctx, title, artist)
+func (r *Resolver) musicBrainzCover(ctx context.Context, title, artist string) string {
+	m, err := r.MusicBrainz.Search(ctx, title, artist)
 	if err != nil || m == nil {
 		return ""
 	}

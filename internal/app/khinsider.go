@@ -17,7 +17,7 @@ type khInsiderCover struct {
 }
 
 func (a *App) buildKHInsiderMetadataFromFile(ctx context.Context, file, albumURL string, opts Options, cover *khInsiderCover) (*tag.Metadata, error) {
-	opts.step("reading embedded KHInsider tags")
+	opts.heading("Reading embedded KHInsider tags")
 	m, err := tag.Read(file)
 	if err != nil {
 		applog.Warningf("KHINSIDER", "Could not read embedded tags: %v", err)
@@ -45,7 +45,7 @@ func attachKHInsiderCover(ctx context.Context, albumURL string, m *tag.Metadata,
 	if m.HasCover() || albumURL == "" {
 		return
 	}
-	opts.step("fetching KHInsider cover art")
+	opts.heading("Fetching KHInsider cover art")
 	album, err := download.FetchKHInsiderAlbumInfo(ctx, albumURL)
 	if err != nil {
 		applog.Warningf("KHINSIDER", "Album page fetch failed: %v", err)

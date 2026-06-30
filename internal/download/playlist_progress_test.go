@@ -24,7 +24,7 @@ func TestScanYTDLPProgress(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("expected 2 updates, got %d: %+v", len(got), got)
 	}
-	if got[0].Current != 2 || got[0].Total != 5 || got[0].Stage != "downloading track" {
+	if got[0].Current != 2 || got[0].Total != 5 || got[0].Heading != "Downloading playlist track 2/5" {
 		t.Fatalf("unexpected first update: %+v", got[0])
 	}
 	if got[1].Current != 3 || got[1].Total != 5 {

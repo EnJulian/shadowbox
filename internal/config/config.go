@@ -14,12 +14,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Spotify holds the Spotify Web API client credentials.
-type Spotify struct {
-	ClientID     string `mapstructure:"client_id"`
-	ClientSecret string `mapstructure:"client_secret"`
-}
-
 // Genius holds the Genius API access token used for lyrics lookups.
 type Genius struct {
 	AccessToken string `mapstructure:"access_token"`
@@ -29,12 +23,10 @@ type Genius struct {
 type Config struct {
 	AudioFormat    string  `mapstructure:"audio_format"`
 	MusicDirectory string  `mapstructure:"music_directory"`
-	UseSpotify     bool    `mapstructure:"use_spotify"`
-	UseGenius      bool    `mapstructure:"use_genius"`
-	Verbose        bool    `mapstructure:"verbose"`
-	Theme          string  `mapstructure:"theme"`
-	Spotify        Spotify `mapstructure:"spotify"`
-	Genius         Genius  `mapstructure:"genius"`
+	UseGenius      bool   `mapstructure:"use_genius"`
+	Verbose        bool   `mapstructure:"verbose"`
+	Theme          string `mapstructure:"theme"`
+	Genius         Genius `mapstructure:"genius"`
 }
 
 const (
@@ -73,12 +65,9 @@ func Path() (string, error) {
 func setDefaults(v *viper.Viper) {
 	v.SetDefault("audio_format", "opus")
 	v.SetDefault("music_directory", defaultMusicDir())
-	v.SetDefault("use_spotify", false)
 	v.SetDefault("use_genius", true)
 	v.SetDefault("verbose", false)
 	v.SetDefault("theme", "hacker")
-	v.SetDefault("spotify.client_id", "")
-	v.SetDefault("spotify.client_secret", "")
 	v.SetDefault("genius.access_token", "")
 }
 
@@ -101,8 +90,6 @@ func newViper() (*viper.Viper, error) {
 	v.AutomaticEnv()
 
 	// Backward-compatible environment variables from the Python version.
-	_ = v.BindEnv("spotify.client_id", "SHADOWBOX_SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_ID")
-	_ = v.BindEnv("spotify.client_secret", "SHADOWBOX_SPOTIFY_CLIENT_SECRET", "SPOTIFY_CLIENT_SECRET")
 	_ = v.BindEnv("genius.access_token", "SHADOWBOX_GENIUS_ACCESS_TOKEN", "GENIUS_ACCESS_TOKEN")
 
 	return v, nil
@@ -153,12 +140,9 @@ func Save(cfg *Config) error {
 	}
 	v.Set("audio_format", cfg.AudioFormat)
 	v.Set("music_directory", cfg.MusicDirectory)
-	v.Set("use_spotify", cfg.UseSpotify)
 	v.Set("use_genius", cfg.UseGenius)
 	v.Set("verbose", cfg.Verbose)
 	v.Set("theme", cfg.Theme)
-	v.Set("spotify.client_id", cfg.Spotify.ClientID)
-	v.Set("spotify.client_secret", cfg.Spotify.ClientSecret)
 	v.Set("genius.access_token", cfg.Genius.AccessToken)
 
 	path, err := Path()

@@ -88,13 +88,11 @@ shadowbox doctor
 shadowbox doctor
 ```
 
-You should see `yt-dlp` and `ffmpeg` marked `[+]`. Configure API credentials
-(optional, for richer metadata) with:
+You should see `yt-dlp` and `ffmpeg` marked `[+]`. Configure Genius credentials
+(optional, for lyrics) with:
 
 ```bash
-shadowbox config set spotify.client_id     YOUR_ID
-shadowbox config set spotify.client_secret YOUR_SECRET
-shadowbox config set genius.access_token   YOUR_TOKEN
+shadowbox config set genius.access_token YOUR_TOKEN
 ```
 
 ## Updating

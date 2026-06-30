@@ -10,31 +10,37 @@ import (
 	"testing"
 
 	"github.com/EnJulian/shadowbox/internal/apis/itunes"
-	"github.com/EnJulian/shadowbox/internal/apis/spotify"
+	"github.com/EnJulian/shadowbox/internal/apis/musicbrainz"
 )
 
-func TestURLPrefersSpotify(t *testing.T) {
-	sp := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/token":
-			w.Write([]byte(`{"access_token":"t","expires_in":3600}`))
-		default: // /search
-			w.Write([]byte(`{"tracks":{"items":[{"name":"S","artists":[{"name":"A"}],"album":{"name":"Al","images":[{"url":"spotify-cover","width":640,"height":640}]}}]}}`))
+func TestURLPrefersMusicBrainz(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/recording") {
+			w.Write([]byte(`{"recordings":[{
+				"id":"rec1","score":100,"title":"Song",
+				"artist-credit":[{"name":"Artist","artist":{"name":"Artist"}}],
+				"releases":[{"id":"rel1","status":"Official","title":"Album",
+					"release-group":{"title":"Album"},
+					"media":[{"track":[{"number":"1","title":"Song"}]}]
+				}]
+			}]}`))
+			return
 		}
+		w.Write([]byte(`{"images":[{"front":true,"thumbnails":{"500":"https://cdn/mb-cover.jpg"}}]}`))
 	}))
-	defer sp.Close()
+	defer srv.Close()
 
-	spc := spotify.New("id", "secret")
-	spc.TokenURL = sp.URL + "/token"
-	spc.APIURL = sp.URL
+	mb := musicbrainz.New()
+	mb.BaseURL = srv.URL
+	mb.CoverBase = srv.URL
 
 	itc := itunes.New()
-	itc.BaseURL = sp.URL // unused; spotify should win
+	itc.BaseURL = srv.URL
 
-	r := New(spc, itc)
+	r := New(mb, itc)
 	got := r.URL(context.Background(), "Song", "Artist")
-	if got != "spotify-cover" {
-		t.Errorf("cover = %q, want spotify-cover", got)
+	if got != "https://cdn/mb-cover.jpg" {
+		t.Errorf("cover = %q, want mb-cover", got)
 	}
 }
 
@@ -44,11 +50,13 @@ func TestURLFallsBackToITunes(t *testing.T) {
 	}))
 	defer itServer.Close()
 
+	mb := musicbrainz.New()
+	mb.BaseURL = itServer.URL
+
 	itc := itunes.New()
 	itc.BaseURL = itServer.URL
 
-	// No Spotify configured -> straight to iTunes.
-	r := New(spotify.New("", ""), itc)
+	r := New(mb, itc)
 	got := r.URL(context.Background(), "Song", "Artist")
 	if got != "https://cdn/600x600bb.jpg" {
 		t.Errorf("cover = %q, want upgraded itunes url", got)

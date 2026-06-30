@@ -1,0 +1,25 @@
+---
+description: Run lint checks at the end of every implementation
+alwaysApply: true
+---
+
+# Lint verification before finishing
+
+After any code change (feature, bug fix, refactor, or test update), verify lint before marking the task complete.
+
+## Required steps
+
+1. Run `make lint` (or `golangci-lint run ./...` if Make is unavailable).
+2. Use the IDE linter (`ReadLints`) on every file you edited.
+3. Fix all reported issues in changed code before finishing.
+4. Re-run lint after fixes until it passes cleanly.
+
+## When to skip
+
+- Question-only or read-only tasks with no file edits.
+- The user explicitly asks not to run lint.
+
+## If lint fails
+
+- Fix issues in the current change set; do not disable linters without user approval.
+- Report any remaining failures and what blocked a fix.

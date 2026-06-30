@@ -16,7 +16,6 @@ func newDownloadCmd() *cobra.Command {
 		directory string
 		output    string
 		format    string
-		spotify   bool
 	)
 	c := &cobra.Command{
 		Use:   "download",
@@ -28,7 +27,7 @@ func newDownloadCmd() *cobra.Command {
 				query = strings.Join(args, " ")
 			}
 			if query == "" {
-				q, err := prompt("Enter song title and artist or URL: ")
+				q, err := prompt("Enter title by artist, or a URL (e.g. Believer by Imagine Dragons): ")
 				if err != nil {
 					return err
 				}
@@ -40,19 +39,17 @@ func newDownloadCmd() *cobra.Command {
 
 			a := app.New(cfg)
 			opts := app.Options{
-				MusicDir:   directory,
-				Output:     output,
-				Format:     format,
-				UseSpotify: spotify || cfg.UseSpotify,
+				MusicDir: directory,
+				Output:   output,
+				Format:   format,
 			}
 			return a.Run(cmd.Context(), query, opts)
 		},
 	}
-	c.Flags().StringVarP(&query, "query", "q", "", "song title and artist or URL")
+	c.Flags().StringVarP(&query, "query", "q", "", "title by artist (e.g. \"Believer by Imagine Dragons\") or URL")
 	c.Flags().StringVarP(&directory, "directory", "d", "", "base music directory (default ~/Music)")
 	c.Flags().StringVarP(&output, "output", "o", "", "output filename override (no extension)")
 	c.Flags().StringVarP(&format, "format", "f", "", "audio format (opus, m4a, mp3, flac, wav)")
-	c.Flags().BoolVarP(&spotify, "spotify", "s", false, "use Spotify for metadata")
 	return c
 }
 

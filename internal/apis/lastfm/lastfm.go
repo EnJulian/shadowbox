@@ -1,5 +1,5 @@
 // Package lastfm is a minimal client for the Last.fm API, used only to source a
-// genre when Spotify does not provide one.
+// genre when MusicBrainz does not provide one.
 package lastfm
 
 import (

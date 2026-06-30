@@ -62,17 +62,17 @@ func TestMenuRendersAllScreens(t *testing.T) {
 		t.Error("settings view missing items")
 	}
 
-	// Toggle a boolean setting (use_spotify at index 2).
+	// Toggle a boolean setting (use_genius at index 2).
 	m.settingsCursor = 2
-	before := m.cfg.UseSpotify
+	before := m.cfg.UseGenius
 	next, _ = m.activateSetting()
 	m = next.(model)
-	if m.cfg.UseSpotify == before {
-		t.Error("toggle did not flip use_spotify")
+	if m.cfg.UseGenius == before {
+		t.Error("toggle did not flip use_genius")
 	}
 
 	// Open theme picker and apply a different theme.
-	m.settingsCursor = 5
+	m.settingsCursor = 4
 	next, _ = m.activateSetting()
 	m = next.(model)
 	if m.screen != screenThemePicker {

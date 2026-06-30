@@ -40,7 +40,7 @@ See [docs/INSTALL_WINDOWS.md](docs/INSTALL_WINDOWS.md) for version pinning and m
 ```bash
 shadowbox                                   # interactive interface
 shadowbox download -q "High Speed Chasing BØRNS"
-shadowbox download -q "https://youtu.be/..." -s -f opus -d ~/Music
+shadowbox download -q "https://youtu.be/..." -f opus -d ~/Music
 shadowbox tag -f track.opus -t "Cocktails in Space" -a "Pharma"
 shadowbox enhance ~/Music/Unsorted -r
 ```
@@ -51,13 +51,13 @@ Run `shadowbox <command> --help` for flags.
 ## Configure
 
 ```bash
-shadowbox config set spotify.client_id     YOUR_ID
-shadowbox config set spotify.client_secret YOUR_SECRET
-shadowbox config set genius.access_token   YOUR_TOKEN
+shadowbox config set genius.access_token YOUR_TOKEN
 ```
 
-Stored at `~/.config/shadowbox/config.yaml`; `SPOTIFY_*` / `GENIUS_*` env vars
-override it. Optional — Shadowbox falls back to iTunes and Last.fm without them.
+Metadata and cover art use MusicBrainz, Cover Art Archive, iTunes, and Last.fm
+with no API keys required. Genius is optional for lyrics.
+
+Stored at `~/.config/shadowbox/config.yaml`; `GENIUS_*` env vars override it.
 
 ## Docs
 

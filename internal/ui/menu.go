@@ -25,7 +25,7 @@ func (m model) updateMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m model) selectMenu() (tea.Model, tea.Cmd) {
 	switch m.menuCursor {
 	case 0:
-		return m.openInput("search", "Enter song title and artist (e.g. High Speed Chasing BØRNS)")
+		return m.openInput("search", "Enter title by artist (e.g. High Speed Chasing by BØRNS)")
 	case 1:
 		return m.openInput("url", "Enter a YouTube or Bandcamp URL")
 	case 2:

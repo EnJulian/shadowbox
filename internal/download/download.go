@@ -198,8 +198,7 @@ func (d *Downloader) Download(ctx context.Context, query, dir string) (string, e
 			applog.Infof("AUDIO", "Detected YouTube URL")
 		}
 	default:
-		applog.Infof("SCAN", "Searching for: %s", query)
-		target = "ytsearch1:" + query
+		return "", fmt.Errorf("download requires a URL; use SearchYouTube for text queries")
 	}
 
 	output := filepath.Join(dir, "shadowbox_download.%(ext)s")

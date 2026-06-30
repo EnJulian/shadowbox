@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- MusicBrainz metadata lookup and Cover Art Archive integration as the primary
+  metadata and cover art source.
+
+### Removed
+- Spotify API integration (metadata search and cover art).
+
 ## [1.4.2] - 2026-06-28
 
 ### Fixed

@@ -20,7 +20,7 @@ make build    # build ./shadowbox with version info baked in
 
 A few notes on the test suite:
 
-- API clients (Spotify, iTunes, Last.fm, Genius) and the cover cascade are
+- API clients (MusicBrainz, iTunes, Last.fm, Genius) and the cover cascade are
 tested with `httptest` mocks — no network needed.
 - Tag round-trip tests cover **Opus** and **MP3** with synthetic fixtures and
 always run. **FLAC** and **M4A** tests generate real files with `ffmpeg` and
@@ -40,13 +40,11 @@ make build
 ls -R /tmp/sbtest                            # expect Artist/Album/Title.opus
 ```
 
-For metadata enrichment, set credentials first:
+For lyrics enrichment, set a Genius token first:
 
 ```bash
-./shadowbox config set spotify.client_id     YOUR_ID
-./shadowbox config set spotify.client_secret YOUR_SECRET
-./shadowbox config set genius.access_token   YOUR_TOKEN
-./shadowbox download -q "Adele Hello" -s -v
+./shadowbox config set genius.access_token YOUR_TOKEN
+./shadowbox download -q "Adele Hello" -v
 ```
 
 

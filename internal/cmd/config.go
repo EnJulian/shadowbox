@@ -34,10 +34,6 @@ var configKeys = map[string]struct {
 		get: func(c *config.Config) string { return c.MusicDirectory },
 		set: func(c *config.Config, v string) error { c.MusicDirectory = v; return nil },
 	},
-	"use_spotify": {
-		get: func(c *config.Config) string { return strconv.FormatBool(c.UseSpotify) },
-		set: func(c *config.Config, v string) error { return setBool(v, &c.UseSpotify) },
-	},
 	"use_genius": {
 		get: func(c *config.Config) string { return strconv.FormatBool(c.UseGenius) },
 		set: func(c *config.Config, v string) error { return setBool(v, &c.UseGenius) },
@@ -49,16 +45,6 @@ var configKeys = map[string]struct {
 	"theme": {
 		get: func(c *config.Config) string { return c.Theme },
 		set: func(c *config.Config, v string) error { c.Theme = v; return nil },
-	},
-	"spotify.client_id": {
-		secret: true,
-		get:    func(c *config.Config) string { return c.Spotify.ClientID },
-		set:    func(c *config.Config, v string) error { c.Spotify.ClientID = v; return nil },
-	},
-	"spotify.client_secret": {
-		secret: true,
-		get:    func(c *config.Config) string { return c.Spotify.ClientSecret },
-		set:    func(c *config.Config, v string) error { c.Spotify.ClientSecret = v; return nil },
 	},
 	"genius.access_token": {
 		secret: true,

@@ -12,13 +12,10 @@ import (
 type legacySettings struct {
 	AudioFormat         string `json:"audio_format"`
 	MusicDirectory      string `json:"music_directory"`
-	UseSpotify          bool   `json:"use_spotify"`
-	UseGenius           bool   `json:"use_genius"`
-	VerboseLogging      bool   `json:"verbose_logging"`
-	Theme               string `json:"theme"`
-	GeniusAccessToken   string `json:"genius_access_token"`
-	SpotifyClientID     string `json:"spotify_client_id"`
-	SpotifyClientSecret string `json:"spotify_client_secret"`
+	UseGenius         bool   `json:"use_genius"`
+	VerboseLogging    bool   `json:"verbose_logging"`
+	Theme             string `json:"theme"`
+	GeniusAccessToken string `json:"genius_access_token"`
 }
 
 // legacyPath returns the path to the Python version's settings file.
@@ -62,14 +59,9 @@ func migrateLegacy() error {
 	cfg := &Config{
 		AudioFormat:    firstNonEmpty(legacy.AudioFormat, "opus"),
 		MusicDirectory: firstNonEmpty(legacy.MusicDirectory, defaultMusicDir()),
-		UseSpotify:     legacy.UseSpotify,
 		UseGenius:      legacy.UseGenius,
 		Verbose:        legacy.VerboseLogging,
 		Theme:          firstNonEmpty(legacy.Theme, "hacker"),
-		Spotify: Spotify{
-			ClientID:     legacy.SpotifyClientID,
-			ClientSecret: legacy.SpotifyClientSecret,
-		},
 		Genius: Genius{
 			AccessToken: legacy.GeniusAccessToken,
 		},

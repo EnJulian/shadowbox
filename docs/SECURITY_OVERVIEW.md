@@ -30,7 +30,7 @@ harmful things on your machine.
 
 ### Secrets in config files
 
-Shadowbox stores optional API keys (Spotify, Genius) in:
+Shadowbox stores optional API keys (Genius) in:
 
 `~/.config/shadowbox/config.yaml`
 

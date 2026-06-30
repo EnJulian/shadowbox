@@ -37,8 +37,6 @@ func newDoctorCmd() *cobra.Command {
 
 			fmt.Println()
 			fmt.Println("Credentials:")
-			printCredStatus("Spotify client ID", cfg.Spotify.ClientID != "")
-			printCredStatus("Spotify client secret", cfg.Spotify.ClientSecret != "")
 			printCredStatus("Genius access token", cfg.Genius.AccessToken != "")
 
 			fmt.Println()

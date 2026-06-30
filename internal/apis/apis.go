@@ -1,5 +1,5 @@
 // Package apis and its subpackages provide thin HTTP clients for the external
-// metadata services Shadowbox uses: Spotify, iTunes, Last.fm, and Genius.
+// metadata services Shadowbox uses: MusicBrainz, iTunes, Last.fm, and Genius.
 package apis
 
 // TrackMeta is the normalised metadata Shadowbox collects for a track. Numeric

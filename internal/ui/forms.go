@@ -6,7 +6,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/EnJulian/shadowbox/internal/app"
-	"github.com/EnJulian/shadowbox/internal/progress"
 )
 
 // openInput switches to the text-input screen for the given context.
@@ -40,30 +39,25 @@ func (m model) updateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m model) submitInput(value string) (tea.Model, tea.Cmd) {
 	a := m.app
-	opts := app.Options{UseSpotify: m.cfg.UseSpotify}
 
 	switch m.inputContext {
 	case "search":
-		cmd := m.startTask("Downloading", func(ctx context.Context, report func(progress.Update)) error {
-			opts.Progress = report
+		cmd := m.startTask("Download", func(ctx context.Context, opts app.Options) error {
 			return a.Run(ctx, value, opts)
 		})
 		return m, cmd
 	case "url":
-		cmd := m.startTask("Downloading", func(ctx context.Context, report func(progress.Update)) error {
-			opts.Progress = report
+		cmd := m.startTask("Download", func(ctx context.Context, opts app.Options) error {
 			return a.Run(ctx, value, opts)
 		})
 		return m, cmd
 	case "playlist":
-		cmd := m.startTask("Downloading playlist", func(ctx context.Context, report func(progress.Update)) error {
-			opts.Progress = report
+		cmd := m.startTask("Playlist download", func(ctx context.Context, opts app.Options) error {
 			return a.RunPlaylist(ctx, value, opts)
 		})
 		return m, cmd
 	case "enhance":
-		cmd := m.startTask("Enhancing audio files", func(ctx context.Context, report func(progress.Update)) error {
-			opts.Progress = report
+		cmd := m.startTask("Enhancement", func(ctx context.Context, opts app.Options) error {
 			return a.EnhanceDir(ctx, value, true, []string{"opus", "mp3", "m4a", "flac"}, false, opts)
 		})
 		return m, cmd
@@ -86,15 +80,16 @@ func (m model) viewRunning() string {
 	var b strings.Builder
 	b.WriteString(m.st.title.Render(banner))
 	b.WriteString("\n\n")
-	b.WriteString("  " + m.spinner.View() + " " + m.st.accent.Render(m.result) + "\n\n")
+	heading := m.runningHeading
+	if m.progress.Heading != "" {
+		heading = m.progress.Heading
+	}
+	if heading == "" {
+		heading = "Initializing"
+	}
+	b.WriteString("  " + m.spinner.View() + " " + m.st.accent.Render(heading) + "\n\n")
 
 	b.WriteString("  " + renderProgressBar(m.progress, m.theme.Accent, m.theme.Muted) + "\n\n")
-
-	step := m.progress.Stage
-	if step == "" {
-		step = "starting up"
-	}
-	b.WriteString("  " + m.st.selected.Render("» "+step) + "\n\n")
 	b.WriteString(m.st.help.Render("please hold"))
 	return b.String()
 }

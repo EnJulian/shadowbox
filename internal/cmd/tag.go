@@ -17,10 +17,10 @@ func newTagCmd() *cobra.Command {
 	)
 	c := &cobra.Command{
 		Use:   "tag [query|url]",
-		Short: "Tag an existing file, or download and tag using Spotify metadata",
+		Short: "Tag an existing file, or download and tag with online metadata",
 		Long: "With --file, tags an existing audio file in place using online metadata\n" +
 			"(optionally overriding title/artist). With a query or URL, downloads the\n" +
-			"track using Spotify metadata enrichment.",
+			"track and enriches it with MusicBrainz metadata.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			a := app.New(cfg)
 
@@ -33,8 +33,7 @@ func newTagCmd() *cobra.Command {
 				return fmt.Errorf("provide --file to tag an existing file, or a query/URL to download")
 			}
 			return a.Run(cmd.Context(), query, app.Options{
-				Output:     output,
-				UseSpotify: true,
+				Output: output,
 			})
 		},
 	}

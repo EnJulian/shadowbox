@@ -3,10 +3,12 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/EnJulian/shadowbox/internal/apis/genius"
 	"github.com/EnJulian/shadowbox/internal/apis/itunes"
 	"github.com/EnJulian/shadowbox/internal/apis/lastfm"
-	"github.com/EnJulian/shadowbox/internal/apis/spotify"
+	"github.com/EnJulian/shadowbox/internal/apis/musicbrainz"
 	"github.com/EnJulian/shadowbox/internal/config"
 	"github.com/EnJulian/shadowbox/internal/cover"
 	"github.com/EnJulian/shadowbox/internal/download"
@@ -15,49 +17,62 @@ import (
 
 // App holds the configured clients used across the pipeline.
 type App struct {
-	cfg     *config.Config
-	spotify *spotify.Client
-	itunes  *itunes.Client
-	lastfm  *lastfm.Client
-	genius  *genius.Client
-	cover   *cover.Resolver
+	cfg         *config.Config
+	musicbrainz *musicbrainz.Client
+	itunes      *itunes.Client
+	lastfm      *lastfm.Client
+	genius      *genius.Client
+	cover       *cover.Resolver
 }
 
 // New builds an App from configuration.
 func New(cfg *config.Config) *App {
-	sp := spotify.New(cfg.Spotify.ClientID, cfg.Spotify.ClientSecret)
+	mb := musicbrainz.New()
 	it := itunes.New()
 	return &App{
-		cfg:     cfg,
-		spotify: sp,
-		itunes:  it,
-		lastfm:  lastfm.New(),
-		genius:  genius.New(cfg.Genius.AccessToken),
-		cover:   cover.New(sp, it),
+		cfg:         cfg,
+		musicbrainz: mb,
+		itunes:      it,
+		lastfm:      lastfm.New(),
+		genius:      genius.New(cfg.Genius.AccessToken),
+		cover:       cover.New(mb, it),
 	}
 }
 
 // Options controls a single download or enhancement operation.
 type Options struct {
-	MusicDir   string // base music directory; defaults to config
-	Output     string // optional output base filename (no extension)
-	Format     string // audio format; defaults to config
-	UseSpotify bool   // force Spotify metadata enrichment
+	MusicDir string // base music directory; defaults to config
+	Output   string // optional output base filename (no extension)
+	Format   string // audio format; defaults to config
 
 	// Progress, when set, receives pipeline stage updates for the UI. It is
 	// called from the worker goroutine, so callers must keep the handler
 	// non-blocking and concurrency-safe. Optional.
 	Progress func(progress.Update)
+
+	// Select, when set, drives interactive prompts from the TUI. When nil,
+	// choose falls back to numbered stdin prompts for CLI use.
+	Select SelectFunc
+
+	// Search metadata captured from a text query (not URLs). Set internally by Run.
+	searchMeta     bool
+	searchTitle    string
+	searchArtist   string
+	searchByFormat bool
 }
 
-// step reports a pipeline stage without numeric position.
-func (o Options) step(stage string) {
-	o.report(progress.Update{Stage: stage})
+// heading updates the running-screen label shown during a pipeline step.
+func (o Options) heading(text string) {
+	o.report(progress.Update{Heading: text})
 }
 
-// stepN reports a numbered pipeline stage (1-based current).
-func (o Options) stepN(stage string, current, total int) {
-	o.report(progress.Update{Stage: stage, Current: current, Total: total})
+// headingProgress updates the running-screen label with an optional item counter.
+func (o Options) headingProgress(text string, current, total int) {
+	heading := text
+	if total > 0 && current > 0 {
+		heading = fmt.Sprintf("%s %d/%d", text, current, total)
+	}
+	o.report(progress.Update{Heading: heading, Current: current, Total: total})
 }
 
 func (o Options) report(u progress.Update) {

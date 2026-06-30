@@ -24,6 +24,7 @@ const (
 	screenLibrary
 	screenDownloadLog
 	screenRunning
+	screenPicker
 	screenResult
 )
 
@@ -65,8 +66,15 @@ type model struct {
 	lib libState
 
 	// running progress
-	progress   progress.Update
-	progressCh chan progress.Update
+	progress      progress.Update
+	progressCh    chan progress.Update
+	runningHeading string
+	taskSummary   string
+	taskCancel    context.CancelFunc
+	promptReqCh   chan promptOutgoing
+
+	// interactive picker
+	picker pickerState
 
 	// result
 	result    string
@@ -136,13 +144,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case progressMsg:
 		m.progress = progress.Update(msg)
-		return m, waitForProgress(m.progressCh)
+		if m.progress.Heading != "" {
+			m.runningHeading = m.progress.Heading
+		}
+		return m, m.taskListenCmd()
+
+	case promptRequestMsg:
+		m.screen = screenPicker
+		m.picker = pickerState{
+			title:   msg.out.req.Title,
+			options: msg.out.req.Options,
+			cursor:  0,
+			pending: &msg.out,
+		}
+		return m, m.taskListenCmd()
 
 	case taskDoneMsg:
 		m.screen = screenResult
 		m.result = msg.summary
 		m.resultErr = msg.err
 		m.progress = progress.Update{}
+		m.taskCancel = nil
+		m.promptReqCh = nil
 		return m, nil
 
 	case tea.KeyMsg:
@@ -178,6 +201,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateLibrary(msg)
 	case screenDownloadLog:
 		return m.updateDownloadLog(msg)
+	case screenPicker:
+		return m.updatePicker(msg)
 	case screenResult:
 		// Any key returns to the menu.
 		m.screen = screenMenu
@@ -189,18 +214,21 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // startTask transitions to the running screen and runs fn in the background.
-// fn receives a report callback it can use to surface live stage descriptions
-// on the running screen.
-func (m *model) startTask(label string, fn func(ctx context.Context, report func(progress.Update)) error) tea.Cmd {
+func (m *model) startTask(summary string, fn func(ctx context.Context, opts app.Options) error) tea.Cmd {
+	ctx, cancel := context.WithCancel(context.Background())
+	m.taskCancel = cancel
+	m.taskSummary = summary
+	m.runningHeading = "Initializing"
 	m.screen = screenRunning
-	m.result = label
 	m.progress = progress.Update{}
-	applog.BeginDownloadSession(label)
+	applog.BeginDownloadSession("Initializing")
 
 	ch := make(chan progress.Update, 32)
 	m.progressCh = ch
+	promptCh := make(chan promptOutgoing, 1)
+	m.promptReqCh = promptCh
+
 	report := func(u progress.Update) {
-		// Non-blocking: never let progress reporting stall the pipeline.
 		select {
 		case ch <- u:
 		default:
@@ -208,16 +236,36 @@ func (m *model) startTask(label string, fn func(ctx context.Context, report func
 	}
 
 	run := func() tea.Msg {
-		err := fn(context.Background(), report)
-		close(ch)
-		summary := label + " complete"
-		if err != nil {
-			summary = label + " failed"
+		opts := app.Options{
+			Progress: report,
+			Select:   makeSelectFunc(promptCh),
 		}
-		return taskDoneMsg{summary: summary, err: err}
+		err := fn(ctx, opts)
+		cancel()
+		close(promptCh)
+		close(ch)
+		summaryMsg := summary + " complete"
+		if err != nil {
+			summaryMsg = summary + " failed"
+		}
+		return taskDoneMsg{summary: summaryMsg, err: err}
 	}
 
-	return tea.Batch(m.spinner.Tick, run, waitForProgress(ch))
+	return tea.Batch(m.spinner.Tick, run, m.taskListenCmd())
+}
+
+func (m model) taskListenCmd() tea.Cmd {
+	var cmds []tea.Cmd
+	if m.progressCh != nil {
+		cmds = append(cmds, waitForProgress(m.progressCh))
+	}
+	if m.promptReqCh != nil {
+		cmds = append(cmds, waitForPrompt(m.promptReqCh))
+	}
+	if len(cmds) == 0 {
+		return nil
+	}
+	return tea.Batch(cmds...)
 }
 
 // waitForProgress blocks on the next stage description from the channel and
@@ -250,6 +298,8 @@ func (m model) View() string {
 		return m.viewDownloadLog()
 	case screenRunning:
 		return m.viewRunning()
+	case screenPicker:
+		return m.viewPicker()
 	case screenResult:
 		return m.viewResult()
 	}

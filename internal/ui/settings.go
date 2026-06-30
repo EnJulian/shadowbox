@@ -26,12 +26,9 @@ type settingItem struct {
 var settingItems = []settingItem{
 	{"audio_format", "Audio format", settingText},
 	{"music_directory", "Music directory", settingText},
-	{"use_spotify", "Use Spotify metadata", settingToggle},
 	{"use_genius", "Use Genius lyrics", settingToggle},
 	{"verbose", "Verbose logging", settingToggle},
 	{"theme", "Theme", settingTheme},
-	{"spotify.client_id", "Spotify client ID", settingSecret},
-	{"spotify.client_secret", "Spotify client secret", settingSecret},
 	{"genius.access_token", "Genius access token", settingSecret},
 }
 
@@ -41,18 +38,12 @@ func (m model) settingValue(key string) string {
 		return m.cfg.AudioFormat
 	case "music_directory":
 		return m.cfg.MusicDirectory
-	case "use_spotify":
-		return boolLabel(m.cfg.UseSpotify)
 	case "use_genius":
 		return boolLabel(m.cfg.UseGenius)
 	case "verbose":
 		return boolLabel(m.cfg.Verbose)
 	case "theme":
 		return m.cfg.Theme
-	case "spotify.client_id":
-		return maskSecret(m.cfg.Spotify.ClientID)
-	case "spotify.client_secret":
-		return maskSecret(m.cfg.Spotify.ClientSecret)
 	case "genius.access_token":
 		return maskSecret(m.cfg.Genius.AccessToken)
 	}
@@ -102,8 +93,6 @@ func (m model) activateSetting() (tea.Model, tea.Cmd) {
 
 func (m *model) toggleSetting(key string) {
 	switch key {
-	case "use_spotify":
-		m.cfg.UseSpotify = !m.cfg.UseSpotify
 	case "use_genius":
 		m.cfg.UseGenius = !m.cfg.UseGenius
 	case "verbose":
@@ -137,10 +126,6 @@ func (m *model) applySetting(key, value string) {
 		m.cfg.AudioFormat = value
 	case "music_directory":
 		m.cfg.MusicDirectory = value
-	case "spotify.client_id":
-		m.cfg.Spotify.ClientID = value
-	case "spotify.client_secret":
-		m.cfg.Spotify.ClientSecret = value
 	case "genius.access_token":
 		m.cfg.Genius.AccessToken = value
 	}

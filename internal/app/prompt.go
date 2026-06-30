@@ -32,10 +32,10 @@ type SelectFunc func(ctx context.Context, req PromptRequest) (int, error)
 // and returns an error when there are no options.
 func choose(ctx context.Context, opts Options, req PromptRequest) (int, error) {
 	n := len(req.Options)
-	switch {
-	case n == 0:
+	switch n {
+	case 0:
 		return -1, fmt.Errorf("no options to choose from")
-	case n == 1:
+	case 1:
 		return 0, nil
 	}
 

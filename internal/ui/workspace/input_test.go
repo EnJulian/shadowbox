@@ -75,3 +75,26 @@ func TestEnhanceRunsEnhanceDir(t *testing.T) {
 	}
 	t.Fatal("expected a StartTaskMsg")
 }
+
+func TestInputPlaylistSubmitUsesPlaylistSummary(t *testing.T) {
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	a := app.New(&config.Config{})
+	ws := NewPlaylist(a, st).Activate()
+	for _, r := range "https://youtube.com/playlist?list=abc" {
+		ws, _ = ws.Update(key(string(r)))
+	}
+	_, cmd := ws.Update(key("enter"))
+	if cmd == nil {
+		t.Fatal("expected a cmd after submitting a playlist URL")
+	}
+	msgs := flattenBatch(cmd())
+	for _, m := range msgs {
+		if st, ok := m.(StartTaskMsg); ok {
+			if !strings.Contains(st.Summary, "Playlist") {
+				t.Fatalf("Summary = %q, want it to mention Playlist (proves NewPlaylist wired to a.RunPlaylist, not a.Run)", st.Summary)
+			}
+			return
+		}
+	}
+	t.Fatal("expected a StartTaskMsg")
+}

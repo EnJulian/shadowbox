@@ -1,7 +1,7 @@
 # Shadowbox Terminal UI Redesign — Design Spec
 
 **Date:** 2026-07-01  
-**Status:** Approved (brainstorming)  
+**Status:** Superseded by `2026-07-11-terminal-ui-redesign-v2-design.md` (three-pane shell replaced with a simpler two-pane, Claude Code-inspired bordered layout)  
 **Scope:** Phase 1 implementation plan follows this document.
 
 ---

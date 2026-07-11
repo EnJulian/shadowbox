@@ -21,6 +21,7 @@ type searchFocus int
 const (
 	searchFocusInput searchFocus = iota
 	searchFocusResults
+	searchFocusSuggestions
 )
 
 // searchResultsMsg carries browsable results back from an async SearchTracks call.
@@ -44,6 +45,14 @@ type Search struct {
 	cursor  int
 	loading bool
 	errMsg  string
+
+	// activeSuggestions and suggestionCursor are only meaningful while
+	// focus == searchFocusSuggestions: they snapshot the suggestion list at
+	// the moment the user pressed down from the input, so the list stays
+	// stable while navigating it (the live query text isn't being edited
+	// during suggestion navigation).
+	activeSuggestions []string
+	suggestionCursor  int
 }
 
 // NewSearch builds the Search workspace.
@@ -77,8 +86,8 @@ func (s *Search) suggestions() []string {
 	return out
 }
 
-// Update handles async search results and key input for both the query
-// input and the results list, depending on current focus.
+// Update handles async search results and key input for the query input,
+// the suggestion list, and the results list, depending on current focus.
 func (s *Search) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 	switch msg := msg.(type) {
 	case searchResultsMsg:
@@ -99,35 +108,87 @@ func (s *Search) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 }
 
 func (s *Search) handleKey(msg tea.KeyMsg) (Workspace, tea.Cmd) {
-	if s.focus == searchFocusInput {
-		switch msg.String() {
-		case "enter":
-			query := strings.TrimSpace(s.input.Value())
-			if query == "" {
-				return s, nil
-			}
-			s.history.Add(query)
-			_ = s.history.Save(s.historyPath)
-			s.loading = true
-			a := s.app
-			return s, func() tea.Msg {
-				results, err := a.SearchTracks(context.Background(), query, 10)
-				return searchResultsMsg{results: results, err: err}
-			}
-		case "down":
-			if len(s.results) > 0 {
-				s.focus = searchFocusResults
-				s.cursor = 0
-				s.input.Blur()
-			}
+	switch s.focus {
+	case searchFocusInput:
+		return s.handleInputKey(msg)
+	case searchFocusSuggestions:
+		return s.handleSuggestionsKey(msg)
+	case searchFocusResults:
+		return s.handleResultsKey(msg)
+	}
+	return s, nil
+}
+
+func (s *Search) handleInputKey(msg tea.KeyMsg) (Workspace, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		query := strings.TrimSpace(s.input.Value())
+		if query == "" {
 			return s, nil
 		}
-		var cmd tea.Cmd
-		s.input, cmd = s.input.Update(msg)
-		return s, cmd
+		s.history.Add(query)
+		_ = s.history.Save(s.historyPath)
+		s.loading = true
+		a := s.app
+		return s, func() tea.Msg {
+			results, err := a.SearchTracks(context.Background(), query, 10)
+			return searchResultsMsg{results: results, err: err}
+		}
+	case "down":
+		// Spec: "down from the input moves into suggestions" — suggestions
+		// take priority over results, since they only exist while the user
+		// is still composing a query (before submitting).
+		if sugg := s.suggestions(); len(sugg) > 0 {
+			s.focus = searchFocusSuggestions
+			s.activeSuggestions = sugg
+			s.suggestionCursor = 0
+			s.input.Blur()
+			return s, nil
+		}
+		if len(s.results) > 0 {
+			s.focus = searchFocusResults
+			s.cursor = 0
+			s.input.Blur()
+		}
+		return s, nil
 	}
+	var cmd tea.Cmd
+	s.input, cmd = s.input.Update(msg)
+	return s, cmd
+}
 
-	// focus == searchFocusResults
+func (s *Search) handleSuggestionsKey(msg tea.KeyMsg) (Workspace, tea.Cmd) {
+	switch msg.String() {
+	case "up", "k":
+		if s.suggestionCursor > 0 {
+			s.suggestionCursor--
+		} else {
+			s.focus = searchFocusInput
+			s.input.Focus()
+		}
+	case "down", "j":
+		if s.suggestionCursor < len(s.activeSuggestions)-1 {
+			s.suggestionCursor++
+		}
+	case "esc":
+		s.focus = searchFocusInput
+		s.input.Focus()
+	case "enter":
+		if len(s.activeSuggestions) == 0 {
+			s.focus = searchFocusInput
+			s.input.Focus()
+			return s, nil
+		}
+		selected := strings.TrimSuffix(s.activeSuggestions[s.suggestionCursor], " (in library)")
+		s.input.SetValue(selected)
+		s.input.CursorEnd()
+		s.focus = searchFocusInput
+		s.input.Focus()
+	}
+	return s, nil
+}
+
+func (s *Search) handleResultsKey(msg tea.KeyMsg) (Workspace, tea.Cmd) {
 	switch msg.String() {
 	case "up", "k":
 		if s.cursor > 0 {
@@ -160,6 +221,9 @@ func (s *Search) handleKey(msg tea.KeyMsg) (Workspace, tea.Cmd) {
 }
 
 // View renders the query input, autocomplete suggestions, and any results.
+// The selected result's uploader/duration detail line only shows when the
+// results list is focused and that result is under the cursor, matching the
+// design spec ("Selecting a result shows duration/uploader/source inline").
 func (s *Search) View(width, height int) string {
 	var b strings.Builder
 	b.WriteString(s.st.Subtitle.Render("Query:") + "\n")
@@ -170,7 +234,18 @@ func (s *Search) View(width, height int) string {
 		return b.String()
 	}
 
-	if suggestions := s.suggestions(); s.focus == searchFocusInput && len(suggestions) > 0 {
+	if s.focus == searchFocusSuggestions {
+		b.WriteString("\n" + s.st.Help.Render("Suggestions") + "\n")
+		for i, sug := range s.activeSuggestions {
+			cursor := "  "
+			label := s.st.Item.Render(sug)
+			if i == s.suggestionCursor {
+				cursor = s.st.Accent.Render("> ")
+				label = s.st.Selected.Render(sug)
+			}
+			b.WriteString(cursor + label + "\n")
+		}
+	} else if suggestions := s.suggestions(); s.focus == searchFocusInput && len(suggestions) > 0 {
 		b.WriteString("\n" + s.st.Help.Render("Suggestions") + "\n")
 		for _, sug := range suggestions {
 			b.WriteString("  " + s.st.Item.Render(sug) + "\n")
@@ -186,13 +261,16 @@ func (s *Search) View(width, height int) string {
 		for i, r := range s.results {
 			cursor := "  "
 			label := s.st.Item.Render(r.Title)
-			if s.focus == searchFocusResults && i == s.cursor {
+			selected := s.focus == searchFocusResults && i == s.cursor
+			if selected {
 				cursor = s.st.Accent.Render("> ")
 				label = s.st.Selected.Render(r.Title)
 			}
-			detail := fmt.Sprintf("%s · %s", r.Uploader, r.Duration)
 			b.WriteString(cursor + label + "\n")
-			b.WriteString("      " + s.st.Help.Render(detail) + "\n")
+			if selected {
+				detail := fmt.Sprintf("%s · %s", r.Uploader, r.Duration)
+				b.WriteString("      " + s.st.Help.Render(detail) + "\n")
+			}
 		}
 	}
 	return b.String()

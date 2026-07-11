@@ -43,3 +43,33 @@ func TestRenderIncludesBannerNavAndStatus(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderDoesNotExceedTerminalHeight(t *testing.T) {
+	// This test verifies the invariant: for a given height passed to Compute,
+	// the total number of lines in Render(...)'s output must not exceed that height.
+	// This was broken when reservedRows was undercounting the actual banner height.
+	tests := []struct {
+		name   string
+		width  int
+		height int
+	}{
+		{"minimum terminal size", MinWidth, MinHeight},
+		{"larger terminal", 120, 40},
+	}
+
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	theme := style.ThemeByName("hacker")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			layout := Compute(tt.width, tt.height)
+			out := Render(st, theme, layout, true, "NAV BODY", "CONTENT BODY", "", "STATUS LINE")
+			lineCount := len(strings.Split(out, "\n"))
+
+			if lineCount > tt.height {
+				t.Errorf("Render output has %d lines but terminal height is only %d (overflow: %d lines)",
+					lineCount, tt.height, lineCount-tt.height)
+			}
+		})
+	}
+}

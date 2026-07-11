@@ -15,9 +15,9 @@ const (
 
 	minContentWidth  = 20
 	minContentHeight = 5
-	// reservedRows accounts for the banner (2 lines), a blank line, and the
-	// unboxed status bar (1 line) that always surround the pane row.
-	reservedRows = 4
+	// reservedRows accounts for the banner (8 lines: 1 leading blank + 6 ASCII art + 1 subtitle)
+	// and the unboxed status bar (1 line) that always surround the pane row.
+	reservedRows = 9
 )
 
 // Layout describes the computed pixel dimensions of each shell region for a

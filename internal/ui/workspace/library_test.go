@@ -70,11 +70,40 @@ func TestLibraryTypeAheadFiltersEntries(t *testing.T) {
 	for _, r := range "kan" {
 		ws, _ = ws.Update(key(string(r)))
 	}
+	// Assert the actual accumulated filter string, not just the visible
+	// outcome — a prior version of this test typed "kan" but the buggy
+	// production code swallowed the "k" as an "up" navigation key, leaving
+	// the real filter as "an"; the view assertions below still happened to
+	// pass by coincidence (both "an" and "kan" match "Kanye West" but not
+	// "Nujabes"), silently masking the bug. Asserting the filter value
+	// directly closes that false-positive gap.
+	lib := ws.(*Library)
+	if lib.filter != "kan" {
+		t.Fatalf("filter = %q, want %q (letter keys must all reach the filter, not be swallowed as navigation)", lib.filter, "kan")
+	}
 	view := ws.View(80, 20)
 	if strings.Contains(view, "Nujabes") {
 		t.Fatalf("expected Nujabes filtered out, got %q", view)
 	}
 	if !strings.Contains(view, "Kanye West") {
 		t.Fatalf("expected Kanye West to remain, got %q", view)
+	}
+}
+
+func TestLibraryLetterKeysAlwaysFilterNeverNavigate(t *testing.T) {
+	l := newTestLibrary(t)
+	ws := l.Activate()
+	// h, j, k, l are also vim navigation mnemonics elsewhere in this app,
+	// but Library is a type-ahead filter: every one of these letters must
+	// be treated as filter text, never as back/down/up/enter shortcuts.
+	for _, r := range "hjkl" {
+		ws, _ = ws.Update(key(string(r)))
+	}
+	lib := ws.(*Library)
+	if lib.filter != "hjkl" {
+		t.Fatalf("filter = %q, want %q — h/j/k/l must never be swallowed as navigation while filtering", lib.filter, "hjkl")
+	}
+	if lib.level != 0 {
+		t.Fatalf("level = %d, want 0 — typing letters must never change drill-down level", lib.level)
 	}
 }

@@ -50,25 +50,29 @@ func (l *Library) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 	if !ok {
 		return l, nil
 	}
-	switch keyMsg.String() {
-	case "up", "k":
+	// Navigation is dispatched on keyMsg.Type (not keyMsg.String()) so that
+	// letter keys are never swallowed as vim-style h/j/k/l shortcuts — this
+	// is a type-ahead filter, so every printable rune must always reach the
+	// filter, including h, j, k, and l themselves.
+	switch keyMsg.Type {
+	case tea.KeyUp:
 		if l.cursor > 0 {
 			l.cursor--
 		}
-	case "down", "j":
+	case tea.KeyDown:
 		if l.cursor < len(l.entries())-1 {
 			l.cursor++
 		}
-	case "left", "h", "esc":
+	case tea.KeyLeft, tea.KeyEsc:
 		return l.back()
-	case "right", "l", "enter":
+	case tea.KeyRight, tea.KeyEnter:
 		return l.enter()
-	case "backspace":
+	case tea.KeyBackspace:
 		if l.filter != "" {
 			l.filter = l.filter[:len(l.filter)-1]
 			l.cursor = 0
 		}
-	default:
+	case tea.KeyRunes:
 		if len(keyMsg.Runes) == 1 {
 			l.filter += string(keyMsg.Runes)
 			l.cursor = 0

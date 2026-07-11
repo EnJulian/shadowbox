@@ -102,7 +102,7 @@ Seamless navigation is a first-class requirement — no dead ends, always someth
 | `q` | Quit (confirms if a download is running) |
 | `Ctrl+C` | Force quit |
 
-**Library column exception:** while Content is focused on the Library 3-column view, `←`/`→` move between Artist/Album/Track columns first; only falls through to Nav when already at the leftmost column and `←` is pressed again. `Tab` always switches panes regardless of column position.
+**Library drill-down exception:** Library is a single-column sequential browser (Artists → Albums → Tracks), not a three-column simultaneous view. `←`/`h`/`Esc` go back one level (or return focus to Nav from the top-level Artists list); `→`/`l`/`Enter` drill into the selected entry. `Tab` always switches panes regardless of drill-down depth.
 
 The status bar always reflects the **focused pane's** available keys.
 
@@ -112,7 +112,7 @@ The status bar always reflects the **focused pane's** available keys.
 
 - **Search input:** inline suggestion list below the input, blending two sources — recent local search history (small local history file, most-recent-first) and fuzzy matches against the existing library, visually tagged (e.g. "in library") so the user can tell "searched before" from "already have it." `↓` from the input moves into suggestions, `Enter` accepts, `Esc` dismisses.
 - **URL / Playlist input:** on focus, if the clipboard currently holds something that looks like a YouTube/Bandcamp/playlist URL, show an inline hint ("Paste from clipboard: `youtu.be/…` — Tab to accept"). Never auto-fills without explicit confirmation.
-- **Library browse:** typing while a column is focused jumps to and live-filters matching entries in that column (type-ahead / fuzzy-find). `Esc` or backspacing to empty clears the filter.
+- **Library browse:** typing while browsing a level (Artists/Albums/Tracks) jumps to and live-filters matching entries at that level (type-ahead / fuzzy-find). Backspacing to empty clears the filter; the filter resets automatically when drilling in or backing out to a different level.
 
 All suggestion data is local-only — no new network calls beyond the existing search itself.
 
@@ -125,13 +125,13 @@ All suggestion data is local-only — no new network calls beyond the existing s
 | 1 | Search | Query input (with suggestions) + browsable results list. Selecting a result shows duration/uploader/source inline. `Enter` starts the download and auto-switches Nav to Downloads. |
 | 2 | URL | URL input (with clipboard hint) + confirm. Submit starts download, switches to Downloads. |
 | 3 | Playlist | Same as URL, playlist-flavored validation/copy. |
-| 4 | Library | Three columns (Artist / Album / Track) side-by-side inside the Content box, with type-ahead filtering. Selected track's path/format/size shown as a header line above the columns. |
+| 4 | Library | Single-column sequential drill-down (Artists → Albums → Tracks) inside the Content box, with a breadcrumb header and type-ahead filtering at each level. |
 | 5 | Downloads | Active job: heading, progress bar, spinner, stage text (reuses `progress.Update`, `renderProgressBar`, existing spinner). Single active job (queue row present but empty). |
 | 6 | Enhance | Directory path input; submit runs `EnhanceDir`, switches to Downloads. Matching file count shown inline once a valid path is entered. |
 | 7 | Log | Existing scrollable download log, rendered inside the bordered Content box. `↑↓`, PgUp/PgDn, Home/End, `r` refresh. |
 | 8 | Settings | Existing settings list; toggles inline, text/secret settings use inline `textinput`, theme picker opens as an overlay with live preview. |
 
-`Enter`-to-activate-and-auto-focus-Content and per-section auto-focus targets (Search → query input, Library → Artist column first item, etc.) carry over from current behavior, now happening inside a persistent shell instead of full-screen transitions.
+`Enter`-to-activate-and-auto-focus-Content and per-section auto-focus targets (Search → query input, Library → Artists list first item, etc.) carry over from current behavior, now happening inside a persistent shell instead of full-screen transitions.
 
 **Overlays** (metadata/URL disambiguation picker, result toast, `?` help, theme picker) render on top of the shell, re-skinned with the rounded-border style, and block pane navigation while open.
 
@@ -243,7 +243,7 @@ type State struct {
 1. Shell skeleton (banner, Nav/Content panes, borders, focus routing, status bar, reserved playbar region at height 0)
 2. Nav sidebar with auto-focus on section switch
 3. Settings + Log workspaces
-4. Library 3-column refactor + type-ahead filter
+4. Library drill-down browser + type-ahead filter
 5. Search with browsable results + suggestion list (history + library fuzzy match)
 6. URL / Playlist / Enhance workspaces + clipboard hint
 7. Downloads progress migration
@@ -263,9 +263,9 @@ type State struct {
 
 | Layer | Tests |
 |-------|-------|
-| `shell/focus.go` | Arrow/Tab routing; Library column edge → Nav |
+| `shell/focus.go` | Arrow/Tab routing; Library top-level edge → Nav |
 | `workspace/search.go` | Result navigation, suggestion list, empty query |
-| `workspace/library.go` | Column drill-down, type-ahead filter |
+| `workspace/library.go` | Sequential drill-down, type-ahead filter |
 | `suggest/suggest.go` | History ranking, library fuzzy match, clipboard URL detection |
 | `ui_test.go` | Nav Enter → workspace focus; section switch preserves shell state |
 

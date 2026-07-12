@@ -75,15 +75,13 @@ func (in *Input) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 		return in, nil
 	}
 	switch keyMsg.String() {
-	case "tab":
-		if in.clipHint != "" {
-			in.input.SetValue(in.clipHint)
-			in.input.CursorEnd()
-		}
-		return in, nil
 	case "enter":
 		value := strings.TrimSpace(in.input.Value())
 		if value == "" {
+			if in.clipHint != "" {
+				in.input.SetValue(in.clipHint)
+				in.input.CursorEnd()
+			}
 			return in, nil
 		}
 		run := in.submit(in.app, value)
@@ -99,7 +97,7 @@ func (in *Input) View(width, height int) string {
 	b.WriteString(in.st.Subtitle.Render(in.title) + "\n\n")
 	b.WriteString(in.input.View() + "\n")
 	if in.clipHint != "" {
-		b.WriteString("\n" + in.st.Help.Render("Paste from clipboard: "+in.clipHint+" — Tab to accept"))
+		b.WriteString("\n" + in.st.Help.Render("Paste from clipboard: "+in.clipHint+" — Enter to accept"))
 	}
 	return b.String()
 }

@@ -1,7 +1,8 @@
 # Installing Shadowbox on Windows
 
-Shadowbox needs **yt-dlp** and **ffmpeg** on your `PATH` (`aria2` is optional).
-Run `shadowbox doctor` after installing to verify.
+Shadowbox needs **yt-dlp** and **ffmpeg** on your `PATH` (`aria2` is optional,
+and **mpv** is optional — only needed for in-app playback). Run
+`shadowbox doctor` after installing to verify.
 
 ## Scoop (recommended)
 
@@ -17,6 +18,11 @@ Optional faster downloads:
 ```powershell
 scoop install aria2
 ```
+
+Optional in-app playback — install `mpv` from your preferred source (e.g.
+a Scoop bucket that carries it, or a build from
+[mpv.io/installation](https://mpv.io/installation/)) and make sure it's on
+your `PATH`.
 
 Upgrade later with `scoop update shadowbox`.
 

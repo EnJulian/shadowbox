@@ -87,7 +87,7 @@ func visibleLogLines(lines []string, viewport, scroll int) []string {
 
 func (m model) viewDownloadLog() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	b.WriteString("  " + m.st.subtitle.Render("Download log") + "\n\n")
 
@@ -110,7 +110,7 @@ func (m model) viewDownloadLog() string {
 	}
 
 	b.WriteString("\n\n")
-	b.WriteString(m.st.help.Render("  up/down: scroll   home/end: top/bottom   r: refresh   esc: menu"))
+	b.WriteString(m.st.help.Render("  up/down: scroll   home/end: top/bottom   r: refresh   ?: help   esc: menu"))
 	return b.String()
 }
 

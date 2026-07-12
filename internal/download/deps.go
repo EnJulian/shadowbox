@@ -20,6 +20,7 @@ func Dependencies() []Dependency {
 		{Name: "yt-dlp", Purpose: "downloading audio from YouTube/Bandcamp/KHInsider", Required: true},
 		{Name: "ffmpeg", Purpose: "audio extraction and conversion", Required: true},
 		{Name: "aria2c", Purpose: "accelerated multi-connection downloads", Required: false},
+		{Name: "mpv", Purpose: "in-app audio playback", Required: false},
 	}
 	for i := range specs {
 		if p, err := exec.LookPath(specs[i].Name); err == nil {

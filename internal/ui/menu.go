@@ -48,7 +48,7 @@ func (m model) selectMenu() (tea.Model, tea.Cmd) {
 
 func (m model) viewMenu() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	b.WriteString(m.st.subtitle.Render("  Music acquisition console"))
 	b.WriteString("\n\n")
@@ -63,7 +63,14 @@ func (m model) viewMenu() string {
 		b.WriteString("  " + cursor + line + "\n")
 	}
 
+	if m.playerErr != "" {
+		b.WriteString("\n  " + m.st.danger.Render(m.playerErr) + "\n")
+	}
+	if m.playback.LastError != "" {
+		b.WriteString("\n  " + m.st.danger.Render(m.playback.LastError) + "\n")
+	}
+
 	b.WriteString("\n")
-	b.WriteString(m.st.help.Render("  up/down: navigate   enter: select   q: quit"))
+	b.WriteString(m.st.help.Render("  up/down: navigate   enter: select   ?: help   q: quit"))
 	return b.String()
 }

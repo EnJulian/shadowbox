@@ -68,7 +68,7 @@ func (m model) submitInput(value string) (tea.Model, tea.Cmd) {
 
 func (m model) viewInput() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	b.WriteString("  " + m.st.subtitle.Render(m.inputTitle) + "\n\n")
 	b.WriteString("  " + m.input.View() + "\n\n")
@@ -78,7 +78,7 @@ func (m model) viewInput() string {
 
 func (m model) viewRunning() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	heading := m.runningHeading
 	if m.progress.Heading != "" {
@@ -96,7 +96,7 @@ func (m model) viewRunning() string {
 
 func (m model) viewResult() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	if m.resultErr != nil {
 		b.WriteString("  " + m.st.danger.Render("x "+m.result) + "\n")

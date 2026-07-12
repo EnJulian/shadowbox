@@ -19,6 +19,7 @@ func themeIndex(name string) int {
 func (m model) updateThemePicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc", "q":
+		m.applyTheme(m.cfg.Theme) // revert the live preview, nothing was saved
 		m.screen = screenSettings
 		return m, nil
 	case "up", "k":
@@ -53,7 +54,7 @@ func (m *model) applyTheme(name string) {
 
 func (m model) viewThemePicker() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	b.WriteString("  " + m.st.subtitle.Render("Choose a theme") + "\n\n")
 
@@ -68,6 +69,6 @@ func (m model) viewThemePicker() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.st.help.Render("  up/down: preview   enter: apply   esc: cancel"))
+	b.WriteString(m.st.help.Render("  up/down: preview   enter: apply   ?: help   esc: cancel"))
 	return b.String()
 }

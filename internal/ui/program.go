@@ -66,11 +66,12 @@ type model struct {
 	progressCh  chan progress.Update
 	promptReqCh chan promptOutgoing
 
-	ov      overlayKind
-	picker  overlay.Picker
-	pending *promptOutgoing
-	themeOv overlay.Theme
-	result  overlay.Result
+	ov          overlayKind
+	confirmQuit bool
+	picker      overlay.Picker
+	pending     *promptOutgoing
+	themeOv     overlay.Theme
+	result      overlay.Result
 }
 
 func historyPath(cfg *config.Config) string {
@@ -217,6 +218,20 @@ func (m *model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
+	// A pending quit confirmation is modal: it consumes the very next
+	// keypress as a yes/no answer rather than letting it flow through to
+	// overlays, text input, or normal shortcuts.
+	if m.confirmQuit {
+		m.confirmQuit = false
+		if msg.String() == "q" {
+			if m.taskCancel != nil {
+				m.taskCancel()
+			}
+			return m, tea.Quit
+		}
+		return m, nil
+	}
+
 	if m.ov != overlayNone {
 		return m.handleOverlayKey(msg)
 	}
@@ -234,6 +249,10 @@ func (m *model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.String() {
 	case "q":
+		if m.taskCancel != nil {
+			m.confirmQuit = true
+			return m, nil
+		}
 		return m, tea.Quit
 	case "?":
 		m.ov = overlayHelp
@@ -459,6 +478,9 @@ func (m *model) navBody() string {
 }
 
 func (m *model) statusBody() string {
+	if m.confirmQuit {
+		return m.st.Help.Render("Press q again to quit and cancel the download, or any other key to stay")
+	}
 	if m.ov != overlayNone {
 		return m.st.Help.Render("esc: close")
 	}

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -143,6 +144,96 @@ func TestQuitKeyReturnsQuitCmd(t *testing.T) {
 	_, cmd := m.handleKey(key("q"))
 	if cmd == nil {
 		t.Fatal("expected a quit cmd")
+	}
+}
+
+// TestQuitWithDownloadRunningRequiresConfirmation proves that pressing q
+// while a download is active (m.taskCancel != nil) does not quit outright:
+// it arms a confirmation instead, per the design spec's Global Keys table
+// ("q | Quit (confirms if a download is running)").
+func TestQuitWithDownloadRunningRequiresConfirmation(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
+	_, cancel := context.WithCancel(context.Background())
+	m.taskCancel = cancel
+	defer cancel()
+
+	next, cmd := m.handleKey(key("q"))
+	m = next.(*model)
+
+	if !m.confirmQuit {
+		t.Fatal("expected confirmQuit to be set after q with a download running")
+	}
+	if cmd != nil {
+		if _, isQuit := cmd().(tea.QuitMsg); isQuit {
+			t.Fatal("expected the first q to NOT quit while a download is running")
+		}
+	}
+	view := m.View()
+	if !strings.Contains(view, "Press q again") {
+		t.Errorf("expected status bar to show the confirm-quit prompt, got %q", view)
+	}
+}
+
+// TestQuitConfirmedCancelsTaskAndQuits proves a second q after confirmQuit
+// is armed actually quits, and cancels the running task's context so it
+// doesn't leak.
+func TestQuitConfirmedCancelsTaskAndQuits(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
+	ctx, cancel := context.WithCancel(context.Background())
+	m.taskCancel = cancel
+
+	next, _ := m.handleKey(key("q")) // arm confirmation
+	m = next.(*model)
+	if !m.confirmQuit {
+		t.Fatal("expected confirmQuit to be armed after first q")
+	}
+
+	_, cmd := m.handleKey(key("q")) // confirm
+
+	if cmd == nil {
+		t.Fatal("expected a quit cmd after confirming q")
+	}
+	if _, isQuit := cmd().(tea.QuitMsg); !isQuit {
+		t.Fatal("expected tea.QuitMsg after confirming q")
+	}
+	if ctx.Err() == nil {
+		t.Fatal("expected the running task's context to be cancelled after confirming quit")
+	}
+}
+
+// TestAnyOtherKeyClearsConfirmQuitWithoutQuittingOrActing proves the
+// confirmation modally consumes the next keypress as a yes/no answer: any
+// key other than q clears confirmQuit and does nothing else — in
+// particular it must not also perform that key's normal global action
+// (e.g. "?" must not open the help overlay).
+func TestAnyOtherKeyClearsConfirmQuitWithoutQuittingOrActing(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
+	_, cancel := context.WithCancel(context.Background())
+	m.taskCancel = cancel
+	defer cancel()
+
+	next, _ := m.handleKey(key("q")) // arm confirmation
+	m = next.(*model)
+	if !m.confirmQuit {
+		t.Fatal("expected confirmQuit to be armed after first q")
+	}
+
+	next, cmd := m.handleKey(key("?"))
+	m = next.(*model)
+
+	if m.confirmQuit {
+		t.Fatal("expected confirmQuit to be cleared after a non-q key")
+	}
+	if m.ov == overlayHelp {
+		t.Fatal("expected the non-q key's normal action (opening help) to be suppressed")
+	}
+	if cmd != nil {
+		if _, isQuit := cmd().(tea.QuitMsg); isQuit {
+			t.Fatal("expected a non-q key to not quit")
+		}
 	}
 }
 

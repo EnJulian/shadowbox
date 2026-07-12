@@ -5,25 +5,28 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/EnJulian/shadowbox/internal/app"
 	"github.com/EnJulian/shadowbox/internal/config"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
+	"github.com/EnJulian/shadowbox/internal/ui/style"
+	"github.com/EnJulian/shadowbox/internal/ui/workspace"
 )
 
-func newTestModel() model {
-	cfg := &config.Config{AudioFormat: "opus", MusicDirectory: ".", Theme: "hacker", UseGenius: true}
-	theme := themeByName(cfg.Theme)
-	ti := textinput.New()
-	return model{
+func newTestModel(t *testing.T) *model {
+	t.Helper()
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	cfg := &config.Config{AudioFormat: "opus", MusicDirectory: t.TempDir(), Theme: "hacker", UseGenius: true}
+	theme := style.ThemeByName(cfg.Theme)
+	m := &model{
 		cfg:     cfg,
 		app:     app.New(cfg),
 		theme:   theme,
-		st:      newStyles(theme),
-		input:   ti,
+		st:      style.NewStyles(theme),
 		spinner: spinner.New(),
-		screen:  screenMenu,
 	}
+	m.buildWorkspaces()
+	return m
 }
 
 func key(s string) tea.KeyMsg {
@@ -32,82 +35,112 @@ func key(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyDown}
 	case "up":
 		return tea.KeyMsg{Type: tea.KeyUp}
+	case "right":
+		return tea.KeyMsg{Type: tea.KeyRight}
+	case "left":
+		return tea.KeyMsg{Type: tea.KeyLeft}
 	case "enter":
 		return tea.KeyMsg{Type: tea.KeyEnter}
 	case "esc":
 		return tea.KeyMsg{Type: tea.KeyEsc}
+	case "tab":
+		return tea.KeyMsg{Type: tea.KeyTab}
 	}
 	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
 }
 
-func TestMenuRendersAllScreens(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir()) // isolate config writes
-	m := newTestModel()
+func TestNavDownThenEnterSwitchesToSettingsAndFocusesContent(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
 
-	if !strings.Contains(m.viewMenu(), "Search & Download") {
-		t.Error("menu missing first item")
-	}
-
-	// Navigate to Settings (index 6) and open it.
-	for i := 0; i < 6; i++ {
-		next, _ := m.updateMenu(key("down"))
-		m = next.(model)
+	for i := 0; i < 7; i++ { // Settings is index 7 in workspace.Order
+		next, _ := m.handleKey(key("down"))
+		m = next.(*model)
 	}
 	next, _ := m.handleKey(key("enter"))
-	m = next.(model)
-	if m.screen != screenSettings {
-		t.Fatalf("expected settings screen, got %v", m.screen)
-	}
-	if !strings.Contains(m.viewSettings(), "Audio format") {
-		t.Error("settings view missing items")
-	}
+	m = next.(*model)
 
-	// Toggle a boolean setting (use_genius at index 2).
-	m.settingsCursor = 2
-	before := m.cfg.UseGenius
-	next, _ = m.activateSetting()
-	m = next.(model)
-	if m.cfg.UseGenius == before {
-		t.Error("toggle did not flip use_genius")
+	if m.activeSection != workspace.SectionSettings {
+		t.Fatalf("activeSection = %v, want SectionSettings", m.activeSection)
 	}
-
-	// Open theme picker and apply a different theme.
-	m.settingsCursor = 4
-	next, _ = m.activateSetting()
-	m = next.(model)
-	if m.screen != screenThemePicker {
-		t.Fatalf("expected theme picker, got %v", m.screen)
-	}
-	next, _ = m.updateThemePicker(key("down"))
-	m = next.(model)
-	if !strings.Contains(m.viewThemePicker(), "matrix") {
-		t.Error("theme picker missing themes")
+	view := m.View()
+	if !strings.Contains(view, "Audio format") {
+		t.Errorf("expected settings content in view, got %q", view)
 	}
 }
 
-func TestInputAndLibraryViews(t *testing.T) {
-	m := newTestModel()
-	next, _ := m.openInput("search", "Enter query")
-	m = next.(model)
-	if m.screen != screenInput || !strings.Contains(m.viewInput(), "Enter query") {
-		t.Error("input screen not shown")
+func TestDigitJumpsToSection(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
+
+	next, _ := m.handleKey(key("4")) // Library is section index 3, key "4"
+	m = next.(*model)
+	if m.activeSection != workspace.SectionLibrary {
+		t.Fatalf("activeSection = %v, want SectionLibrary", m.activeSection)
+	}
+}
+
+func TestTabTogglesFocusAndActivatesOnContentEntry(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
+
+	before := m.pane
+	next, _ := m.handleKey(key("tab"))
+	m = next.(*model)
+	if m.pane == before {
+		t.Fatal("expected Tab to toggle the focused pane")
+	}
+	view := m.View()
+	if !strings.Contains(view, "Query:") { // Search is the default active section
+		t.Errorf("expected Search workspace content, got %q", view)
+	}
+}
+
+func TestHelpOverlayTogglesWithQuestionMark(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
+
+	next, _ := m.handleKey(key("?"))
+	m = next.(*model)
+	view := m.View()
+	if !strings.Contains(view, "Keybindings") {
+		t.Fatalf("expected help overlay content, got %q", view)
 	}
 
-	next, _ = m.openLibrary()
-	m = next.(model)
-	if m.screen != screenLibrary {
-		t.Fatalf("expected library screen, got %v", m.screen)
+	next, _ = m.handleKey(key("esc"))
+	m = next.(*model)
+	if m.ov != overlayNone {
+		t.Fatal("expected esc to close the help overlay")
 	}
-	if v := m.viewLibrary(); !strings.Contains(v, "Artists") {
-		t.Errorf("library view missing breadcrumb: %q", v)
+}
+
+func TestLibraryBackAtTopLevelReturnsFocusToNav(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
+
+	next, _ := m.handleKey(key("4")) // jump to Library and focus its content
+	m = next.(*model)
+	if m.pane != shell.PaneContent {
+		t.Fatalf("pane = %v, want PaneContent after jumping into Library", m.pane)
 	}
 
-	next, _ = m.openDownloadLog()
-	m = next.(model)
-	if m.screen != screenDownloadLog {
-		t.Fatalf("expected download log screen, got %v", m.screen)
+	next, cmd := m.handleKey(key("left")) // back out of the top (Artists) level
+	m = next.(*model)
+	if cmd == nil {
+		t.Fatal("expected Library.back() at level 0 to return a FocusNavMsg cmd")
 	}
-	if !strings.Contains(m.viewDownloadLog(), "Download log") {
-		t.Error("download log view missing title")
+
+	next, _ = m.Update(cmd())
+	m = next.(*model)
+	if m.pane != shell.PaneNav {
+		t.Fatalf("pane = %v, want PaneNav after shell.FocusNavMsg", m.pane)
+	}
+}
+
+func TestQuitKeyReturnsQuitCmd(t *testing.T) {
+	m := newTestModel(t)
+	_, cmd := m.handleKey(key("q"))
+	if cmd == nil {
+		t.Fatal("expected a quit cmd")
 	}
 }

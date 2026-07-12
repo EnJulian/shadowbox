@@ -71,10 +71,9 @@ func (in *Input) Activate() Workspace {
 }
 
 // TextFocused reports whether the field currently has a live text cursor.
-// This workspace's only interactive control is its text field, and it stays
-// focused for as long as the workspace is active (Activate focuses it and
-// nothing in Update ever blurs it), so this mirrors the field's own focus
-// state rather than hardcoding true.
+// This workspace's only interactive control is its text field: Activate
+// focuses it, and Update only blurs it when Esc returns focus to Nav, so
+// this mirrors the field's own focus state rather than hardcoding true.
 func (in *Input) TextFocused() bool {
 	return in.input.Focused()
 }

@@ -178,13 +178,14 @@ func (s *Settings) View(width, height int) string {
 	var b strings.Builder
 	for i, item := range settingItems {
 		cursor := "  "
-		label := s.st.Item.Render(item.label)
+		paddedLabel := fmt.Sprintf("%-26s", item.label)
+		label := s.st.Item.Render(paddedLabel)
 		if i == s.cursor {
 			cursor = s.st.Accent.Render("> ")
-			label = s.st.Selected.Render(item.label)
+			label = s.st.Selected.Render(paddedLabel)
 		}
 		value := s.st.Accent.Render(s.value(item.key))
-		fmt.Fprintf(&b, "%s%-26s %s\n", cursor, label, value)
+		fmt.Fprintf(&b, "%s%s %s\n", cursor, label, value)
 	}
 	return b.String()
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/EnJulian/shadowbox/internal/app"
 	"github.com/EnJulian/shadowbox/internal/config"
 	"github.com/EnJulian/shadowbox/internal/download"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -223,6 +224,25 @@ func TestSearchTextFocused(t *testing.T) {
 	}
 	if ws.(*Search).TextFocused() {
 		t.Fatal("TextFocused() = true, want false while browsing suggestions")
+	}
+}
+
+func TestSearchEscFromInputRequestsNavFocus(t *testing.T) {
+	s := newTestSearch(t)
+	ws := s.Activate()
+	if !ws.(*Search).TextFocused() {
+		t.Fatal("test assumes the query input starts focused (TextFocused() == true)")
+	}
+
+	ws, cmd := ws.Update(key("esc"))
+	if cmd == nil {
+		t.Fatal("expected a FocusNavMsg cmd when pressing esc in the query input")
+	}
+	if _, ok := cmd().(shell.FocusNavMsg); !ok {
+		t.Fatalf("cmd() = %T, want shell.FocusNavMsg", cmd())
+	}
+	if ws.(*Search).input.Focused() {
+		t.Fatal("expected the query input to be blurred after esc returns focus to Nav")
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/EnJulian/shadowbox/internal/app"
 	"github.com/EnJulian/shadowbox/internal/config"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 )
 
@@ -33,6 +34,26 @@ func TestInputTextFocused(t *testing.T) {
 	}
 	if !ws.(*Input).TextFocused() {
 		t.Fatal("TextFocused() = false, want true after typing into the field")
+	}
+}
+
+func TestInputEscRequestsNavFocus(t *testing.T) {
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	a := app.New(&config.Config{})
+	ws := NewURL(a, st).Activate()
+	if !ws.(*Input).TextFocused() {
+		t.Fatal("test assumes the field starts focused (TextFocused() == true)")
+	}
+
+	ws, cmd := ws.Update(key("esc"))
+	if cmd == nil {
+		t.Fatal("expected a FocusNavMsg cmd when pressing esc in the field")
+	}
+	if _, ok := cmd().(shell.FocusNavMsg); !ok {
+		t.Fatalf("cmd() = %T, want shell.FocusNavMsg", cmd())
+	}
+	if ws.(*Input).input.Focused() {
+		t.Fatal("expected the field to be blurred after esc returns focus to Nav")
 	}
 }
 

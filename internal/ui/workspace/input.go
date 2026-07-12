@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/EnJulian/shadowbox/internal/app"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 	"github.com/EnJulian/shadowbox/internal/ui/suggest"
 )
@@ -84,6 +85,12 @@ func (in *Input) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 		return in, nil
 	}
 	switch keyMsg.String() {
+	case "esc":
+		// Universal back/cancel: this workspace's only control is the text
+		// field, which is always focused while active (see TextFocused), so
+		// Esc has to blur it and hand focus back to Nav or it's a dead end.
+		in.input.Blur()
+		return in, shell.RequestNavFocus()
 	case "enter":
 		value := strings.TrimSpace(in.input.Value())
 		if value == "" {

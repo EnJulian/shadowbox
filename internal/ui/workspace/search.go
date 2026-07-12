@@ -129,6 +129,13 @@ func (s *Search) handleKey(msg tea.KeyMsg) (Workspace, tea.Cmd) {
 
 func (s *Search) handleInputKey(msg tea.KeyMsg) (Workspace, tea.Cmd) {
 	switch msg.String() {
+	case "esc":
+		// Universal back/cancel: leave the query input and return focus to
+		// Nav, same as handleResultsKey's "left"/"h" case. The input is
+		// currently focused (that's what makes TextFocused() true here), so
+		// blur it since keystrokes are no longer headed its way.
+		s.input.Blur()
+		return s, shell.RequestNavFocus()
 	case "enter":
 		query := strings.TrimSpace(s.input.Value())
 		if query == "" {

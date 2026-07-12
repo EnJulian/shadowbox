@@ -21,14 +21,18 @@ type Log struct {
 
 // NewLog builds the Log workspace.
 func NewLog(st style.Styles) *Log {
-	return &Log{height: 10}
+	return &Log{st: st, height: 10}
 }
 
 func (l *Log) Activate() Workspace {
+	l.reload()
+	return l
+}
+
+func (l *Log) reload() {
 	_ = applog.LoadDownloadLog()
 	l.lines = applog.DownloadLogLines()
 	l.scroll = l.maxScroll()
-	return l
 }
 
 func (l *Log) maxScroll() int {
@@ -61,9 +65,7 @@ func (l *Log) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 	case "end", "G":
 		l.scroll = l.maxScroll()
 	case "r":
-		_ = applog.LoadDownloadLog()
-		l.lines = applog.DownloadLogLines()
-		l.scroll = l.maxScroll()
+		l.reload()
 	}
 	return l, nil
 }

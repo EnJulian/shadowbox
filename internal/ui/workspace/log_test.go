@@ -10,7 +10,7 @@ import (
 
 func TestLogActivateWithNoLogsShowsHint(t *testing.T) {
 	st := style.NewStyles(style.ThemeByName("hacker"))
-	l := NewLog(st).Activate()
+	l := &Log{st: st}
 	view := l.View(80, 20)
 	if !strings.Contains(view, "no download logs yet") {
 		t.Fatalf("expected empty-log hint, got %q", view)

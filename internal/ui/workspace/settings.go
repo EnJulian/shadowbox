@@ -65,6 +65,14 @@ func (s *Settings) Activate() Workspace {
 	return s
 }
 
+// TextFocused reports whether the inline edit field currently has a live
+// text cursor. It's false during normal list navigation (up/down/toggle/
+// theme-request), since digit/q/etc should still work as globals while just
+// browsing the settings list.
+func (s *Settings) TextFocused() bool {
+	return s.editing
+}
+
 func (s *Settings) value(key string) string {
 	switch key {
 	case "audio_format":

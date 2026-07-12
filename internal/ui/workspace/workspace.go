@@ -54,6 +54,18 @@ type Workspace interface {
 	View(width, height int) string
 }
 
+// TextFocused is implemented by workspaces that currently have a live text
+// cursor capturing keystrokes (e.g. a query input mid-edit, or a type-ahead
+// filter). The root model checks this before stealing single-character
+// global shortcuts (q/?// /digit-jump) away from the active workspace, so a
+// user typing "Queen" into a query field doesn't accidentally quit the app.
+// It's optional and additive: workspaces with no text entry (Downloads, Log)
+// simply don't implement it, and the root model treats that as "not text
+// focused."
+type TextFocused interface {
+	TextFocused() bool
+}
+
 // StartTaskMsg asks the root model to run a background pipeline operation,
 // identical in shape to the pre-redesign model.startTask contract.
 type StartTaskMsg struct {

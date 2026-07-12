@@ -41,6 +41,14 @@ func (l *Library) Activate() Workspace {
 	return l
 }
 
+// TextFocused always reports true: per the type-ahead filter fix, this
+// workspace routes every typed rune (regardless of drill-down depth) to
+// l.filter, so global single-char shortcuts must never intercept characters
+// meant for the filter.
+func (l *Library) TextFocused() bool {
+	return true
+}
+
 func (l *Library) entries() []string {
 	return suggest.Filter(l.allNames, l.filter)
 }

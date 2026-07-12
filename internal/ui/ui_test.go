@@ -146,6 +146,134 @@ func TestQuitKeyReturnsQuitCmd(t *testing.T) {
 	}
 }
 
+// TestGlobalShortcutsDoNotStealKeystrokesFromFocusedText proves the fix for
+// the reported bug: typing "q" (or any other single-char global shortcut)
+// into a workspace that currently has a live text cursor must reach that
+// workspace's text control, not trigger the global action (quit/help/jump).
+//
+// It reads back the typed text via View() rather than an internal field:
+// in this test environment lipgloss renders with no ANSI escapes (no TTY),
+// so a growing plain substring in the rendered view is reliable proof the
+// keystroke reached the text control, and it only exercises exported API.
+func TestGlobalShortcutsDoNotStealKeystrokesFromFocusedText(t *testing.T) {
+	cases := []struct {
+		name    string
+		section workspace.Section
+		setup   func(t *testing.T, m *model) // drives the workspace into a text-focused state
+	}{
+		{
+			name:    "Search query input",
+			section: workspace.SectionSearch,
+			setup:   func(t *testing.T, m *model) {},
+		},
+		{
+			name:    "Input workspace (URL)",
+			section: workspace.SectionURL,
+			setup:   func(t *testing.T, m *model) {},
+		},
+		{
+			name:    "Settings inline edit",
+			section: workspace.SectionSettings,
+			setup: func(t *testing.T, m *model) {
+				t.Helper()
+				// audio_format (cursor 0) is a settingText item; enter opens
+				// inline edit, putting the workspace into a text-focused state.
+				next, _ := m.handleKey(key("enter"))
+				*m = *next.(*model)
+			},
+		},
+		{
+			name:    "Library type-ahead filter",
+			section: workspace.SectionLibrary,
+			setup:   func(t *testing.T, m *model) {},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := newTestModel(t)
+			m.width, m.height = 120, 40
+			m.switchSection(tc.section) // focuses Content and Activate()s the workspace
+			tc.setup(t, m)
+
+			ws, ok := m.workspaces[tc.section].(workspace.TextFocused)
+			if !ok || !ws.TextFocused() {
+				t.Fatalf("test setup invalid: %s is not TextFocused after setup", tc.name)
+			}
+
+			var typed string
+			for _, k := range []string{"q", "?", "/", "3"} {
+				typed += k
+				next, cmd := m.handleKey(key(k))
+				m = next.(*model)
+
+				view := m.workspaces[tc.section].View(80, 20)
+				if !strings.Contains(view, typed) {
+					t.Fatalf("after pressing %q: view = %q, want it to contain accumulated typed text %q (keystroke did not reach the text control)", k, view, typed)
+				}
+				if m.ov == overlayHelp {
+					t.Fatalf("after pressing %q: help overlay opened, want it to stay closed", k)
+				}
+				if m.activeSection != tc.section {
+					t.Fatalf("after pressing %q: activeSection = %v, want unchanged %v (digit-jump must not fire)", k, m.activeSection, tc.section)
+				}
+				if cmd != nil {
+					if _, isQuit := cmd().(tea.QuitMsg); isQuit {
+						t.Fatalf("after pressing %q: got tea.Quit, want the workspace to consume the key instead", k)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestGlobalShortcutsStillWorkWhenNoTextIsFocused is the negative control for
+// the above: workspaces with no text entry (Downloads, Log) must still let
+// q/?// /digit-jump work as global shortcuts. This proves the fix is scoped
+// to text-focused states, not a blanket "global keys stopped working."
+// (Search's own arrow-key-navigation states — results/suggestions focused,
+// not the query input — are covered by TestSearchTextFocused in the
+// workspace package, proving the same scoping one level down.)
+func TestGlobalShortcutsStillWorkWhenNoTextIsFocused(t *testing.T) {
+	t.Run("Downloads: digit-jump", func(t *testing.T) {
+		m := newTestModel(t)
+		m.width, m.height = 120, 40
+		m.switchSection(workspace.SectionDownloads)
+
+		next, _ := m.handleKey(key("3")) // Playlist is section index 2, key "3"
+		m = next.(*model)
+		if m.activeSection != workspace.SectionPlaylist {
+			t.Fatalf("activeSection = %v, want SectionPlaylist after digit-jump from Downloads", m.activeSection)
+		}
+	})
+
+	t.Run("Log: help overlay", func(t *testing.T) {
+		m := newTestModel(t)
+		m.width, m.height = 120, 40
+		m.switchSection(workspace.SectionLog)
+
+		next, _ := m.handleKey(key("?"))
+		m = next.(*model)
+		if m.ov != overlayHelp {
+			t.Fatalf("ov = %v, want overlayHelp after ? from Log", m.ov)
+		}
+	})
+
+	t.Run("Log: q quits", func(t *testing.T) {
+		m := newTestModel(t)
+		m.width, m.height = 120, 40
+		m.switchSection(workspace.SectionLog)
+
+		_, cmd := m.handleKey(key("q"))
+		if cmd == nil {
+			t.Fatal("expected a quit cmd from Log")
+		}
+		if _, isQuit := cmd().(tea.QuitMsg); !isQuit {
+			t.Fatal("expected tea.QuitMsg from q while Log is active")
+		}
+	})
+}
+
 func TestPickerRequestOpensOverlayAndEnterSendsResponse(t *testing.T) {
 	m := newTestModel(t)
 	m.width, m.height = 120, 40

@@ -221,6 +221,17 @@ func (m *model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleOverlayKey(msg)
 	}
 
+	// If the Content pane's active workspace currently has a live text
+	// cursor (query input, URL/Playlist/Enhance field, Settings inline edit,
+	// Library's type-ahead filter), single-character global shortcuts below
+	// must not steal the keystroke — e.g. typing "Queen" into Search must
+	// not quit the app. Skip straight to workspace dispatch in that case.
+	if m.pane == shell.PaneContent {
+		if tf, ok := m.workspaces[m.activeSection].(workspace.TextFocused); ok && tf.TextFocused() {
+			return m.handleContentKey(msg)
+		}
+	}
+
 	switch msg.String() {
 	case "q":
 		return m, tea.Quit

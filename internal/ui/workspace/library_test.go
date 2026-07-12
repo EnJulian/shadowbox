@@ -90,6 +90,28 @@ func TestLibraryTypeAheadFiltersEntries(t *testing.T) {
 	}
 }
 
+func TestLibraryTextFocusedAlwaysTrue(t *testing.T) {
+	l := newTestLibrary(t)
+	ws := l.Activate()
+	if !ws.(*Library).TextFocused() {
+		t.Fatal("TextFocused() = false, want true right after Activate")
+	}
+
+	// Still true after typing into the filter, and after drilling down —
+	// every level of this workspace routes typed runes to the filter, so
+	// global shortcuts must never be allowed to intercept them.
+	for _, r := range "kan" {
+		ws, _ = ws.Update(key(string(r)))
+	}
+	if !ws.(*Library).TextFocused() {
+		t.Fatal("TextFocused() = false, want true after typing into the filter")
+	}
+	ws, _ = ws.Update(key("enter")) // drill into Kanye West
+	if !ws.(*Library).TextFocused() {
+		t.Fatal("TextFocused() = false, want true after drilling into a level")
+	}
+}
+
 func TestLibraryLetterKeysAlwaysFilterNeverNavigate(t *testing.T) {
 	l := newTestLibrary(t)
 	ws := l.Activate()

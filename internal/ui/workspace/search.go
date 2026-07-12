@@ -74,6 +74,14 @@ func (s *Search) Activate() Workspace {
 	return s
 }
 
+// TextFocused reports whether the query input currently has a live text
+// cursor. It's false while browsing the suggestions or results lists (those
+// are arrow-key navigation, not text entry), so global single-key shortcuts
+// still work there.
+func (s *Search) TextFocused() bool {
+	return s.focus == searchFocusInput
+}
+
 func (s *Search) suggestions() []string {
 	q := strings.TrimSpace(s.input.Value())
 	if q == "" {

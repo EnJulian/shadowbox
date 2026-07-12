@@ -183,6 +183,49 @@ func TestSearchSuggestionEnterFillsInputAndReturnsFocus(t *testing.T) {
 	}
 }
 
+func TestSearchTextFocused(t *testing.T) {
+	dir := t.TempDir()
+	cfg := &config.Config{MusicDirectory: dir, AudioFormat: "opus"}
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	historyPath := filepath.Join(dir, "search_history")
+	os.WriteFile(historyPath, []byte("nujabes feather"), 0o600)
+
+	s := NewSearch(app.New(cfg), cfg, st, historyPath)
+	ws := s.Activate()
+	if !ws.(*Search).TextFocused() {
+		t.Fatal("TextFocused() = false, want true right after Activate (query input focused)")
+	}
+
+	// Populate results, then move focus into the results list: browsing a
+	// results list is arrow-key navigation, not text entry, so global
+	// shortcuts (q/?// /digit) must still work there.
+	ws, _ = ws.Update(searchResultsMsg{results: []download.SearchResult{{Title: "Feather", URL: "https://youtu.be/1"}}})
+	ws, _ = ws.Update(key("down"))
+	if ws.(*Search).focus != searchFocusResults {
+		t.Fatal("expected down to move focus into the results list")
+	}
+	if ws.(*Search).TextFocused() {
+		t.Fatal("TextFocused() = true, want false while browsing the results list")
+	}
+
+	// Move back to the input, then into suggestions: suggestion navigation
+	// is also arrow-key browsing, not text entry.
+	ws, _ = ws.Update(key("up")) // results cursor at 0 -> back to input
+	if ws.(*Search).focus != searchFocusInput {
+		t.Fatal("expected up at results cursor 0 to return focus to the input")
+	}
+	for _, r := range "nu" {
+		ws, _ = ws.Update(key(string(r)))
+	}
+	ws, _ = ws.Update(key("down")) // enter suggestions
+	if ws.(*Search).focus != searchFocusSuggestions {
+		t.Fatal("expected down from input to enter suggestions")
+	}
+	if ws.(*Search).TextFocused() {
+		t.Fatal("TextFocused() = true, want false while browsing suggestions")
+	}
+}
+
 func TestSearchSuggestionEscDismissesWithoutChangingInput(t *testing.T) {
 	dir := t.TempDir()
 	cfg := &config.Config{MusicDirectory: dir, AudioFormat: "opus"}

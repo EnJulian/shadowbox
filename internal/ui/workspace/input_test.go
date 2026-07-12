@@ -19,6 +19,23 @@ func TestInputActivateFocusesField(t *testing.T) {
 	}
 }
 
+func TestInputTextFocused(t *testing.T) {
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	a := app.New(&config.Config{})
+	ws := NewURL(a, st).Activate()
+	if !ws.(*Input).TextFocused() {
+		t.Fatal("TextFocused() = false, want true right after Activate")
+	}
+	// The field is the workspace's only interactive control; it never blurs
+	// while the workspace is active, including after typing.
+	for _, r := range "https://youtu.be/abc" {
+		ws, _ = ws.Update(key(string(r)))
+	}
+	if !ws.(*Input).TextFocused() {
+		t.Fatal("TextFocused() = false, want true after typing into the field")
+	}
+}
+
 func TestInputSubmitStartsTaskAndSwitchesToDownloads(t *testing.T) {
 	st := style.NewStyles(style.ThemeByName("hacker"))
 	a := app.New(&config.Config{})

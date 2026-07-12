@@ -19,6 +19,30 @@ func TestSettingsViewListsItems(t *testing.T) {
 	}
 }
 
+func TestSettingsTextFocused(t *testing.T) {
+	cfg := &config.Config{AudioFormat: "opus", Theme: "hacker"}
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	s := NewSettings(cfg, st).Activate()
+
+	if s.(*Settings).TextFocused() {
+		t.Fatal("TextFocused() = true, want false during normal list navigation")
+	}
+
+	// audio_format (cursor 0) is a settingText item; enter opens inline edit.
+	ws, _ := s.Update(key("enter"))
+	if !ws.(*Settings).editing {
+		t.Fatal("expected enter on a settingText item to enter edit mode")
+	}
+	if !ws.(*Settings).TextFocused() {
+		t.Fatal("TextFocused() = false, want true while inline-editing a text setting")
+	}
+
+	ws, _ = ws.Update(key("esc"))
+	if ws.(*Settings).TextFocused() {
+		t.Fatal("TextFocused() = true, want false after esc cancels editing")
+	}
+}
+
 func TestSettingsToggleFlipsBoolAndEmitsChanged(t *testing.T) {
 	// The toggle path calls config.Save, which resolves its target file via
 	// os.UserConfigDir(). Redirect that to a temp dir so the test never

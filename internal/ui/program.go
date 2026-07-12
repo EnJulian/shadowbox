@@ -236,6 +236,21 @@ func (m *model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleOverlayKey(msg)
 	}
 
+	// Tab always cycles panes, even while a workspace has a live text
+	// cursor — it's never a printable rune a user would type into a text
+	// field, so (unlike q/?// /digits below) it must not be gated behind
+	// the TextFocused check. Handled here, before that check, so it keeps
+	// working from every state: Nav, or any Content workspace regardless
+	// of TextFocused.
+	switch msg.String() {
+	case "tab", "shift+tab":
+		m.pane = m.pane.Toggle()
+		if m.pane == shell.PaneContent {
+			m.workspaces[m.activeSection] = m.workspaces[m.activeSection].Activate()
+		}
+		return m, nil
+	}
+
 	// If the Content pane's active workspace currently has a live text
 	// cursor (query input, URL/Playlist/Enhance field, Settings inline edit,
 	// Library's type-ahead filter), single-character global shortcuts below
@@ -259,12 +274,6 @@ func (m *model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "/":
 		m.switchSection(workspace.SectionSearch)
-		return m, nil
-	case "tab", "shift+tab":
-		m.pane = m.pane.Toggle()
-		if m.pane == shell.PaneContent {
-			m.workspaces[m.activeSection] = m.workspaces[m.activeSection].Activate()
-		}
 		return m, nil
 	}
 

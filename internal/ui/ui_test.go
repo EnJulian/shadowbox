@@ -98,6 +98,50 @@ func TestTabTogglesFocusAndActivatesOnContentEntry(t *testing.T) {
 	}
 }
 
+// TestTabWorksFromTextFocusedWorkspace confirms Tab always cycles panes, even
+// when the active workspace's TextFocused() is true (e.g. Search's query
+// input, focused by default). Tab is never a printable rune a user would
+// type into a text field, so it must not be gated behind the TextFocused
+// early-return the way q/?// /digits below are (see
+// TestGlobalShortcutsDoNotStealKeystrokesFromFocusedText for that gating).
+func TestTabWorksFromTextFocusedWorkspace(t *testing.T) {
+	m := newTestModel(t)
+	m.width, m.height = 120, 40
+	m.switchSection(workspace.SectionSearch) // focuses Content, Activate()s Search
+
+	ws, ok := m.workspaces[workspace.SectionSearch].(workspace.TextFocused)
+	if !ok || !ws.TextFocused() {
+		t.Fatal("test setup invalid: Search is not TextFocused after switchSection")
+	}
+	if m.pane != shell.PaneContent {
+		t.Fatalf("pane = %v, want PaneContent before pressing tab", m.pane)
+	}
+
+	next, _ := m.handleKey(key("tab"))
+	m = next.(*model)
+	if m.pane != shell.PaneNav {
+		t.Fatalf("pane = %v, want PaneNav after tab from a TextFocused workspace", m.pane)
+	}
+
+	// Negative control: this fix must not regress the earlier critical fix
+	// that q/digits are swallowed by focused text rather than stealing the
+	// keystroke as global shortcuts. Broad coverage lives in
+	// TestGlobalShortcutsDoNotStealKeystrokesFromFocusedText; this is a
+	// quick spot-check scoped to this test's own setup.
+	m.switchSection(workspace.SectionSearch)
+	next, cmd := m.handleKey(key("q"))
+	m = next.(*model)
+	if cmd != nil {
+		if _, isQuit := cmd().(tea.QuitMsg); isQuit {
+			t.Fatal("q should be swallowed by the focused query input, not quit the app")
+		}
+	}
+	view := m.workspaces[workspace.SectionSearch].View(80, 20)
+	if !strings.Contains(view, "q") {
+		t.Fatalf("expected %q to reach the query input, view = %q", "q", view)
+	}
+}
+
 func TestHelpOverlayTogglesWithQuestionMark(t *testing.T) {
 	m := newTestModel(t)
 	m.width, m.height = 120, 40

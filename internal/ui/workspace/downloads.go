@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/EnJulian/shadowbox/internal/progress"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -61,8 +62,13 @@ func (d *Downloads) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 		d.progress = msg
 		return d, nil
 	case tea.KeyMsg:
-		if d.running && msg.String() == "c" {
-			return d, CancelTask()
+		switch msg.String() {
+		case "esc", "left", "h":
+			return d, shell.RequestNavFocus()
+		case "c":
+			if d.running {
+				return d, CancelTask()
+			}
 		}
 	}
 	return d, nil

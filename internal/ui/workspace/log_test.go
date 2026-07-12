@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 )
 
@@ -31,5 +32,21 @@ func TestLogScrollClampsToBounds(t *testing.T) {
 	ws, _ = ws.Update(key("end"))
 	if ws.(*Log).scroll < 0 {
 		t.Fatalf("scroll went negative: %d", ws.(*Log).scroll)
+	}
+}
+
+func TestLogEscLeftHRequestNavFocus(t *testing.T) {
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	for _, k := range []string{"esc", "left", "h"} {
+		t.Run(k, func(t *testing.T) {
+			l := NewLog(st)
+			_, cmd := l.Update(key(k))
+			if cmd == nil {
+				t.Fatalf("expected a FocusNavMsg cmd when pressing %q", k)
+			}
+			if _, ok := cmd().(shell.FocusNavMsg); !ok {
+				t.Fatalf("cmd() = %T, want shell.FocusNavMsg", cmd())
+			}
+		})
 	}
 }

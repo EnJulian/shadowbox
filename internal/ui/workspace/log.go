@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	applog "github.com/EnJulian/shadowbox/internal/log"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -48,6 +49,8 @@ func (l *Log) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 		return l, nil
 	}
 	switch keyMsg.String() {
+	case "esc", "left", "h":
+		return l, shell.RequestNavFocus()
 	case "up", "k":
 		if l.scroll > 0 {
 			l.scroll--

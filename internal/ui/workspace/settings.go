@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/EnJulian/shadowbox/internal/config"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -101,6 +102,8 @@ func (s *Settings) Update(msg tea.Msg) (Workspace, tea.Cmd) {
 	}
 
 	switch keyMsg.String() {
+	case "esc", "left", "h":
+		return s, shell.RequestNavFocus()
 	case "up", "k":
 		if s.cursor > 0 {
 			s.cursor--

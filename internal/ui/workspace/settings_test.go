@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/EnJulian/shadowbox/internal/config"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 )
 
@@ -40,6 +41,51 @@ func TestSettingsTextFocused(t *testing.T) {
 	ws, _ = ws.Update(key("esc"))
 	if ws.(*Settings).TextFocused() {
 		t.Fatal("TextFocused() = true, want false after esc cancels editing")
+	}
+}
+
+func TestSettingsEscLeftHRequestNavFocusWhenNotEditing(t *testing.T) {
+	cfg := &config.Config{AudioFormat: "opus", Theme: "hacker"}
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	for _, k := range []string{"esc", "left", "h"} {
+		t.Run(k, func(t *testing.T) {
+			s := NewSettings(cfg, st).Activate()
+			if s.(*Settings).TextFocused() {
+				t.Fatal("test assumes Settings starts in the non-editing state")
+			}
+			_, cmd := s.Update(key(k))
+			if cmd == nil {
+				t.Fatalf("expected a FocusNavMsg cmd when pressing %q while not editing", k)
+			}
+			if _, ok := cmd().(shell.FocusNavMsg); !ok {
+				t.Fatalf("cmd() = %T, want shell.FocusNavMsg", cmd())
+			}
+		})
+	}
+}
+
+// TestSettingsEscWhileEditingCancelsEditInsteadOfReturningToNav confirms the
+// esc-returns-to-Nav case above didn't clobber the pre-existing, distinct
+// behavior: esc while inline-editing a setting cancels the edit and stays in
+// Settings, it does not also request Nav focus.
+func TestSettingsEscWhileEditingCancelsEditInsteadOfReturningToNav(t *testing.T) {
+	cfg := &config.Config{AudioFormat: "opus", Theme: "hacker"}
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	s := NewSettings(cfg, st).Activate()
+
+	ws, _ := s.Update(key("enter")) // audio_format (cursor 0) enters edit mode
+	if !ws.(*Settings).editing {
+		t.Fatal("expected enter to enter edit mode")
+	}
+
+	ws, cmd := ws.Update(key("esc"))
+	if ws.(*Settings).editing {
+		t.Fatal("expected esc to cancel editing")
+	}
+	if cmd != nil {
+		if _, ok := cmd().(shell.FocusNavMsg); ok {
+			t.Fatal("esc while editing should cancel the edit, not request Nav focus")
+		}
 	}
 }
 

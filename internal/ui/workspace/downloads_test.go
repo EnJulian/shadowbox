@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/EnJulian/shadowbox/internal/progress"
+	"github.com/EnJulian/shadowbox/internal/ui/shell"
 	"github.com/EnJulian/shadowbox/internal/ui/style"
 )
 
@@ -39,6 +40,22 @@ func TestDownloadsFinishShowsResult(t *testing.T) {
 	view := d.View(80, 20)
 	if !strings.Contains(view, "Download complete") {
 		t.Fatalf("expected completion summary, got %q", view)
+	}
+}
+
+func TestDownloadsEscLeftHRequestNavFocus(t *testing.T) {
+	st := style.NewStyles(style.ThemeByName("hacker"))
+	for _, k := range []string{"esc", "left", "h"} {
+		t.Run(k, func(t *testing.T) {
+			d := NewDownloads(st)
+			_, cmd := d.Update(key(k))
+			if cmd == nil {
+				t.Fatalf("expected a FocusNavMsg cmd when pressing %q", k)
+			}
+			if _, ok := cmd().(shell.FocusNavMsg); !ok {
+				t.Fatalf("cmd() = %T, want shell.FocusNavMsg", cmd())
+			}
+		})
 	}
 }
 

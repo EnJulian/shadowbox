@@ -9,7 +9,8 @@ For releasing, see [RELEASING.md](RELEASING.md).
 
 - **Go 1.25+** — the module pins `go 1.25`.
 - **Runtime tools** on your `PATH`: `yt-dlp` and `ffmpeg` (required), `aria2`
-  (optional, for faster downloads). Verify later with `shadowbox doctor`.
+  (optional, for faster downloads), `mpv` (optional, for in-app playback).
+  Verify later with `shadowbox doctor`.
 
 ### Make sure `go` is on your PATH
 

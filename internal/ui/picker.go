@@ -63,7 +63,7 @@ func (m model) updatePicker(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m model) viewPicker() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	b.WriteString("  " + m.st.subtitle.Render(m.picker.title) + "\n\n")
 
@@ -85,7 +85,7 @@ func (m model) viewPicker() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.st.help.Render("  up/down: navigate   enter: select   esc: cancel"))
+	b.WriteString(m.st.help.Render("  up/down: navigate   enter: select   ?: help   esc: cancel"))
 	return b.String()
 }
 

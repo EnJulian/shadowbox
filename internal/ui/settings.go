@@ -15,6 +15,7 @@ const (
 	settingText
 	settingSecret
 	settingTheme
+	settingAction
 )
 
 type settingItem struct {
@@ -30,6 +31,7 @@ var settingItems = []settingItem{
 	{"verbose", "Verbose logging", settingToggle},
 	{"theme", "Theme", settingTheme},
 	{"genius.access_token", "Genius access token", settingSecret},
+	{"setup_wizard", "Run setup wizard", settingAction},
 }
 
 func (m model) settingValue(key string) string {
@@ -87,6 +89,8 @@ func (m model) activateSetting() (tea.Model, tea.Cmd) {
 		m.input.Placeholder = "type a new value, enter to save"
 		m.input.Focus()
 		return m, nil
+	case settingAction:
+		return m.openWizard(screenSettings)
 	}
 	return m, nil
 }
@@ -133,7 +137,7 @@ func (m *model) applySetting(key, value string) {
 
 func (m model) viewSettings() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	b.WriteString("  " + m.st.subtitle.Render("Settings") + "\n\n")
 
@@ -149,13 +153,13 @@ func (m model) viewSettings() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.st.help.Render("  up/down: navigate   enter: edit/toggle   esc: back"))
+	b.WriteString(m.st.help.Render("  up/down: navigate   enter: edit/toggle   ?: help   esc: back"))
 	return b.String()
 }
 
 func (m model) viewSettingEdit() string {
 	var b strings.Builder
-	b.WriteString(m.st.title.Render(banner))
+	b.WriteString(renderBannerWithPlayback(m.st, m.theme, m.playback))
 	b.WriteString("\n\n")
 	b.WriteString("  " + m.st.subtitle.Render("Edit "+m.editKey) + "\n\n")
 	b.WriteString("  " + m.input.View() + "\n\n")

@@ -9,7 +9,7 @@
 
 Single-binary music downloader. Rips audio from various sources, tags it with metadata, cover art, and lyrics, and organizes it under `~/Music/Artist/Album/`.
 
-Needs `yt-dlp` and `ffmpeg` on your `PATH` (`aria2` optional). Run
+Needs `yt-dlp` and `ffmpeg` on your `PATH` (`aria2` optional, `mpv` optional — required only for in-app playback). Run
 `shadowbox doctor` to check.
 
 ## Install
@@ -90,5 +90,5 @@ See [docs/RELEASING.md](docs/RELEASING.md#verifying-downloads) for full details.
 ## License
 
 MIT — see [LICENSE](LICENSE). Shadowbox invokes [yt-dlp](https://github.com/yt-dlp/yt-dlp),
-[FFmpeg](https://ffmpeg.org), and [aria2](https://aria2.github.io) as external
-programs; each keeps its own license.
+[FFmpeg](https://ffmpeg.org), [aria2](https://aria2.github.io), and [mpv](https://mpv.io) as
+external programs; each keeps its own license.

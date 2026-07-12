@@ -3,6 +3,8 @@ package ui
 import (
 	"context"
 	"io"
+	"os"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -10,6 +12,7 @@ import (
 	"github.com/EnJulian/shadowbox/internal/app"
 	"github.com/EnJulian/shadowbox/internal/config"
 	applog "github.com/EnJulian/shadowbox/internal/log"
+	"github.com/EnJulian/shadowbox/internal/player"
 	"github.com/EnJulian/shadowbox/internal/progress"
 )
 
@@ -26,6 +29,8 @@ const (
 	screenRunning
 	screenPicker
 	screenResult
+	screenSetupWizard
+	screenHelp
 )
 
 // taskDoneMsg is emitted when a background pipeline operation completes.
@@ -83,6 +88,20 @@ type model struct {
 	// download log viewer
 	logLines  []string
 	logScroll int
+
+	// playback
+	playback  player.State
+	player    *player.Player
+	playerErr string
+
+	// setup wizard
+	wizardReturnTo screen
+	wizardCursor   int
+	wizardItems    []wizardItem
+
+	// help
+	helpReturnTo screen
+	helpScroll   int
 }
 
 var mainMenu = []string{
@@ -112,6 +131,22 @@ func runProgram(cfg *config.Config) error {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
 
+	m := initialModel(cfg, theme, ti, sp)
+
+	p := tea.NewProgram(m, tea.WithAltScreen())
+	final, err := p.Run()
+	if fm, ok := final.(model); ok && fm.player != nil {
+		_ = fm.player.Close()
+	}
+	return err
+}
+
+// initialModel builds the model runProgram starts with, triggering the
+// setup wizard automatically the very first time Shadowbox ever runs (no
+// config file on disk yet). If the check itself errors for a reason other
+// than "file does not exist," this fails safe and skips the auto-trigger —
+// the wizard is still reachable manually from Settings either way.
+func initialModel(cfg *config.Config, theme Theme, ti textinput.Model, sp spinner.Model) model {
 	m := model{
 		cfg:     cfg,
 		app:     app.New(cfg),
@@ -121,10 +156,13 @@ func runProgram(cfg *config.Config) error {
 		spinner: sp,
 		screen:  screenMenu,
 	}
-
-	p := tea.NewProgram(m, tea.WithAltScreen())
-	_, err := p.Run()
-	return err
+	if path, err := config.Path(); err == nil {
+		if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
+			next, _ := m.openWizard(screenMenu)
+			m = next.(model)
+		}
+	}
+	return m
 }
 
 func (m model) Init() tea.Cmd {
@@ -140,7 +178,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
+		if m.player != nil {
+			m.playback = m.player.State()
+		}
 		return m, cmd
+
+	case startPlaybackMsg:
+		if m.player == nil {
+			if !player.Available() {
+				m.playerErr = "mpv not found — install it to enable playback"
+				return m, nil
+			}
+			p, err := player.New()
+			if err != nil {
+				m.playerErr = "failed to start mpv: " + err.Error()
+				return m, nil
+			}
+			m.player = p
+		}
+		if err := m.player.Load(msg.tracks, msg.index); err != nil {
+			m.playerErr = "failed to play: " + err.Error()
+		}
+		return m, nil
 
 	case progressMsg:
 		m.progress = progress.Update(msg)
@@ -168,22 +227,84 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.promptReqCh = nil
 		return m, nil
 
+	case wizardInstallDoneMsg:
+		m = m.handleWizardInstallDone(msg)
+		return m, nil
+
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
 	return m, nil
 }
 
+// screenCapturesText reports whether the given screen consumes free-text
+// keystrokes (a live filter or text field), and must not have global
+// playback keys (space/n/p/s/arrows) stolen out from under it.
+func screenCapturesText(s screen) bool {
+	switch s {
+	case screenLibrary, screenInput, screenSettingEdit:
+		return true
+	}
+	return false
+}
+
+// handlePlaybackKey handles the global playback keys. handled is false for
+// any other key, so the caller falls through to the screen's own handling.
+func (m model) handlePlaybackKey(msg tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+	if m.player == nil {
+		switch msg.String() {
+		case " ", "n", "p", "s":
+			return m, nil, true // consume the key, but there's nothing to control yet
+		}
+		if msg.Type == tea.KeyLeft || msg.Type == tea.KeyRight {
+			return m, nil, true
+		}
+		return m, nil, false
+	}
+
+	switch msg.String() {
+	case " ":
+		_ = m.player.TogglePause()
+		return m, nil, true
+	case "n":
+		_ = m.player.Next()
+		return m, nil, true
+	case "p":
+		_ = m.player.Prev()
+		return m, nil, true
+	case "s":
+		_ = m.player.Stop()
+		return m, nil, true
+	}
+	switch msg.Type {
+	case tea.KeyLeft:
+		_ = m.player.SeekBy(-10 * time.Second)
+		return m, nil, true
+	case tea.KeyRight:
+		_ = m.player.SeekBy(10 * time.Second)
+		return m, nil, true
+	}
+	return m, nil, false
+}
+
 // handleKey dispatches key events to the active screen.
 func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Global quit on the menu screen.
-	if m.screen == screenMenu {
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		}
-	} else if msg.String() == "ctrl+c" {
+	m.playerErr = ""
+
+	if msg.String() == "ctrl+c" {
 		return m, tea.Quit
+	}
+	if m.screen == screenMenu && msg.String() == "q" {
+		return m, tea.Quit
+	}
+
+	if !screenCapturesText(m.screen) {
+		if next, cmd, handled := m.handlePlaybackKey(msg); handled {
+			return next, cmd
+		}
+		if msg.String() == "?" && m.screen != screenHelp && m.screen != screenRunning && m.screen != screenResult {
+			return m.openHelp(m.screen)
+		}
 	}
 
 	switch m.screen {
@@ -203,6 +324,10 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateDownloadLog(msg)
 	case screenPicker:
 		return m.updatePicker(msg)
+	case screenSetupWizard:
+		return m.updateWizard(msg)
+	case screenHelp:
+		return m.updateHelp(msg)
 	case screenResult:
 		// Any key returns to the menu.
 		m.screen = screenMenu
@@ -300,6 +425,10 @@ func (m model) View() string {
 		return m.viewRunning()
 	case screenPicker:
 		return m.viewPicker()
+	case screenSetupWizard:
+		return m.viewWizard()
+	case screenHelp:
+		return m.viewHelp()
 	case screenResult:
 		return m.viewResult()
 	}

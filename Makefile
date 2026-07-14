@@ -36,3 +36,7 @@ snapshot: ## Build a local cross-platform snapshot via GoReleaser
 
 clean: ## Remove build artifacts
 	rm -rf $(BINARY) dist/
+
+release: ## Cut a release (usage: make release BUMP=patch|minor|major|X.Y.Z)
+	@if [ -z "$(BUMP)" ]; then echo "usage: make release BUMP=patch|minor|major|X.Y.Z"; exit 1; fi
+	./scripts/release.sh $(BUMP)

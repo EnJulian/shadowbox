@@ -7,12 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-14
+
 ### Added
+- In-app music player backed by `mpv` (optional runtime dependency, checked
+  via `shadowbox doctor`) with IPC-driven playback of library tracks directly
+  from the interactive console.
+- Type-ahead search/filter in the library browser (Artist/Album/Track levels)
+  for quickly narrowing long lists.
+- Help screen in the interactive console documenting keybindings and menus.
 - MusicBrainz metadata lookup and Cover Art Archive integration as the primary
   metadata and cover art source.
 
 ### Removed
 - Spotify API integration (metadata search and cover art).
+
+### Fixed
+- Bumped Go toolchain to 1.25.12 in CI and release workflows to address a
+  reported Go toolchain vulnerability.
 
 ## [1.4.2] - 2026-06-28
 

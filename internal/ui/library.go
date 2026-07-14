@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -136,9 +137,10 @@ func (m model) libraryEnter() (tea.Model, tea.Cmd) {
 		}
 		tracks := make([]player.Track, len(m.lib.entries))
 		for i, name := range m.lib.entries {
+			base := filepath.Base(name)
 			tracks[i] = player.Track{
-				Path:  filepath.Join(albumDir, name),
-				Title: strings.TrimSuffix(name, filepath.Ext(name)),
+				Path:  filepath.Join(albumDir, filepath.FromSlash(name)),
+				Title: strings.TrimSuffix(base, filepath.Ext(base)),
 			}
 		}
 		return m, func() tea.Msg { return startPlaybackMsg{tracks: tracks, index: index} }
@@ -231,21 +233,29 @@ func listDirs(dir string) []string {
 	return names
 }
 
-// listTracks returns the sorted names of audio files in dir.
+// listTracks returns the sorted, dir-relative paths (forward-slash separated)
+// of every audio file under dir, including ones nested arbitrarily deep in
+// subdirectories — e.g. multi-disc albums organized into CD1/CD2 folders, or
+// libraries imported from elsewhere with extra nesting.
 func listTracks(dir string) []string {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
 	var names []string
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
+	_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil // skip unreadable entries, keep walking the rest
 		}
-		if audioExts[strings.ToLower(filepath.Ext(e.Name()))] {
-			names = append(names, e.Name())
+		if d.IsDir() {
+			return nil
 		}
-	}
+		if !audioExts[strings.ToLower(filepath.Ext(d.Name()))] {
+			return nil
+		}
+		rel, err := filepath.Rel(dir, path)
+		if err != nil {
+			return nil
+		}
+		names = append(names, filepath.ToSlash(rel))
+		return nil
+	})
 	sort.Strings(names)
 	return names
 }

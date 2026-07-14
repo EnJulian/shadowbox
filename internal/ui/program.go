@@ -31,6 +31,7 @@ const (
 	screenResult
 	screenSetupWizard
 	screenHelp
+	screenEnhancePicker
 )
 
 // taskDoneMsg is emitted when a background pipeline operation completes.
@@ -69,6 +70,9 @@ type model struct {
 
 	// library navigation
 	lib libState
+
+	// enhance folder picker
+	enhancePicker enhancePickerState
 
 	// running progress
 	progress      progress.Update
@@ -242,7 +246,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // playback keys (space/n/p/s/arrows) stolen out from under it.
 func screenCapturesText(s screen) bool {
 	switch s {
-	case screenLibrary, screenInput, screenSettingEdit:
+	case screenLibrary, screenInput, screenSettingEdit, screenEnhancePicker:
 		return true
 	}
 	return false
@@ -320,6 +324,8 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateThemePicker(msg)
 	case screenLibrary:
 		return m.updateLibrary(msg)
+	case screenEnhancePicker:
+		return m.updateEnhancePicker(msg)
 	case screenDownloadLog:
 		return m.updateDownloadLog(msg)
 	case screenPicker:
@@ -419,6 +425,8 @@ func (m model) View() string {
 		return m.viewThemePicker()
 	case screenLibrary:
 		return m.viewLibrary()
+	case screenEnhancePicker:
+		return m.viewEnhancePicker()
 	case screenDownloadLog:
 		return m.viewDownloadLog()
 	case screenRunning:

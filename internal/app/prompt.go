@@ -39,6 +39,9 @@ func choose(ctx context.Context, opts Options, req PromptRequest) (int, error) {
 		return 0, nil
 	}
 
+	if opts.AutoAcceptTopMatch {
+		return 0, nil
+	}
 	if opts.Select != nil {
 		return opts.Select(ctx, req)
 	}

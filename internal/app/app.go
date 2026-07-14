@@ -54,6 +54,11 @@ type Options struct {
 	// choose falls back to numbered stdin prompts for CLI use.
 	Select SelectFunc
 
+	// AutoAcceptTopMatch, when set, makes choose return the top-ranked
+	// candidate without prompting (skips both Select and CLI stdin). Set by
+	// EnhanceDir so batch enhancement runs unattended.
+	AutoAcceptTopMatch bool
+
 	// Search metadata captured from a text query (not URLs). Set internally by Run.
 	searchMeta     bool
 	searchTitle    string

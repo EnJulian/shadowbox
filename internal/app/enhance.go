@@ -56,6 +56,10 @@ func (a *App) EnhanceDir(ctx context.Context, dir string, recursive bool, exts [
 		return nil
 	}
 
+	// Batch enhancement runs unattended: ambiguous metadata matches auto-accept
+	// the top-ranked candidate instead of prompting once per file.
+	opts.AutoAcceptTopMatch = true
+
 	var ok int
 	for i, f := range files {
 		if dryRun {

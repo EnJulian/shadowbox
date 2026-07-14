@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-07-14
+
 ### Added
 - Folder picker for "Enhance Existing Files", replacing the free-text
   directory prompt — browse from the configured music directory (or

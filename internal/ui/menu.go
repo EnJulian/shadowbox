@@ -31,7 +31,7 @@ func (m model) selectMenu() (tea.Model, tea.Cmd) {
 	case 2:
 		return m.openInput("playlist", "Enter a YouTube playlist URL")
 	case 3:
-		return m.openInput("enhance", "Enter a directory of audio files to enhance")
+		return m.openEnhancePicker()
 	case 4:
 		return m.openLibrary()
 	case 5:

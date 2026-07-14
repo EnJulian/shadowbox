@@ -56,11 +56,6 @@ func (m model) submitInput(value string) (tea.Model, tea.Cmd) {
 			return a.RunPlaylist(ctx, value, opts)
 		})
 		return m, cmd
-	case "enhance":
-		cmd := m.startTask("Enhancement", func(ctx context.Context, opts app.Options) error {
-			return a.EnhanceDir(ctx, value, true, []string{"opus", "mp3", "m4a", "flac"}, false, opts)
-		})
-		return m, cmd
 	}
 	m.screen = screenMenu
 	return m, nil

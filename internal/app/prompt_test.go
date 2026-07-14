@@ -50,6 +50,29 @@ func TestChooseUsesSelectFunc(t *testing.T) {
 	}
 }
 
+func TestChooseAutoAcceptsTopMatchWithoutPrompting(t *testing.T) {
+	opts := Options{
+		AutoAcceptTopMatch: true,
+		Select: func(ctx context.Context, req PromptRequest) (int, error) {
+			t.Fatal("Select should not be called when AutoAcceptTopMatch is set")
+			return -1, nil
+		},
+	}
+	idx, err := choose(context.Background(), opts, PromptRequest{
+		Title: "Pick one",
+		Options: []PromptOption{
+			{Label: "a"},
+			{Label: "b"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if idx != 0 {
+		t.Fatalf("idx = %d, want 0", idx)
+	}
+}
+
 func TestChoosePropagatesCancel(t *testing.T) {
 	opts := Options{
 		Select: func(ctx context.Context, req PromptRequest) (int, error) {

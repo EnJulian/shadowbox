@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Folder picker for "Enhance Existing Files", replacing the free-text
+  directory prompt — browse from the configured music directory (or
+  navigate anywhere on disk) and confirm with "[ Use this folder ]".
+
+### Changed
+- Batch enhancement (`Enhance Existing Files` and `shadowbox enhance`) now
+  runs unattended: ambiguous metadata matches auto-accept the top-ranked
+  candidate instead of prompting once per file.
+
+### Fixed
+- Library browser and player now find tracks nested arbitrarily deep under an
+  album directory (e.g. multi-disc `CD1`/`CD2` folders), instead of only
+  files sitting directly inside it.
+- Playing a track from the library now queues every track found anywhere
+  under that album (including nested disc/bonus subfolders), not just the
+  ones in the same directory as the selected track.
+
 ## [1.5.0] - 2026-07-14
 
 ### Added

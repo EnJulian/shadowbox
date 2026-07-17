@@ -5,6 +5,7 @@ go 1.25.0
 toolchain go1.25.12
 
 require (
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/Sorrow446/go-mp4tag v0.0.0-20240130220823-68ce31d53e37
 	github.com/bogem/id3v2/v2 v2.1.4
 	github.com/charmbracelet/bubbles v1.0.0
@@ -15,11 +16,10 @@ require (
 	github.com/go-flac/go-flac v1.0.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	golang.org/x/net v0.56.0
+	golang.org/x/net v0.57.0
 )
 
 require (
-	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/colorprofile v0.4.1 // indirect
@@ -50,6 +50,6 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 )
